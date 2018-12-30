@@ -27,13 +27,19 @@ data Record (f :: Type -> Type) (kv :: RBT Symbol Type)  where
     Empty :: Record f E 
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
-class HasField (k :: Symbol) (kv :: RBT Symbol Type) (v :: Type) | kv k -> v where 
+class HasField (k :: Symbol) 
+               (kv :: RBT Symbol Type) 
+               (v :: Type)            | kv k -> v where 
     getField :: Record f kv -> f v 
 
-instance ((CmpSymbol k' k) ~ ordering, HasFieldHelper ordering k (N color left k' v' right) v) => HasField k (N color left k' v' right) v where
+instance ((CmpSymbol k' k) ~ ordering, HasFieldHelper ordering k (N color left k' v' right) v) 
+      => HasField k (N color left k' v' right) v where
     getField = getField' @ordering @k @_ @v 
 
-class HasFieldHelper (ordering :: Ordering) (k :: Symbol) (kv :: RBT Symbol Type) (v :: Type) | kv k -> v where 
+class HasFieldHelper (ordering :: Ordering) 
+                     (k :: Symbol) 
+                     (kv :: RBT Symbol Type) 
+                     (v :: Type)            | kv k -> v where 
     getField' :: Record f kv -> f v 
 
 instance HasFieldHelper EQ k (N color left k v right) v where
