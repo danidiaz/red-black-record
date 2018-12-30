@@ -1,3 +1,7 @@
+# Development
+
+- I can't seem to set the order of the type variables for type application.
+
 # Relevant / Related
 
 [Persistent Red Black Trees in Haskell](https://abhiroop.github.io/Haskell-Red-Black-Tree/). [reddit](https://www.reddit.com/r/haskell/comments/79kbog/persistent_red_black_trees_in_haskell/).

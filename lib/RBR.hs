@@ -9,7 +9,8 @@
              UndecidableInstances,
              TypeApplications,
              ScopedTypeVariables,
-             AllowAmbiguousTypes #-}
+             AllowAmbiguousTypes,
+             ExplicitForAll #-}
 module RBR where
 
 import Data.Kind
@@ -86,12 +87,24 @@ data Record (f :: Type -> Type) (kv :: RBT Symbol Type)  where
     Empty :: Record f E 
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
+insert :: forall (k :: Symbol) (v :: Type) (f :: Type -> Type) (kv :: RBT Symbol Type) 
+        . f v 
+       -> Record f kv 
+       -> Record f (Insert k v kv)
+insert fv =
+    let insert' Empty = Node Empty fv Empty 
+        insert' (Node left v' right) = undefined
+     in insert'
+
+-- Accessing fields
+
 class HasField (k :: Symbol) 
                (kv :: RBT Symbol Type) 
                (v :: Type)            | kv k -> v where 
     getField :: Record f kv -> f v 
 
-instance ((CmpSymbol k' k) ~ ordering, HasFieldHelper ordering k (N color left k' v' right) v) 
+instance ((CmpSymbol k' k) ~ ordering, 
+          HasFieldHelper ordering k (N color left k' v' right) v) 
       => HasField k (N color left k' v' right) v where
     getField = getField' @ordering @k @_ @v 
 
