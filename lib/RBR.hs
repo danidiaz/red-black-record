@@ -30,10 +30,10 @@ data Record (f :: Type -> Type) (kv :: RBT Symbol Type)  where
 class HasField (k :: Symbol) (kv :: RBT Symbol Type) (v :: Type) | kv k -> v where 
     getField :: Record f kv -> f v 
 
-instance ((CmpSymbol k' k) ~ flag, HasFieldHelper flag k (N color left k' v' right) v) => HasField k (N color left k' v' right) v where
-    getField = getField' @flag @k @_ @v 
+instance ((CmpSymbol k' k) ~ ordering, HasFieldHelper ordering k (N color left k' v' right) v) => HasField k (N color left k' v' right) v where
+    getField = getField' @ordering @k @_ @v 
 
-class HasFieldHelper (flag :: Ordering) (k :: Symbol) (kv :: RBT Symbol Type) (v :: Type) | kv k -> v where 
+class HasFieldHelper (ordering :: Ordering) (k :: Symbol) (kv :: RBT Symbol Type) (v :: Type) | kv k -> v where 
     getField' :: Record f kv -> f v 
 
 instance HasFieldHelper EQ k (N color left k v right) v where
