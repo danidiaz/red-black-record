@@ -27,21 +27,21 @@ data Record (f :: Type -> Type) (kv :: RBT Symbol Type)  where
     Empty :: Record f E 
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
-class HasField (kv :: RBT Symbol Type) (k :: Symbol) (v :: Type) | kv k -> v where 
+class HasField (k :: Symbol) (kv :: RBT Symbol Type) (v :: Type) | kv k -> v where 
     getField :: Record f kv -> f v 
 
-instance ((CmpSymbol k' k) ~ flag, HasFieldHelper flag (N color left k' v' right) k v) => HasField (N color left k' v' right) k v where
-    getField = getField' @flag @_ @k @v 
+instance ((CmpSymbol k' k) ~ flag, HasFieldHelper flag k (N color left k' v' right) v) => HasField k (N color left k' v' right) v where
+    getField = getField' @flag @k @_ @v 
 
-class HasFieldHelper (flag :: Ordering) (kv :: RBT Symbol Type) (k :: Symbol) (v :: Type) | kv k -> v where 
+class HasFieldHelper (flag :: Ordering) (k :: Symbol) (kv :: RBT Symbol Type) (v :: Type) | kv k -> v where 
     getField' :: Record f kv -> f v 
 
-instance HasFieldHelper EQ (N color left k v right) k v where
+instance HasFieldHelper EQ k (N color left k v right) v where
     getField' (Node _ fv _) = fv
  
-instance HasField right k v => HasFieldHelper LT (N color left k' v' right) k v where
-    getField' (Node _ _ right) = getField @right @k @v right
+instance HasField k right v => HasFieldHelper LT k (N color left k' v' right) v where
+    getField' (Node _ _ right) = getField @k @right @v right
 
-instance HasField left k v => HasFieldHelper GT (N color left k' v' right) k v where
-    getField' (Node left _ _) = getField @left @k @v left
+instance HasField k left v => HasFieldHelper GT k (N color left k' v' right) v where
+    getField' (Node left _ _) = getField @k @left @v left
 
