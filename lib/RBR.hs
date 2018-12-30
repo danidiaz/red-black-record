@@ -31,6 +31,9 @@ data RBT k v = E
 type family Insert (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) :: RBT Symbol Type where
     Insert k v t = MakeBlack (InsertHelper1 k v t)
 
+type family MakeBlack (t :: RBT Symbol Type) where
+    MakeBlack (N color left k v right) = N B left k v right
+
 type family InsertHelper1 (k :: Symbol) 
                           (v :: Type) 
                           (t :: RBT Symbol Type) :: RBT Symbol Type where
@@ -48,9 +51,6 @@ type family InsertHelper2 (ordering :: Ordering)
     InsertHelper2 LT k v color left k' v' right = Balance color (Insert k v left) k' v' right
     InsertHelper2 EQ k v color left k' v' right = N color left k v right
     InsertHelper2 GT k v color left k' v' right = Balance color left k' v' (Insert k v right)
-
-type family MakeBlack (t :: RBT Symbol Type) where
-    MakeBlack (N color left k v right) = N B left k v right
 
 -- shamelessly copied from
 -- https://abhiroop.github.io/Haskell-Red-Black-Tree/
@@ -93,7 +93,7 @@ insert :: forall (k :: Symbol) (v :: Type) (f :: Type -> Type) (kv :: RBT Symbol
        -> Record f (Insert k v kv)
 insert fv =
     let insert' Empty = Node Empty fv Empty 
-        insert' (Node left v' right) = undefined
+        insert' (Node left fv' right) = undefined
      in insert'
 
 -- Accessing fields
