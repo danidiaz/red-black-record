@@ -48,9 +48,9 @@ type family InsertHelper2 (ordering :: Ordering)
                           (k' :: Symbol) 
                           (v' :: Type) 
                           (right :: RBT Symbol Type) :: RBT Symbol Type where
-    InsertHelper2 LT k v color left k' v' right = Balance color (Insert k v left) k' v' right
+    InsertHelper2 LT k v color left k' v' right = Balance color (InsertHelper1 k v left) k' v' right
     InsertHelper2 EQ k v color left k' v' right = N color left k v right
-    InsertHelper2 GT k v color left k' v' right = Balance color left k' v' (Insert k v right)
+    InsertHelper2 GT k v color left k' v' right = Balance color left k' v' (InsertHelper1 k v right)
 
 -- shamelessly copied from
 -- https://abhiroop.github.io/Haskell-Red-Black-Tree/
@@ -81,6 +81,48 @@ type family Balance (color :: Color) (left :: RBT k' v') (k :: k') (v :: v') (ri
 -- balance color a x b = T color a x b
 
 -- experiment
+class InsertableHelper1 (k :: Symbol) 
+                        (v :: Type) 
+                        (t :: RBT Symbol Type) where
+    type InsertResult1 k v t :: RBT Symbol Type 
+    insertR1 :: f v -> Record f t -> Record f (InsertResult1 k v t)
+
+instance InsertableHelper1 k v E where
+    type InsertResult1 k v E = N R E k v E
+    insertR1 fv Empty = Node Empty fv Empty 
+
+instance (CmpSymbol k k' ~ ordering, 
+          InsertableHelper2 ordering k v color left k' v' right
+         )
+         => InsertableHelper1 k v (N color left k' v' right) where
+    type InsertResult1 k v (N color left k' v' right) = InsertResult2 (CmpSymbol k k') k v color left k' v' right  
+    insertR1 = insertR2 @ordering @k @v @color @left @k' @v' @right
+
+class InsertableHelper2 (ordering :: Ordering) 
+                        (k :: Symbol) 
+                        (v :: Type) 
+                        (color :: Color) 
+                        (left :: RBT Symbol Type) 
+                        (k' :: Symbol) 
+                        (v' :: Type) 
+                        (right :: RBT Symbol Type) where
+    type InsertResult2 ordering k v color left k' v' right :: RBT Symbol Type 
+    insertR2 :: f v -> Record f (N color left k' v' right) -> Record f (InsertResult2 ordering k v color left k' v' right)
+
+-- TODO
+-- instance InsertableHelper2 LT k v color left k' v' right where
+--     type InsertResult2 LT k v color left k' v' right = 
+--     insertR2 fv 
+
+instance InsertableHelper2 EQ k v color left k' v' right where
+    type InsertResult2 EQ k v color left k' v' right = N color left k v right
+    insertR2 fv (Node left _ right) = Node left fv right
+
+-- TODO
+-- instance InsertableHelper2 GT k v color left k' v' right where
+--     type InsertResult2 GT k v color left k' v' right = 
+--     insertR2 fv 
+
 data BalanceAction = BalanceLL
                    | BalanceLR
                    | BalanceRL
