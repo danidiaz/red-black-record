@@ -81,6 +81,20 @@ type family Balance (color :: Color) (left :: RBT k' v') (k :: k') (v :: v') (ri
 -- balance color a x b = T color a x b
 
 -- experiment
+
+
+-- type family MakeBlack (t :: RBT Symbol Type) where
+--     MakeBlack (N color left k v right) = N B left k v right
+
+
+class CanMakeBlack (t :: RBT Symbol Type) where
+    type MakeBlackX t :: RBT Symbol Type
+    makeBlackR :: Record f t -> Record f (MakeBlackX t)
+
+instance CanMakeBlack (N color left k v right) where
+    type MakeBlackX (N color left k v right) = N B left k v right
+    makeBlackR (Node left fv right) = Node left fv right
+
 class InsertableHelper1 (k :: Symbol) 
                         (v :: Type) 
                         (t :: RBT Symbol Type) where
