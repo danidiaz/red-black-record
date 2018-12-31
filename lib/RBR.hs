@@ -16,10 +16,6 @@ module RBR where
 import Data.Kind
 import GHC.TypeLits
 
---
--- The TYPE level
---
-
 data Color = R
            | B
     deriving Show
@@ -28,81 +24,40 @@ data RBT k v = E
              | N Color (RBT k v) k v (RBT k v)
     deriving Show
 
-type family Insert (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) :: RBT Symbol Type where
-    Insert k v t = MakeBlack (InsertHelper1 k v t)
+data Record (f :: Type -> Type) (kv :: RBT Symbol Type)  where
+    Empty :: Record f E 
+    Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
-type family MakeBlack (t :: RBT Symbol Type) where
-    MakeBlack (N color left k v right) = N B left k v right
+unitR :: Record f E
+unitR = Empty
 
-type family InsertHelper1 (k :: Symbol) 
-                          (v :: Type) 
-                          (t :: RBT Symbol Type) :: RBT Symbol Type where
-    InsertHelper1 k v E = N R E k v E
-    InsertHelper1 k v (N color left k' v' right) = InsertHelper2  (CmpSymbol k k') k v color left k' v' right  
+--
+--
+-- Insertion
+class Insertable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
+    type Insert k v t :: RBT Symbol Type
+    insertR :: f v -> Record f t -> Record f (Insert k v t)
 
-type family InsertHelper2 (ordering :: Ordering) 
-                          (k :: Symbol) 
-                          (v :: Type) 
-                          (color :: Color) 
-                          (left :: RBT Symbol Type) 
-                          (k' :: Symbol) 
-                          (v' :: Type) 
-                          (right :: RBT Symbol Type) :: RBT Symbol Type where
-    InsertHelper2 LT k v color left k' v' right = Balance color (InsertHelper1 k v left) k' v' right
-    InsertHelper2 EQ k v color left k' v' right = N color left k v right
-    InsertHelper2 GT k v color left k' v' right = Balance color left k' v' (InsertHelper1 k v right)
-
--- shamelessly copied from
--- https://abhiroop.github.io/Haskell-Red-Black-Tree/
--- insert :: (Ord a) => a -> Tree a -> Tree a
--- insert x s = makeBlack $ ins s
---   where ins E  = T R E x E
---         ins (T color a y b)
---           | x < y  = balance color (ins a) y b
---           | x == y = T color a y b
---           | x > y  = balance color a y (ins b)
---         makeBlack (T _ a y b) = T B a y b
-
-
-type family Balance (color :: Color) (left :: RBT k' v') (k :: k') (v :: v') (right :: RBT k' v') :: RBT k' v' where
-    Balance B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
-    Balance B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
-    Balance B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
-    Balance B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
-    Balance color a k v b = N color a k v b 
-
--- shamelessly copied from
--- https://abhiroop.github.io/Haskell-Red-Black-Tree/
--- balance :: Color -> Tree a -> a -> Tree a -> Tree a
--- balance B (T R (T R a x b) y c) z d = T R (T B a x b) y (T B c z d)
--- balance B (T R a x (T R b y c)) z d = T R (T B a x b) y (T B c z d)
--- balance B a x (T R (T R b y c) z d) = T R (T B a x b) y (T B c z d)
--- balance B a x (T R b y (T R c z d)) = T R (T B a x b) y (T B c z d)
--- balance color a x b = T color a x b
-
--- experiment
-
-
--- type family MakeBlack (t :: RBT Symbol Type) where
---     MakeBlack (N color left k v right) = N B left k v right
-
+instance (InsertableHelper1 k v t, CanMakeBlack (Insert1 k v t)) => Insertable k v t where
+    type Insert k v t = MakeBlack (Insert1 k v t)
+    insertR fv r = makeBlackR (insertR1 @k @v fv r) 
 
 class CanMakeBlack (t :: RBT Symbol Type) where
-    type MakeBlackX t :: RBT Symbol Type
-    makeBlackR :: Record f t -> Record f (MakeBlackX t)
+    type MakeBlack t :: RBT Symbol Type
+    makeBlackR :: Record f t -> Record f (MakeBlack t)
 
 instance CanMakeBlack (N color left k v right) where
-    type MakeBlackX (N color left k v right) = N B left k v right
+    type MakeBlack (N color left k v right) = N B left k v right
     makeBlackR (Node left fv right) = Node left fv right
 
 class InsertableHelper1 (k :: Symbol) 
                         (v :: Type) 
                         (t :: RBT Symbol Type) where
-    type InsertResult1 k v t :: RBT Symbol Type 
-    insertR1 :: f v -> Record f t -> Record f (InsertResult1 k v t)
+    type Insert1 k v t :: RBT Symbol Type 
+    insertR1 :: f v -> Record f t -> Record f (Insert1 k v t)
 
 instance InsertableHelper1 k v E where
-    type InsertResult1 k v E = N R E k v E
+    type Insert1 k v E = N R E k v E
     insertR1 fv Empty = Node Empty fv Empty 
 
 instance (CmpSymbol k k' ~ ordering, 
@@ -111,7 +66,7 @@ instance (CmpSymbol k k' ~ ordering,
          => InsertableHelper1 k v (N color left k' v' right) where
     -- FIXME duplicate work with CmpSymbol: both in constraint and in associated type family. 
     -- How to avoid it?
-    type InsertResult1 k v (N color left k' v' right) = InsertResult2 (CmpSymbol k k') k v color left k' v' right  
+    type Insert1 k v (N color left k' v' right) = Insert2 (CmpSymbol k k') k v color left k' v' right  
     insertR1 = insertR2 @ordering @k @v @color @left @k' @v' @right
 
 class InsertableHelper2 (ordering :: Ordering) 
@@ -122,25 +77,25 @@ class InsertableHelper2 (ordering :: Ordering)
                         (k' :: Symbol) 
                         (v' :: Type) 
                         (right :: RBT Symbol Type) where
-    type InsertResult2 ordering k v color left k' v' right :: RBT Symbol Type 
-    insertR2 :: f v -> Record f (N color left k' v' right) -> Record f (InsertResult2 ordering k v color left k' v' right)
+    type Insert2 ordering k v color left k' v' right :: RBT Symbol Type 
+    insertR2 :: f v -> Record f (N color left k' v' right) -> Record f (Insert2 ordering k v color left k' v' right)
 
 instance (InsertableHelper1 k v left,
-          Balanceable color (InsertResult1 k v left) k' v' right
+          Balanceable color (Insert1 k v left) k' v' right
          )
          => InsertableHelper2 LT k v color left k' v' right where
-    type InsertResult2 LT k v color left k' v' right = BalanceResult color (InsertResult1 k v left) k' v' right
+    type Insert2 LT k v color left k' v' right = BalanceResult color (Insert1 k v left) k' v' right
     insertR2 fv (Node left fv' right) = balanceR @color @_ @k' @v' @right (Node (insertR1 @k @v fv left) fv' right) 
 
 instance InsertableHelper2 EQ k v color left k' v' right where
-    type InsertResult2 EQ k v color left k' v' right = N color left k v right
+    type Insert2 EQ k v color left k' v' right = N color left k v right
     insertR2 fv (Node left _ right) = Node left fv right
 
 instance (InsertableHelper1 k v right,
-          Balanceable color left  k' v' (InsertResult1 k v right)
+          Balanceable color left  k' v' (Insert1 k v right)
          )
          => InsertableHelper2 GT k v color left k' v' right where
-    type InsertResult2 GT k v color left k' v' right = BalanceResult color left  k' v' (InsertResult1 k v right)
+    type Insert2 GT k v color left k' v' right = BalanceResult color left  k' v' (Insert1 k v right)
     insertR2 fv (Node left fv' right) = balanceR @color @left @k' @v' @_ (Node left  fv' (insertR1 @k @v fv right)) 
 
 data BalanceAction = BalanceLL
@@ -150,14 +105,20 @@ data BalanceAction = BalanceLL
                    | DoNotBalance
                    deriving Show
 
-type family ShouldBalance (color :: Color) (left :: RBT k' v') (right :: RBT k' v') :: BalanceAction where
+type family ShouldBalance (color :: Color) 
+                          (left :: RBT k' v') 
+                          (right :: RBT k' v') :: BalanceAction where
     ShouldBalance B (N R (N R a k1 v1 b) k2 v2 c) d = BalanceLL
     ShouldBalance B (N R a k1 v1 (N R b k2 v2 c)) d = BalanceLR
     ShouldBalance B a (N R (N R b k2 v2 c) k3 v3 d) = BalanceRL
     ShouldBalance B a (N R b k2 v2 (N R c k3 v3 d)) = BalanceRR
     ShouldBalance color a  b                        = DoNotBalance
 
-class Balanceable (color :: Color) (left :: RBT Symbol Type) (k :: Symbol) (v :: Type) (right :: RBT Symbol Type) where
+class Balanceable (color :: Color) 
+                  (left :: RBT Symbol Type) 
+                  (k :: Symbol) 
+                  (v :: Type) 
+                  (right :: RBT Symbol Type) where
     type BalanceResult color left k v right :: RBT Symbol Type
     balanceR :: Record f (N color left k v right) -> Record f (BalanceResult color left k v right)
 
@@ -198,24 +159,9 @@ instance BalanceableHelper BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) whe
 instance BalanceableHelper DoNotBalance color a k v b where
     type BalanceResult' DoNotBalance color a k v b = N color a k v b 
     balanceR' = id
--- end experiment
 
 --
--- The TERM level
 --
-data Record (f :: Type -> Type) (kv :: RBT Symbol Type)  where
-    Empty :: Record f E 
-    Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
-
-insert :: forall (k :: Symbol) (v :: Type) (f :: Type -> Type) (kv :: RBT Symbol Type) 
-        . f v 
-       -> Record f kv 
-       -> Record f (Insert k v kv)
-insert fv =
-    let insert' Empty = Node Empty fv Empty 
-        insert' (Node left fv' right) = undefined
-     in insert'
-
 -- Accessing fields
 
 class HasField (k :: Symbol) 
