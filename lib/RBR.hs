@@ -22,7 +22,7 @@ import GHC.TypeLits
 
 data Color = R
            | B
-    deriving (Eq,Ord,Show)
+    deriving Show
 
 data RBT k v = E 
              | N Color (RBT k v) k v (RBT k v)
@@ -80,6 +80,58 @@ type family Balance (color :: Color) (left :: RBT k' v') (k :: k') (v :: v') (ri
 -- balance B a x (T R b y (T R c z d)) = T R (T B a x b) y (T B c z d)
 -- balance color a x b = T color a x b
 
+-- experiment
+data BalanceAction = BalanceLL
+                   | BalanceLR
+                   | BalanceRL
+                   | BalanceRR
+                   | DoNotBalance
+                   deriving Show
+
+type family ShouldBalance (color :: Color) (left :: RBT k' v') (right :: RBT k' v') :: BalanceAction where
+    ShouldBalance B (N R (N R a k1 v1 b) k2 v2 c) d = BalanceLL
+    ShouldBalance B (N R a k1 v1 (N R b k2 v2 c)) d = BalanceLR
+    ShouldBalance B a (N R (N R b k2 v2 c) k3 v3 d) = BalanceRL
+    ShouldBalance B a (N R b k2 v2 (N R c k3 v3 d)) = BalanceRR
+    ShouldBalance color a  b                        = DoNotBalance
+
+class Balanceable (color :: Color) (left :: RBT Symbol Type) (k :: Symbol) (v :: Type) (right :: RBT Symbol Type) where
+    type BalanceResult color left k v right :: RBT Symbol Type
+    balanceR :: Record f (N color left k v right) -> Record f (BalanceResult color left k v right)
+
+instance (ShouldBalance color left right ~ action, 
+          BalanceableHelper action color left k v right
+         ) 
+         => Balanceable color left k v right where
+    -- FIXME duplicate work with ShouldBalance. Pass it always as a parameter?
+    type BalanceResult color left k v right = BalanceResult' (ShouldBalance color left right) color left k v right
+    balanceR = balanceR' @action @color @left @k @v @right
+    
+class BalanceableHelper (action :: BalanceAction) (color :: Color) (left :: RBT Symbol Type) (k :: Symbol) (v :: Type) (right :: RBT Symbol Type) where
+    type BalanceResult' action color left k v right :: RBT Symbol Type
+    balanceR' :: Record f (N color left k v right) -> Record f (BalanceResult' action color left k v right)
+
+instance BalanceableHelper BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d where
+    type BalanceResult' BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d)
+    balanceR' (Node (Node (Node a fv1 b) fv2 c) fv3 d) = Node (Node a fv1 b) fv2 (Node c fv3 d)
+
+instance BalanceableHelper BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d where
+    type BalanceResult' BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
+    balanceR' (Node (Node a fv1 (Node b fv2 c)) fv3 d) = Node (Node a fv1 b) fv2 (Node c fv3 d)
+
+instance BalanceableHelper BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) where
+    type BalanceResult' BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
+    balanceR' (Node a fv1 (Node (Node b fv2 c) fv3 d)) = Node (Node a fv1 b) fv2 (Node c fv3 d)
+
+instance BalanceableHelper BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) where
+    type BalanceResult' BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
+    balanceR' (Node a fv1 (Node b fv2 (Node c fv3 d))) = Node (Node a fv1 b) fv2 (Node c fv3 d)
+
+instance BalanceableHelper DoNotBalance color a k v b where
+    type BalanceResult' DoNotBalance color a k v b = N color a k v b 
+    balanceR' = id
+-- end experiment
+
 --
 -- The TERM level
 --
@@ -103,9 +155,10 @@ class HasField (k :: Symbol)
                (v :: Type)            | kv k -> v where 
     getField :: Record f kv -> f v 
 
-instance ((CmpSymbol k' k) ~ ordering, 
-          HasFieldHelper ordering k (N color left k' v' right) v) 
-      => HasField k (N color left k' v' right) v where
+instance (CmpSymbol k' k ~ ordering, 
+          HasFieldHelper ordering k (N color left k' v' right) v
+         ) 
+         => HasField k (N color left k' v' right) v where
     getField = getField' @ordering @k @_ @v 
 
 class HasFieldHelper (ordering :: Ordering) 
