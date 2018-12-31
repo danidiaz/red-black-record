@@ -84,7 +84,7 @@ instance (InsertableHelper1 k v left,
           Balanceable color (Insert1 k v left) k' v' right
          )
          => InsertableHelper2 LT k v color left k' v' right where
-    type Insert2 LT k v color left k' v' right = BalanceResult color (Insert1 k v left) k' v' right
+    type Insert2 LT k v color left k' v' right = Balance color (Insert1 k v left) k' v' right
     insertR2 fv (Node left fv' right) = balanceR @color @_ @k' @v' @right (Node (insertR1 @k @v fv left) fv' right) 
 
 instance InsertableHelper2 EQ k v color left k' v' right where
@@ -95,7 +95,7 @@ instance (InsertableHelper1 k v right,
           Balanceable color left  k' v' (Insert1 k v right)
          )
          => InsertableHelper2 GT k v color left k' v' right where
-    type Insert2 GT k v color left k' v' right = BalanceResult color left  k' v' (Insert1 k v right)
+    type Insert2 GT k v color left k' v' right = Balance color left  k' v' (Insert1 k v right)
     insertR2 fv (Node left fv' right) = balanceR @color @left @k' @v' @_ (Node left  fv' (insertR1 @k @v fv right)) 
 
 data BalanceAction = BalanceLL
@@ -119,8 +119,8 @@ class Balanceable (color :: Color)
                   (k :: Symbol) 
                   (v :: Type) 
                   (right :: RBT Symbol Type) where
-    type BalanceResult color left k v right :: RBT Symbol Type
-    balanceR :: Record f (N color left k v right) -> Record f (BalanceResult color left k v right)
+    type Balance color left k v right :: RBT Symbol Type
+    balanceR :: Record f (N color left k v right) -> Record f (Balance color left k v right)
 
 instance (ShouldBalance color left right ~ action, 
           BalanceableHelper action color left k v right
@@ -128,7 +128,7 @@ instance (ShouldBalance color left right ~ action,
          => Balanceable color left k v right where
     -- FIXME duplicate work with ShouldBalance: both in constraint and in associated type family. 
     -- How to avoid it?
-    type BalanceResult color left k v right = BalanceResult' (ShouldBalance color left right) color left k v right
+    type Balance color left k v right = Balance' (ShouldBalance color left right) color left k v right
     balanceR = balanceR' @action @color @left @k @v @right
     
 class BalanceableHelper (action :: BalanceAction) 
@@ -137,27 +137,27 @@ class BalanceableHelper (action :: BalanceAction)
                         (k :: Symbol) 
                         (v :: Type) 
                         (right :: RBT Symbol Type) where
-    type BalanceResult' action color left k v right :: RBT Symbol Type
-    balanceR' :: Record f (N color left k v right) -> Record f (BalanceResult' action color left k v right)
+    type Balance' action color left k v right :: RBT Symbol Type
+    balanceR' :: Record f (N color left k v right) -> Record f (Balance' action color left k v right)
 
 instance BalanceableHelper BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d where
-    type BalanceResult' BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d)
+    type Balance' BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d)
     balanceR' (Node (Node (Node a fv1 b) fv2 c) fv3 d) = Node (Node a fv1 b) fv2 (Node c fv3 d)
 
 instance BalanceableHelper BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d where
-    type BalanceResult' BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
+    type Balance' BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
     balanceR' (Node (Node a fv1 (Node b fv2 c)) fv3 d) = Node (Node a fv1 b) fv2 (Node c fv3 d)
 
 instance BalanceableHelper BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) where
-    type BalanceResult' BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
+    type Balance' BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
     balanceR' (Node a fv1 (Node (Node b fv2 c) fv3 d)) = Node (Node a fv1 b) fv2 (Node c fv3 d)
 
 instance BalanceableHelper BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) where
-    type BalanceResult' BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
+    type Balance' BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
     balanceR' (Node a fv1 (Node b fv2 (Node c fv3 d))) = Node (Node a fv1 b) fv2 (Node c fv3 d)
 
 instance BalanceableHelper DoNotBalance color a k v b where
-    type BalanceResult' DoNotBalance color a k v b = N color a k v b 
+    type Balance' DoNotBalance color a k v b = N color a k v b 
     balanceR' = id
 
 --
