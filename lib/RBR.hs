@@ -95,6 +95,8 @@ instance (CmpSymbol k k' ~ ordering,
           InsertableHelper2 ordering k v color left k' v' right
          )
          => InsertableHelper1 k v (N color left k' v' right) where
+    -- FIXME duplicate work with CmpSymbol: both in constraint and in associated type family. 
+    -- How to avoid it?
     type InsertResult1 k v (N color left k' v' right) = InsertResult2 (CmpSymbol k k') k v color left k' v' right  
     insertR1 = insertR2 @ordering @k @v @color @left @k' @v' @right
 
@@ -109,19 +111,23 @@ class InsertableHelper2 (ordering :: Ordering)
     type InsertResult2 ordering k v color left k' v' right :: RBT Symbol Type 
     insertR2 :: f v -> Record f (N color left k' v' right) -> Record f (InsertResult2 ordering k v color left k' v' right)
 
--- TODO
--- instance InsertableHelper2 LT k v color left k' v' right where
---     type InsertResult2 LT k v color left k' v' right = 
---     insertR2 fv 
+instance (InsertableHelper1 k v left,
+          Balanceable color (InsertResult1 k v left) k' v' right
+         )
+         => InsertableHelper2 LT k v color left k' v' right where
+    type InsertResult2 LT k v color left k' v' right = BalanceResult color (InsertResult1 k v left) k' v' right
+    insertR2 fv (Node left fv' right) = balanceR @color @_ @k' @v' @right (Node (insertR1 @k @v fv left) fv' right) 
 
 instance InsertableHelper2 EQ k v color left k' v' right where
     type InsertResult2 EQ k v color left k' v' right = N color left k v right
     insertR2 fv (Node left _ right) = Node left fv right
 
--- TODO
--- instance InsertableHelper2 GT k v color left k' v' right where
---     type InsertResult2 GT k v color left k' v' right = 
---     insertR2 fv 
+instance (InsertableHelper1 k v right,
+          Balanceable color left  k' v' (InsertResult1 k v right)
+         )
+         => InsertableHelper2 GT k v color left k' v' right where
+    type InsertResult2 GT k v color left k' v' right = BalanceResult color left  k' v' (InsertResult1 k v right)
+    insertR2 fv (Node left fv' right) = balanceR @color @left @k' @v' @_ (Node left  fv' (insertR1 @k @v fv right)) 
 
 data BalanceAction = BalanceLL
                    | BalanceLR
@@ -145,11 +151,17 @@ instance (ShouldBalance color left right ~ action,
           BalanceableHelper action color left k v right
          ) 
          => Balanceable color left k v right where
-    -- FIXME duplicate work with ShouldBalance. Pass it always as a parameter?
+    -- FIXME duplicate work with ShouldBalance: both in constraint and in associated type family. 
+    -- How to avoid it?
     type BalanceResult color left k v right = BalanceResult' (ShouldBalance color left right) color left k v right
     balanceR = balanceR' @action @color @left @k @v @right
     
-class BalanceableHelper (action :: BalanceAction) (color :: Color) (left :: RBT Symbol Type) (k :: Symbol) (v :: Type) (right :: RBT Symbol Type) where
+class BalanceableHelper (action :: BalanceAction) 
+                        (color :: Color) 
+                        (left :: RBT Symbol Type) 
+                        (k :: Symbol) 
+                        (v :: Type) 
+                        (right :: RBT Symbol Type) where
     type BalanceResult' action color left k v right :: RBT Symbol Type
     balanceR' :: Record f (N color left k v right) -> Record f (BalanceResult' action color left k v right)
 
