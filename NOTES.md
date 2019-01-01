@@ -1,7 +1,7 @@
 ﻿# NOTES
 
-- It seems that -fprint-explicit-foralls doesn't show the order of types that
-  matches the order of type application, that's confusing.
+- It seems that -fprint-explicit-foralls doesn't show the types in an order
+  that matches the order of type application, that's confusing.
 
 ## relevant / related links
 
