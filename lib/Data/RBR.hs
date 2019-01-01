@@ -2,9 +2,10 @@ module Data.RBR (
         -- * Type-level Red-Black tree
         Color (..),
         RBT (..),
-        -- * Record
-        Record (..),
+        -- * Records and Variants
+        Record,
         unit,
+        Variant,
         Insertable (..),
         HasField (..)
         -- * Internal

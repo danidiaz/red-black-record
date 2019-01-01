@@ -32,6 +32,11 @@ data Record (f :: Type -> Type) (kv :: RBT Symbol Type)  where
 unit :: Record f E
 unit = Empty
 
+data Variant (f :: Type -> Type) (kv :: RBT Symbol Type)  where
+    Here       :: f v -> Variant f (N color left k v right)
+    LookRight  :: Variant f t -> Variant f (N color' left' k' v' t)
+    LookLeft   :: Variant f t -> Variant f (N color' t k' v' right')
+
 --
 --
 -- Insertion
@@ -169,25 +174,31 @@ class HasField (k :: Symbol)
                (kv :: RBT Symbol Type) 
                (v :: Type)            | kv k -> v where 
     getField :: Record f kv -> f v 
+    project  :: f v -> Variant f kv
 
 instance (CmpSymbol k' k ~ ordering, 
           HasFieldHelper ordering k (N color left k' v' right) v
          ) 
          => HasField k (N color left k' v' right) v where
     getField = getField' @ordering @k @_ @v 
+    project  = project'  @ordering @k @_ @v 
 
 class HasFieldHelper (ordering :: Ordering) 
                      (k :: Symbol) 
                      (kv :: RBT Symbol Type) 
                      (v :: Type)            | kv k -> v where 
     getField' :: Record f kv -> f v 
+    project'  :: f v -> Variant f kv
 
 instance HasFieldHelper EQ k (N color left k v right) v where
     getField' (Node _ fv _) = fv
+    project'  fv = Here fv
  
 instance HasField k right v => HasFieldHelper LT k (N color left k' v' right) v where
     getField' (Node _ _ right) = getField @k @right @v right
+    project' fv = LookRight (project @k @right @v fv)
 
 instance HasField k left v => HasFieldHelper GT k (N color left k' v' right) v where
     getField' (Node left _ _) = getField @k @left @v left
+    project' fv = LookLeft (project @k @left @v fv)
 
