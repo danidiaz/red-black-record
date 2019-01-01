@@ -17,7 +17,7 @@ category:            Data
 extra-source-files:  CHANGELOG.md
 
 library
-  exposed-modules:     RBR
+  exposed-modules:     Data.RBR
   -- other-modules:
   -- other-extensions:
   build-depends:       base ^>=4.11.1.0
