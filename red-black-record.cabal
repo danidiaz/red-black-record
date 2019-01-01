@@ -18,6 +18,7 @@ extra-source-files:  CHANGELOG.md
 
 library
   exposed-modules:     Data.RBR
+                       Data.RBR.Internal
   -- other-modules:
   -- other-extensions:
   build-depends:       base ^>=4.11.1.0
