@@ -7,7 +7,7 @@ module Data.RBR (
         unit,
         Variant,
         Insertable (..),
-        HasField (..)
+        Member (..)
         -- * Internal
     ) where
 

@@ -70,8 +70,8 @@ instance (CmpSymbol k k' ~ ordering,
           InsertableHelper2 ordering k v color left k' v' right
          )
          => InsertableHelper1 k v (N color left k' v' right) where
-    -- FIXME duplicate work with CmpSymbol: both in constraint and in associated type family. 
-    -- How to avoid it?
+    -- FIXME possible duplicate work with CmpSymbol: both in constraint and in associated type family. 
+    -- Is that bad? How to avoid it?
     type Insert1 k v (N color left k' v' right) = Insert2 (CmpSymbol k k') k v color left k' v' right  
     insert1 = insert2 @ordering @k @v @color @left @k' @v' @right
 
@@ -132,8 +132,8 @@ instance (ShouldBalance color left right ~ action,
           BalanceableHelper action color left k v right
          ) 
          => Balanceable color left k v right where
-    -- FIXME duplicate work with ShouldBalance: both in constraint and in associated type family. 
-    -- How to avoid it?
+    -- FIXME possible duplicate work with ShouldBalance: both in constraint and in associated type family. 
+    -- Is that bad? How to avoid it?
     type Balance color left k v right = Balance' (ShouldBalance color left right) color left k v right
     balance = balance' @action @color @left @k @v @right
     
@@ -170,35 +170,37 @@ instance BalanceableHelper DoNotBalance color a k v b where
 --
 -- Accessing fields
 
-class HasField (k :: Symbol) 
-               (kv :: RBT Symbol Type) 
-               (v :: Type)            | kv k -> v where 
-    getField :: Record f kv -> f v 
-    project  :: f v -> Variant f kv
+class Member (k :: Symbol) 
+             (v :: Type)            
+             (kv :: RBT Symbol Type) | kv k -> v where 
+    -- should be a lens
+    project :: Record f kv -> f v 
+    -- should be a prism
+    inject  :: f v -> Variant f kv
 
 instance (CmpSymbol k' k ~ ordering, 
-          HasFieldHelper ordering k (N color left k' v' right) v
+          MemberHelper ordering k v (N color left k' v' right)
          ) 
-         => HasField k (N color left k' v' right) v where
-    getField = getField' @ordering @k @_ @v 
-    project  = project'  @ordering @k @_ @v 
+         => Member k v (N color left k' v' right) where
+    project = project' @ordering @k @v 
+    inject  = inject'  @ordering @k @v 
 
-class HasFieldHelper (ordering :: Ordering) 
+class MemberHelper (ordering :: Ordering) 
                      (k :: Symbol) 
-                     (kv :: RBT Symbol Type) 
-                     (v :: Type)            | kv k -> v where 
-    getField' :: Record f kv -> f v 
-    project'  :: f v -> Variant f kv
+                     (v :: Type) 
+                     (kv :: RBT Symbol Type) | kv k -> v where 
+    project' :: Record f kv -> f v 
+    inject'  :: f v -> Variant f kv
 
-instance HasFieldHelper EQ k (N color left k v right) v where
-    getField' (Node _ fv _) = fv
-    project'  fv = Here fv
+instance MemberHelper EQ k v (N color left k v right) where
+    project' (Node _ fv _) = fv
+    inject'  fv = Here fv
  
-instance HasField k right v => HasFieldHelper LT k (N color left k' v' right) v where
-    getField' (Node _ _ right) = getField @k @right @v right
-    project' fv = LookRight (project @k @right @v fv)
+instance Member k v right => MemberHelper LT k v (N color left k' v' right) where
+    project' (Node _ _ right) = project @k @v @right right
+    inject' fv = LookRight (inject @k @v @right fv)
 
-instance HasField k left v => HasFieldHelper GT k (N color left k' v' right) v where
-    getField' (Node left _ _) = getField @k @left @v left
-    project' fv = LookLeft (project @k @left @v fv)
+instance Member k v left => MemberHelper GT k v (N color left k' v' right) where
+    project' (Node left _ _) = project @k @v @left left
+    inject' fv = LookLeft (inject @k @v @left fv)
 
