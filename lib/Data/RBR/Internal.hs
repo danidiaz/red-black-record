@@ -173,9 +173,9 @@ instance BalanceableHelper DoNotBalance color a k v b where
 class Member (k :: Symbol) 
              (v :: Type)            
              (kv :: RBT Symbol Type) | kv k -> v where 
-    -- should be a lens
+    -- should be a lens. "projected?"
     project :: Record f kv -> f v 
-    -- should be a prism
+    -- should be a prism. "injected?"
     inject  :: f v -> Variant f kv
 
 instance (CmpSymbol k' k ~ ordering, 
