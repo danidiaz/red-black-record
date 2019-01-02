@@ -11,7 +11,8 @@
              TypeApplications,
              ScopedTypeVariables,
              AllowAmbiguousTypes,
-             ExplicitForAll #-}
+             ExplicitForAll,
+             EmptyCase #-}
 module Data.RBR.Internal where
 
 import Data.Kind
@@ -29,6 +30,8 @@ data Record (f :: Type -> Type) (kv :: RBT Symbol Type)  where
     Empty :: Record f E 
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
+{-| A Record without components is a boring, uninformative type whose single value can be conjured out of thin air.
+-}
 unit :: Record f E
 unit = Empty
 
@@ -36,6 +39,11 @@ data Variant (f :: Type -> Type) (kv :: RBT Symbol Type)  where
     Here       :: f v -> Variant f (N color left k v right)
     LookRight  :: Variant f t -> Variant f (N color' left' k' v' t)
     LookLeft   :: Variant f t -> Variant f (N color' t k' v' right')
+
+{-| A Variant without branches doesn't have any values. From an impossible thing, anything can come out. 
+-}
+ludicrous :: Variant f E -> b
+ludicrous v = case v of
 
 --
 --

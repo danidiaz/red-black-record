@@ -6,6 +6,7 @@ module Data.RBR (
         Record,
         unit,
         Variant,
+        ludicrous,
         Insertable (..),
         Member (..)
         -- * Internal
