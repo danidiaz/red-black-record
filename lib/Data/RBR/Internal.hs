@@ -181,7 +181,14 @@ instance BalanceableHelper BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d whe
 instance BalanceableHelper BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) where
     type Balance' BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
     balanceR' (Node a fv1 (Node (Node b fv2 c) fv3 d)) = Node (Node a fv1 b) fv2 (Node c fv3 d)
-    balanceV' = undefined
+    balanceV' v = case v of
+        LookLeft x -> LookLeft (LookLeft x)
+        Here x -> LookLeft (Here x)
+        LookRight (LookLeft (LookLeft x)) -> LookLeft (LookRight x)
+        LookRight (LookLeft (Here x)) -> Here x
+        LookRight (LookLeft (LookRight x)) -> LookRight (LookLeft x)
+        LookRight (Here x) -> LookRight (Here x) 
+        LookRight (LookRight x) -> LookRight (LookRight x)
 
 instance BalanceableHelper BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) where
     type Balance' BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
