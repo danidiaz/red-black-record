@@ -79,7 +79,7 @@ instance InsertableHelper1 k v E where
     type Insert1 k v E = N R E k v E
     insert1 fv Empty = Node Empty fv Empty 
     widen1 v = undefined
-
+ 
 instance (CmpSymbol k k' ~ ordering, 
           InsertableHelper2 ordering k v color left k' v' right
          )
@@ -146,7 +146,7 @@ class Balanceable (color :: Color)
                   (right :: RBT Symbol Type) where
     type Balance color left k v right :: RBT Symbol Type
     balanceR :: Record f (N color left k v right) -> Record f (Balance color left k v right)
-    balanceV :: Variant f (N color left k v right) -> Variant f (N color left k v right)
+    balanceV :: Variant f (N color left k v right) -> Variant f (Balance color left k v right)
 
 instance (ShouldBalance color left right ~ action, 
           BalanceableHelper action color left k v right
@@ -156,7 +156,7 @@ instance (ShouldBalance color left right ~ action,
     -- Is that bad? How to avoid it?
     type Balance color left k v right = Balance' (ShouldBalance color left right) color left k v right
     balanceR = balanceR' @action @color @left @k @v @right
-    balanceV = undefined
+    balanceV = balanceV' @action @color @left @k @v @right
     
 class BalanceableHelper (action :: BalanceAction) 
                         (color :: Color) 
@@ -166,7 +166,7 @@ class BalanceableHelper (action :: BalanceAction)
                         (right :: RBT Symbol Type) where
     type Balance' action color left k v right :: RBT Symbol Type
     balanceR' :: Record f (N color left k v right) -> Record f (Balance' action color left k v right)
-    balanceV' :: Variant f (N color left k v right) -> Variant f (N color left k v right)
+    balanceV' :: Variant f (N color left k v right) -> Variant f (Balance' action color left k v right)
 
 instance BalanceableHelper BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d where
     type Balance' BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d)
@@ -186,7 +186,18 @@ instance BalanceableHelper BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) whe
 instance BalanceableHelper BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) where
     type Balance' BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
     balanceR' (Node a fv1 (Node b fv2 (Node c fv3 d))) = Node (Node a fv1 b) fv2 (Node c fv3 d)
-    balanceV' = undefined
+    balanceV' v = case v of
+        LookLeft x -> LookLeft (LookLeft x)
+        Here x -> LookLeft (Here x)
+        LookRight (LookLeft x) -> LookLeft (LookRight x)    
+        LookRight (Here x) -> Here x
+        LookRight (LookRight x) -> LookRight (retagV x)    
+
+retagV :: Variant f (N color1 left k v right) -> Variant f (N color2 left k v right)
+retagV v = case v of
+    Here x -> Here x
+    LookRight x -> LookRight x
+    LookLeft x -> LookLeft x
 
 instance BalanceableHelper DoNotBalance color a k v b where
     type Balance' DoNotBalance color a k v b = N color a k v b 
