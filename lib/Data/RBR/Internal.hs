@@ -171,12 +171,24 @@ class BalanceableHelper (action :: BalanceAction)
 instance BalanceableHelper BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d where
     type Balance' BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d)
     balanceR' (Node (Node (Node a fv1 b) fv2 c) fv3 d) = Node (Node a fv1 b) fv2 (Node c fv3 d)
-    balanceV' = undefined
+    balanceV' v = case v of
+        LookLeft (LookLeft x) -> LookLeft (retagV x) 
+        LookLeft (Here x) -> Here x
+        LookLeft (LookRight x) -> LookRight (LookLeft x)
+        Here x -> LookRight (Here x)
+        LookRight x -> LookRight (LookRight x)
 
 instance BalanceableHelper BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d where
     type Balance' BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
     balanceR' (Node (Node a fv1 (Node b fv2 c)) fv3 d) = Node (Node a fv1 b) fv2 (Node c fv3 d)
-    balanceV' = undefined
+    balanceV' v = case v of
+        LookLeft (LookLeft x) -> LookLeft (LookLeft x)
+        LookLeft (Here x) -> LookLeft (Here x) 
+        LookLeft (LookRight (LookLeft x)) -> LookLeft (LookRight x)
+        LookLeft (LookRight (Here x)) -> Here x
+        LookLeft (LookRight (LookRight x)) -> LookRight (LookLeft x)
+        Here x -> LookRight (Here x)
+        LookRight x -> LookRight (LookRight x)
 
 instance BalanceableHelper BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) where
     type Balance' BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
