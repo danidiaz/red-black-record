@@ -13,6 +13,7 @@
              ScopedTypeVariables,
              AllowAmbiguousTypes,
              ExplicitForAll,
+             LambdaCase,
              EmptyCase #-}
 module Data.RBR.Internal where
 
@@ -251,38 +252,53 @@ class Member (k :: Symbol)
     -- should be a lens. "projected?"
     projection :: Record f t -> (f v -> Record f t, f v)
     -- should be a prism. "injected?"
-    inject  :: f v -> Variant f t
+    injection  :: (f v -> Variant f t, Variant f t -> Maybe (f v))
 
 instance (CmpSymbol k' k ~ ordering, 
           MemberHelper ordering k v (N color left k' v' right)
          ) 
          => Member k v (N color left k' v' right) where
     projection = projection' @ordering @k @v 
-    inject  = inject'  @ordering @k @v 
+    injection  = injection'  @ordering @k @v 
 
 class MemberHelper (ordering :: Ordering) 
                    (k :: Symbol) 
                    (v :: Type) 
                    (t :: RBT Symbol Type) | t k -> v where 
     projection' :: Record f t -> (f v -> Record f t, f v)
-    inject'  :: f v -> Variant f t
+    injection'  :: (f v -> Variant f t, Variant f t -> Maybe (f v))
 
 instance MemberHelper EQ k v (N color left k v right) where
     projection' (Node left fv right) = (\x -> Node left x right, fv)
-    inject'  fv = Here fv
+    injection' = (Here,
+                  \case Here x -> Just x
+                        _ -> Nothing)
  
 instance Member k v right => MemberHelper LT k v (N color left k' v' right) where
     projection' (Node left fv right) = 
         let (setter,x) = projection @k @v @right right
-            in (\z -> Node left fv (setter z),x)
-    inject' fv = LookRight (inject @k @v @right fv)
+         in (\z -> Node left fv (setter z),x)
+    injection' = 
+        let (inj,match) = injection @k @v @right
+         in (\fv -> LookRight (inj fv), 
+             \case LookRight x -> match x
+                   _ -> Nothing)
 
 instance Member k v left => MemberHelper GT k v (N color left k' v' right) where
     projection' (Node left fv right) = 
         let (setter,x) = projection @k @v @left left
-            in (\z -> Node (setter z) fv right,x)
-    inject' fv = LookLeft (inject @k @v @left fv)
+         in (\z -> Node (setter z) fv right,x)
+    injection' = 
+        let (inj,match) = injection @k @v @left
+         in (\fv -> LookLeft (inj fv), 
+             \case LookLeft x -> match x
+                   _ -> Nothing)
 
 project :: forall k v f t . Member k v t => Record f t -> f v
 project = snd . projection @k @v @t
+
+inject :: forall k v t f. Member k v t => f v -> Variant f t
+inject = fst (injection @k @v @t)
+
+
 
