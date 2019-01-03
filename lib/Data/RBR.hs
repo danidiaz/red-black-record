@@ -7,7 +7,11 @@ module Data.RBR (
         unit,
         Variant,
         ludicrous,
+        -- ** Inserting and widening
         Insertable (..),
+        InsertAll,
+        FromList,
+        -- ** Projecting and injecting
         Member (..)
         -- * Internal
     ) where

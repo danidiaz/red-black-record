@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds,
+             TypeOperators,
              ConstraintKinds,
              PolyKinds,
              TypeFamilies,
@@ -48,6 +49,13 @@ ludicrous v = case v of
 --
 --
 -- Insertion
+
+type family InsertAll (es :: [(Symbol,Type)]) (t :: RBT Symbol Type) :: RBT Symbol Type where
+    InsertAll '[] t = t
+    InsertAll ( '(name,fieldType) ': es ) t = Insert name fieldType (InsertAll es t)
+
+type FromList (es :: [(Symbol,Type)]) = InsertAll es E
+
 class Insertable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     type Insert k v t :: RBT Symbol Type
     insert :: f v -> Record f t -> Record f (Insert k v t)
