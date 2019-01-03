@@ -26,7 +26,7 @@ data RBT k v = E
              | N Color (RBT k v) k v (RBT k v)
     deriving Show
 
-data Record (f :: Type -> Type) (kv :: RBT Symbol Type)  where
+data Record (f :: Type -> Type) (t :: RBT Symbol Type)  where
     Empty :: Record f E 
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
@@ -35,7 +35,7 @@ data Record (f :: Type -> Type) (kv :: RBT Symbol Type)  where
 unit :: Record f E
 unit = Empty
 
-data Variant (f :: Type -> Type) (kv :: RBT Symbol Type)  where
+data Variant (f :: Type -> Type) (t :: RBT Symbol Type)  where
     Here       :: f v -> Variant f (N color left k v right)
     LookRight  :: Variant f t -> Variant f (N color' left' k' v' t)
     LookLeft   :: Variant f t -> Variant f (N color' t k' v' right')
@@ -239,11 +239,11 @@ instance BalanceableHelper DoNotBalance color a k v b where
 
 class Member (k :: Symbol) 
              (v :: Type)            
-             (kv :: RBT Symbol Type) | kv k -> v where 
+             (t :: RBT Symbol Type) | t k -> v where 
     -- should be a lens. "projected?"
-    project :: Record f kv -> f v 
+    project :: Record f t -> f v 
     -- should be a prism. "injected?"
-    inject  :: f v -> Variant f kv
+    inject  :: f v -> Variant f t
 
 instance (CmpSymbol k' k ~ ordering, 
           MemberHelper ordering k v (N color left k' v' right)
@@ -253,11 +253,11 @@ instance (CmpSymbol k' k ~ ordering,
     inject  = inject'  @ordering @k @v 
 
 class MemberHelper (ordering :: Ordering) 
-                     (k :: Symbol) 
-                     (v :: Type) 
-                     (kv :: RBT Symbol Type) | kv k -> v where 
-    project' :: Record f kv -> f v 
-    inject'  :: f v -> Variant f kv
+                   (k :: Symbol) 
+                   (v :: Type) 
+                   (t :: RBT Symbol Type) | t k -> v where 
+    project' :: Record f t -> f v 
+    inject'  :: f v -> Variant f t
 
 instance MemberHelper EQ k v (N color left k v right) where
     project' (Node _ fv _) = fv
