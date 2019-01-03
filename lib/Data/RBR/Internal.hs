@@ -20,6 +20,8 @@ module Data.RBR.Internal where
 import Data.Kind
 import GHC.TypeLits
 
+import Data.SOP (I(..),unI)
+
 data Color = R
            | B
     deriving Show
@@ -56,6 +58,9 @@ type family InsertAll (es :: [(Symbol,Type)]) (t :: RBT Symbol Type) :: RBT Symb
     InsertAll ( '(name,fieldType) ': es ) t = Insert name fieldType (InsertAll es t)
 
 type FromList (es :: [(Symbol,Type)]) = InsertAll es E
+
+insertI :: forall k v t f . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
+insertI = insert @k @v @t . I
 
 class Insertable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     type Insert k v t :: RBT Symbol Type
@@ -294,11 +299,16 @@ instance Member k v left => MemberHelper GT k v (N color left k' v' right) where
              \case LookLeft x -> match x
                    _ -> Nothing)
 
-project :: forall k v f t . Member k v t => Record f t -> f v
+project :: forall k v t f . Member k v t => Record f t -> f v
 project = snd . projection @k @v @t
 
 inject :: forall k v t f. Member k v t => f v -> Variant f t
 inject = fst (injection @k @v @t)
 
+projectI :: forall k v t . Member k v t => Record I t -> v
+projectI = unI . snd . projection @k @v @t
+
+injectI :: forall k v t. Member k v t => v -> Variant I t
+injectI = fst (injection @k @v @t) . I
 
 

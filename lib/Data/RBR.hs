@@ -9,13 +9,19 @@ module Data.RBR (
         ludicrous,
         -- ** Inserting and widening
         Insertable (..),
+        insertI,
         InsertAll,
         FromList,
         -- ** Projecting and injecting
         Member (..),
         project,
-        inject
+        projectI,
+        inject,
+        injectI,
+        -- * Data.SOP re-exports
+        I(..)
         -- * Internal
     ) where
 
 import Data.RBR.Internal
+import Data.SOP (I(..))
