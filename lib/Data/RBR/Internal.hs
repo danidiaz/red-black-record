@@ -78,7 +78,7 @@ class InsertableHelper1 (k :: Symbol)
 instance InsertableHelper1 k v E where
     type Insert1 k v E = N R E k v E
     insert1 fv Empty = Node Empty fv Empty 
-    widen1 v = undefined
+    widen1 = ludicrous 
  
 instance (CmpSymbol k k' ~ ordering, 
           InsertableHelper2 ordering k v color left k' v' right
@@ -88,7 +88,7 @@ instance (CmpSymbol k k' ~ ordering,
     -- Is that bad? How to avoid it?
     type Insert1 k v (N color left k' v' right) = Insert2 (CmpSymbol k k') k v color left k' v' right  
     insert1 = insert2 @ordering @k @v @color @left @k' @v' @right
-    widen1 v = undefined
+    widen1  = widen2 @ordering @k @v @color @left @k' @v' @right
 
 class InsertableHelper2 (ordering :: Ordering) 
                         (k :: Symbol) 
@@ -108,12 +108,19 @@ instance (InsertableHelper1 k v left,
          => InsertableHelper2 LT k v color left k' v' right where
     type Insert2 LT k v color left k' v' right = Balance color (Insert1 k v left) k' v' right
     insert2 fv (Node left fv' right) = balanceR @color @_ @k' @v' @right (Node (insert1 @k @v fv left) fv' right) 
-    widen2 v = undefined
+    widen2 v = balanceV @color @(Insert1 k v left) @k' @v' @right $ case v of
+        Here x -> Here x
+        LookLeft x -> LookLeft (widen1 @k @v x)
+        LookRight x -> LookRight x
 
-instance InsertableHelper2 EQ k v color left k' v' right where
-    type Insert2 EQ k v color left k' v' right = N color left k v right
+
+-- This instance implies that we can't change the type associated to an
+-- existing key. If we did that, we wouldn't be able to widen Variants that
+-- happen to match that key!
+instance InsertableHelper2 EQ k v color left k v right where
+    type Insert2 EQ k v color left k v right = N color left k v right
     insert2 fv (Node left _ right) = Node left fv right
-    widen2 v = undefined
+    widen2 = id
 
 instance (InsertableHelper1 k v right,
           Balanceable color left  k' v' (Insert1 k v right)
@@ -121,7 +128,10 @@ instance (InsertableHelper1 k v right,
          => InsertableHelper2 GT k v color left k' v' right where
     type Insert2 GT k v color left k' v' right = Balance color left  k' v' (Insert1 k v right)
     insert2 fv (Node left fv' right) = balanceR @color @left @k' @v' @_ (Node left  fv' (insert1 @k @v fv right)) 
-    widen2 v = undefined
+    widen2 v = balanceV @color @left @k' @v' @(Insert1 k v right) $ case v of
+        Here x -> Here x
+        LookLeft x -> LookLeft x
+        LookRight x -> LookRight (widen1 @k @v x)
 
 data BalanceAction = BalanceLL
                    | BalanceLR
