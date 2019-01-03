@@ -12,7 +12,8 @@ module Data.RBR (
         InsertAll,
         FromList,
         -- ** Projecting and injecting
-        Member (..)
+        Member (..),
+        project
         -- * Internal
     ) where
 

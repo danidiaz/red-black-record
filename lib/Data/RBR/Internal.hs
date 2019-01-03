@@ -249,7 +249,7 @@ class Member (k :: Symbol)
              (v :: Type)            
              (t :: RBT Symbol Type) | t k -> v where 
     -- should be a lens. "projected?"
-    project :: Record f t -> f v 
+    projection :: Record f t -> (f v -> Record f t, f v)
     -- should be a prism. "injected?"
     inject  :: f v -> Variant f t
 
@@ -257,25 +257,32 @@ instance (CmpSymbol k' k ~ ordering,
           MemberHelper ordering k v (N color left k' v' right)
          ) 
          => Member k v (N color left k' v' right) where
-    project = project' @ordering @k @v 
+    projection = projection' @ordering @k @v 
     inject  = inject'  @ordering @k @v 
 
 class MemberHelper (ordering :: Ordering) 
                    (k :: Symbol) 
                    (v :: Type) 
                    (t :: RBT Symbol Type) | t k -> v where 
-    project' :: Record f t -> f v 
+    projection' :: Record f t -> (f v -> Record f t, f v)
     inject'  :: f v -> Variant f t
 
 instance MemberHelper EQ k v (N color left k v right) where
-    project' (Node _ fv _) = fv
+    projection' (Node left fv right) = (\x -> Node left x right, fv)
     inject'  fv = Here fv
  
 instance Member k v right => MemberHelper LT k v (N color left k' v' right) where
-    project' (Node _ _ right) = project @k @v @right right
+    projection' (Node left fv right) = 
+        let (setter,x) = projection @k @v @right right
+            in (\z -> Node left fv (setter z),x)
     inject' fv = LookRight (inject @k @v @right fv)
 
 instance Member k v left => MemberHelper GT k v (N color left k' v' right) where
-    project' (Node left _ _) = project @k @v @left left
+    projection' (Node left fv right) = 
+        let (setter,x) = projection @k @v @left left
+            in (\z -> Node (setter z) fv right,x)
     inject' fv = LookLeft (inject @k @v @left fv)
+
+project :: forall k v f t . Member k v t => Record f t -> f v
+project = snd . projection @k @v @t
 
