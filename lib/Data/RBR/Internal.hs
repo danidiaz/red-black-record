@@ -338,15 +338,20 @@ injectI = fst (injection @k @t) . I
 --
 -- Interaction with Data.SOP
 
--- class Flattenable (t :: RBT Symbol Type) (start :: [Type]) (result :: [Type]) | t start -> result, t result -> start where
---     toNP :: Record f t -> NP f start -> NP f result
--- 
--- instance Flattenable E start start where
---     toNP _ start = start  
--- 
--- instance (Flattenable right start  middle, 
--- 		  Flattenable left  end    (x ': middle))
---          => Flattenable (N color left k v right) start end where
---     toNP _ _ = _
+class Flattenable (t :: RBT Symbol Type) 
+                  (start :: [Type]) 
+                  (result :: [Type]) | t start -> result, t result -> start where
+    toNP :: Record f t -> NP f start -> NP f result
+    fromNP :: NP f result -> (Record f t, NP f start)
+
+instance Flattenable E start start where
+    toNP _ start = start  
+    fromNP start = (Empty, start) 
+
+instance (Flattenable right start middle, 
+          Flattenable left  (v ': middle) result)
+         => Flattenable (N color left k v right) start result where
+    toNP (Node left fv right) start = toNP @left @_ @result left (fv :* toNP @right @start @middle right start)
+    fromNP _ = undefined
 
 
