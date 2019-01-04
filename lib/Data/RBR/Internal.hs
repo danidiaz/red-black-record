@@ -219,54 +219,52 @@ instance BalanceableHelper BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d whe
                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d)
     balanceR' (Node (Node (Node a fv1 b) fv2 c) fv3 d) = Node (Node a fv1 b) fv2 (Node c fv3 d)
     balanceV' v = case v of
-        LookLeft (LookLeft x) -> LookLeft (retagV x) 
-        LookLeft (Here x) -> Here x
+        LookLeft (LookLeft x)  -> LookLeft (case x of LookLeft y  -> LookLeft y
+                                                      Here y      -> Here y
+                                                      LookRight y -> LookRight y)
+        LookLeft (Here x)      -> Here x
         LookLeft (LookRight x) -> LookRight (LookLeft x)
-        Here x -> LookRight (Here x)
-        LookRight x -> LookRight (LookRight x)
+        Here x                 -> LookRight (Here x)
+        LookRight x            -> LookRight (LookRight x)
 
 instance BalanceableHelper BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d where
     type Balance'          BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d = 
                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
     balanceR' (Node (Node a fv1 (Node b fv2 c)) fv3 d) = Node (Node a fv1 b) fv2 (Node c fv3 d)
     balanceV' v = case v of
-        LookLeft (LookLeft x)              -> LookLeft (LookLeft x)
-        LookLeft (Here x)                  -> LookLeft (Here x) 
-        LookLeft (LookRight (LookLeft x))  -> LookLeft (LookRight x)
-        LookLeft (LookRight (Here x))      -> Here x
-        LookLeft (LookRight (LookRight x)) -> LookRight (LookLeft x)
-        Here x                             -> LookRight (Here x)
-        LookRight x                        -> LookRight (LookRight x)
+        LookLeft (LookLeft x)   -> LookLeft (LookLeft x)
+        LookLeft (Here x)       -> LookLeft (Here x) 
+        LookLeft (LookRight x)  -> case x of LookLeft y  -> LookLeft (LookRight y)
+                                             Here y      -> Here y
+                                             LookRight y -> LookRight (LookLeft y)
+        Here x                  -> LookRight (Here x)
+        LookRight x             -> LookRight (LookRight x)
 
 instance BalanceableHelper BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) where
     type Balance'          BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = 
                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
     balanceR' (Node a fv1 (Node (Node b fv2 c) fv3 d)) = Node (Node a fv1 b) fv2 (Node c fv3 d)
     balanceV' v = case v of
-        LookLeft x                         -> LookLeft (LookLeft x)
-        Here x                             -> LookLeft (Here x)
-        LookRight (LookLeft (LookLeft x))  -> LookLeft (LookRight x)
-        LookRight (LookLeft (Here x))      -> Here x
-        LookRight (LookLeft (LookRight x)) -> LookRight (LookLeft x)
-        LookRight (Here x)                 -> LookRight (Here x) 
-        LookRight (LookRight x)            -> LookRight (LookRight x)
+        LookLeft x              -> LookLeft (LookLeft x)
+        Here x                  -> LookLeft (Here x)
+        LookRight (LookLeft x)  -> case x of LookLeft y  -> LookLeft (LookRight y)
+                                             Here y      -> Here y
+                                             LookRight y -> LookRight (LookLeft y)
+        LookRight (Here x)      -> LookRight (Here x) 
+        LookRight (LookRight x) -> LookRight (LookRight x)
 
 instance BalanceableHelper BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) where
     type Balance'          BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = 
                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
     balanceR' (Node a fv1 (Node b fv2 (Node c fv3 d))) = Node (Node a fv1 b) fv2 (Node c fv3 d)
     balanceV' v = case v of
-        LookLeft x                         -> LookLeft (LookLeft x)
-        Here x                             -> LookLeft (Here x)
-        LookRight (LookLeft x)             -> LookLeft (LookRight x)    
-        LookRight (Here x)                 -> Here x
-        LookRight (LookRight x)            -> LookRight (retagV x)    
-
-retagV :: Variant f (N color1 left k v right) -> Variant f (N color2 left k v right)
-retagV v = case v of
-    Here x -> Here x
-    LookRight x -> LookRight x
-    LookLeft x -> LookLeft x
+        LookLeft x              -> LookLeft (LookLeft x)
+        Here x                  -> LookLeft (Here x)
+        LookRight (LookLeft x)  -> LookLeft (LookRight x)    
+        LookRight (Here x)      -> Here x
+        LookRight (LookRight x) -> LookRight (case x of LookLeft y  -> LookLeft y
+                                                        Here y      -> Here y
+                                                        LookRight y -> LookRight y)
 
 instance BalanceableHelper DoNotBalance color a k v b where
     type Balance' DoNotBalance color a k v b = N color a k v b 
