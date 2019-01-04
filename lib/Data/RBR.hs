@@ -13,10 +13,11 @@ module Data.RBR (
         InsertAll,
         FromList,
         -- ** Projecting and injecting
-        Member (..),
+        KeyIn,
+        Key (..),
         project,
-        projectI,
         inject,
+        projectI,
         injectI,
         -- * Data.SOP re-exports
         I(..)

@@ -275,65 +275,64 @@ instance BalanceableHelper DoNotBalance color a k v b where
 --
 -- Accessing fields
 
-class Member (k :: Symbol) 
-             (v :: Type)            
-             (t :: RBT Symbol Type) | t k -> v where 
-    -- should be a lens. "projected?"
-    projection :: Record f t -> (f v -> Record f t, f v)
-    -- should be a prism. "injected?"
-    injection  :: (f v -> Variant f t, Variant f t -> Maybe (f v))
+type KeyIn (t :: RBT Symbol Type) (k :: Symbol) = Key k t
 
-instance (CmpSymbol k' k ~ ordering, 
-          MemberHelper ordering k v (N color left k' v' right)
-         ) 
-         => Member k v (N color left k' v' right) where
-    projection = projection' @ordering @k @v 
-    injection  = injection'  @ordering @k @v 
+class Key (k :: Symbol) (t :: RBT Symbol Type) where
+    type Value k t :: Type
+    projection :: Record f t -> (f (Value k t) -> Record f t, f (Value k t))
+    injection :: (f (Value k t) -> Variant f t, Variant f t -> Maybe (f (Value k t)))
 
-class MemberHelper (ordering :: Ordering) 
-                   (k :: Symbol) 
-                   (v :: Type) 
-                   (t :: RBT Symbol Type) | t k -> v where 
-    projection' :: Record f t -> (f v -> Record f t, f v)
-    injection'  :: (f v -> Variant f t, Variant f t -> Maybe (f v))
+class KeyHelper (ordering :: Ordering) (k :: Symbol) (t :: RBT Symbol Type) where 
+    type Value' ordering k t :: Type
+    projection' :: Record f t -> (f (Value' ordering k t) -> Record f t, f (Value' ordering k t))
+    injection' :: (f (Value' ordering k t) -> Variant f t, Variant f t -> Maybe (f (Value' ordering k t)))
 
-instance MemberHelper EQ k v (N color left k v right) where
-    projection' (Node left fv right) = (\x -> Node left x right, fv)
-    injection' = (Here,
-                  \case Here x -> Just x
-                        _ -> Nothing)
- 
-instance Member k v right => MemberHelper LT k v (N color left k' v' right) where
+instance (CmpSymbol k' k ~ ordering, KeyHelper ordering k (N color left k' v' right)) 
+         => Key k (N color left k' v' right) where
+    type Value k (N color left k' v' right) = Value' (CmpSymbol k' k) k (N color left k' v' right)
+    projection = projection' @ordering @k
+    injection = injection' @ordering @k
+
+instance Key k right => KeyHelper LT k (N color left k' v' right) where
+    type Value' LT k (N color left k' v' right) = Value k right
     projection' (Node left fv right) = 
-        let (setter,x) = projection @k @v @right right
+        let (setter,x) = projection @k right
          in (\z -> Node left fv (setter z),x)
     injection' = 
-        let (inj,match) = injection @k @v @right
+        let (inj,match) = injection @k @right
          in (\fv -> LookRight (inj fv), 
              \case LookRight x -> match x
                    _ -> Nothing)
 
-instance Member k v left => MemberHelper GT k v (N color left k' v' right) where
+instance Key k left => KeyHelper GT k (N color left k' v' right) where
+    type Value' GT k (N color left k' v' right) = Value k left
     projection' (Node left fv right) = 
-        let (setter,x) = projection @k @v @left left
+        let (setter,x) = projection @k left
          in (\z -> Node (setter z) fv right,x)
-    injection' = 
-        let (inj,match) = injection @k @v @left
+    injection' =
+        let (inj,match) = injection @k @left
          in (\fv -> LookLeft (inj fv), 
              \case LookLeft x -> match x
                    _ -> Nothing)
 
-project :: forall k v t f . Member k v t => Record f t -> f v
-project = snd . projection @k @v @t
+instance KeyHelper EQ k (N color left k v right) where
+    type Value' EQ k (N color left k v right) = v
+    projection' (Node left fv right) = (\x -> Node left x right, fv)
+    injection' = (Here,
+            \case Here x -> Just x
+                  _ -> Nothing)
 
-inject :: forall k v t f. Member k v t => f v -> Variant f t
-inject = fst (injection @k @v @t)
+project :: forall k t f . Key k t => Record f t -> f (Value k t)
+project = snd . projection @k @t
 
-projectI :: forall k v t . Member k v t => Record I t -> v
-projectI = unI . snd . projection @k @v @t
+inject :: forall k t f. Key k t => f (Value k t) -> Variant f t
+inject = fst (injection @k @t)
 
-injectI :: forall k v t. Member k v t => v -> Variant I t
-injectI = fst (injection @k @v @t) . I
+projectI :: forall k t f. Key k t => Record I t -> Value k t
+projectI = unI . snd . projection @k @t
+
+injectI :: forall k v t. Key k t => Value k t -> Variant I t
+injectI = fst (injection @k @t) . I
 
 --
 --
