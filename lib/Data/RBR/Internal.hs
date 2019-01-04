@@ -20,7 +20,7 @@ module Data.RBR.Internal where
 import Data.Kind
 import GHC.TypeLits
 
-import Data.SOP (I(..),unI)
+import Data.SOP (I(..),unI,NP(..))
 
 data Color = R
            | B
@@ -61,6 +61,28 @@ type FromList (es :: [(Symbol,Type)]) = InsertAll es E
 
 insertI :: forall k v t f . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
 insertI = insert @k @v @t . I
+
+--
+--
+-- The original term-level code, from the post "Persistent Red Black Trees in Haskell"
+-- 
+-- https://abhiroop.github.io/Haskell-Red-Black-Tree/
+-- 
+-- insert :: (Ord a) => a -> Tree a -> Tree a
+-- insert x s = makeBlack $ ins s
+--   where ins E  = T R E x E
+--         ins (T color a y b)
+--           | x < y  = balance color (ins a) y b
+--           | x == y = T color a y b
+--           | x > y  = balance color a y (ins b)
+--         makeBlack (T _ a y b) = T B a y b
+-- 
+-- balance :: Color -> Tree a -> a -> Tree a -> Tree a
+-- balance B (T R (T R a x b) y c) z d = T R (T B a x b) y (T B c z d)
+-- balance B (T R a x (T R b y c)) z d = T R (T B a x b) y (T B c z d)
+-- balance B a x (T R (T R b y c) z d) = T R (T B a x b) y (T B c z d)
+-- balance B a x (T R b y (T R c z d)) = T R (T B a x b) y (T B c z d)
+-- balance color a x b = T color a x b
 
 class Insertable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     type Insert k v t :: RBT Symbol Type
@@ -310,5 +332,20 @@ projectI = unI . snd . projection @k @v @t
 
 injectI :: forall k v t. Member k v t => v -> Variant I t
 injectI = fst (injection @k @v @t) . I
+
+--
+--
+-- Interaction with Data.SOP
+
+-- class Flattenable (t :: RBT Symbol Type) (start :: [Type]) (result :: [Type]) | t start -> result, t result -> start where
+--     toNP :: Record f t -> NP f start -> NP f result
+-- 
+-- instance Flattenable E start start where
+--     toNP _ start = start  
+-- 
+-- instance (Flattenable right start  middle, 
+-- 		  Flattenable left  end    (x ': middle))
+--          => Flattenable (N color left k v right) start end where
+--     toNP _ _ = _
 
 
