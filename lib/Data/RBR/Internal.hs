@@ -338,6 +338,12 @@ injectI = fst (injection @k @t) . I
 --
 -- Interaction with Data.SOP
 
+-- data Flattener named nameless t start result f = 
+--     Flattener { 
+--         flatten :: named f t -> nameless f start -> nameless f result,
+--         recover :: nameless f result -> (named f t, nameless f start)
+--     }
+
 class Flattenable (t :: RBT Symbol Type) 
                   (start :: [Type]) 
                   (result :: [Type]) | t start -> result, t result -> start where
