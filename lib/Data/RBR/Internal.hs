@@ -351,7 +351,11 @@ instance Flattenable E start start where
 instance (Flattenable right start middle, 
           Flattenable left  (v ': middle) result)
          => Flattenable (N color left k v right) start result where
-    toNP (Node left fv right) start = toNP @left @_ @result left (fv :* toNP @right @start @middle right start)
-    fromNP _ = undefined
+    toNP (Node left fv right) start = 
+        toNP @left @_ @result left (fv :* toNP @right @start @middle right start)
+    fromNP result =
+        let (left, fv :* middle) = fromNP @left @_ @result result
+            (right, start) = fromNP @right @start middle
+         in (Node left fv right, start)
 
 
