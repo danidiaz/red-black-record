@@ -370,20 +370,21 @@ instance (Flattenable right start middle,
 
 -- z (s z) (s s z) (s s s s s s z)
 
--- class FlattenableSum (t :: RBT Symbol Type) 
---                      (start :: [Type]) 
---                      (result :: [Type]) | t start -> result, t result -> start where
---     toNS :: Variant f t -> (NS f start -> NS f result) -> NS f result
---     fromNS :: NS f result -> (NS f start -> Variant f t) -> Variant f t 
--- 
--- instance (FlattenableSum left '[v] result) 
---          => FlattenableSum (N color left k v E) 
---                            '[]
---                            result where
---     toNS x _ = case x of
---                     LookLeft l -> undefined
---                     Here fv -> Z @_ @v @result fv 
---     fromNS _ _ = undefined
+class FlattenableSum (t :: RBT Symbol Type) 
+                     (start :: [Type]) 
+                     (result :: [Type]) | t start -> result, t result -> start where
+    toNS :: Either (NS f start) (Variant f t) -> NS f result
+--    fromNS :: NS f result -> (NS f start -> Variant f t) -> Variant f t 
+
+instance (FlattenableSum left '[v] result) 
+         => FlattenableSum (N color left k v E) 
+                           '[]
+                           result where
+    toNS = \case
+        Left  _ -> error "impossible case"
+        Right x -> case x of
+            LookLeft l -> toNS @left @'[v] (Right l)
+            Here fv -> toNS @left @'[v] (Left (Z @_ @v @'[] fv))
 
 -- flatten :: named f t -> nameless f start -> nameless f result,
 --        recover :: nameless f result -> (named f t, nameless f start)
