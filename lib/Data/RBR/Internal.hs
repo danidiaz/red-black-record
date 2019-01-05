@@ -338,30 +338,37 @@ injectI = fst (injection @k @t) . I
 --
 -- Interaction with Data.SOP
 
--- data Flattener named nameless t start result f = 
---     Flattener { 
---         flatten :: named f t -> nameless f start -> nameless f result,
---         recover :: nameless f result -> (named f t, nameless f start)
---     }
+data Flattener (named    :: (Type -> Type) -> RBT Symbol Type -> Type)
+               (nameless :: (Type -> Type) -> [Type]          -> Type)
+               (f        ::  Type -> Type)
+               (t :: RBT Symbol Type)
+               (start :: [Type])
+               (result :: [Type]) = 
+    Flattener { 
+        flatten :: named f t -> nameless f start -> nameless f result,
+        recover :: nameless f result -> (named f t, nameless f start)
+    }
 
 class Flattenable (t :: RBT Symbol Type) 
                   (start :: [Type]) 
                   (result :: [Type]) | t start -> result, t result -> start where
-    toNP :: Record f t -> NP f start -> NP f result
-    fromNP :: NP f result -> (Record f t, NP f start)
+    asNP :: Flattener Record NP f t start result
 
 instance Flattenable E start start where
-    toNP _ start = start  
-    fromNP start = (Empty, start) 
+    asNP = Flattener 
+           (\_ start -> start)
+           (\start -> (Empty, start))
 
 instance (Flattenable right start middle, 
           Flattenable left  (v ': middle) result)
          => Flattenable (N color left k v right) start result where
-    toNP (Node left fv right) start = 
-        toNP @left @_ @result left (fv :* toNP @right @start @middle right start)
-    fromNP result =
-        let (left, fv :* middle) = fromNP @left @_ @result result
-            (right, start) = fromNP @right @start middle
-         in (Node left fv right, start)
-
+    asNP = let Flattener flatL recL = asNP @left  @_     @result
+               Flattener flatR recR = asNP @right @start @middle
+            in Flattener
+               (\(Node left fv right) start -> 
+                    flatL left (fv :* flatR right start))
+               (\result ->
+                    let (left, fv :* middle) = recL result
+                        (right, start) = recR middle
+                     in (Node left fv right, start))
 
