@@ -6,7 +6,7 @@ module Data.RBR (
         Record,
         unit,
         Variant,
-        ludicrous,
+        impossible,
         -- ** Inserting and widening
         Insertable (..),
         insertI,
@@ -21,7 +21,6 @@ module Data.RBR (
         injectI,
         -- * Interation with Data.SOP
         Flattenable (..),
-        Flattener (..),
         -- * Data.SOP re-exports
         I(..)
         -- * Internal

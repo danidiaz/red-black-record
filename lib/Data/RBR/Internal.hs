@@ -20,7 +20,7 @@ module Data.RBR.Internal where
 import Data.Kind
 import GHC.TypeLits
 
-import Data.SOP (I(..),unI,NP(..))
+import Data.SOP (I(..),unI,NP(..),NS(..))
 
 data Color = R
            | B
@@ -46,8 +46,8 @@ data Variant (f :: Type -> Type) (t :: RBT Symbol Type)  where
 
 {-| A Variant without branches doesn't have any values. From an impossible thing, anything can come out. 
 -}
-ludicrous :: Variant f E -> b
-ludicrous v = case v of
+impossible :: Variant f E -> b
+impossible v = case v of
 
 --
 --
@@ -114,7 +114,7 @@ class InsertableHelper1 (k :: Symbol)
 instance InsertableHelper1 k v E where
     type Insert1 k v E = N R E k v E
     insert1 fv Empty = Node Empty fv Empty 
-    widen1 = ludicrous 
+    widen1 = impossible 
  
 instance (CmpSymbol k k' ~ ordering, 
           InsertableHelper2 ordering k v color left k' v' right
@@ -338,37 +338,60 @@ injectI = fst (injection @k @t) . I
 --
 -- Interaction with Data.SOP
 
-data Flattener (named    :: (Type -> Type) -> RBT Symbol Type -> Type)
-               (nameless :: (Type -> Type) -> [Type]          -> Type)
-               (f        ::  Type -> Type)
-               (t :: RBT Symbol Type)
-               (start :: [Type])
-               (result :: [Type]) = 
-    Flattener { 
-        flatten :: named f t -> nameless f start -> nameless f result,
-        recover :: nameless f result -> (named f t, nameless f start)
-    }
-
 class Flattenable (t :: RBT Symbol Type) 
                   (start :: [Type]) 
                   (result :: [Type]) | t start -> result, t result -> start where
-    asNP :: Flattener Record NP f t start result
+    toNP :: Record f t -> NP f start -> NP f result
+    fromNP :: NP f result -> (Record f t, NP f start)
 
 instance Flattenable E start start where
-    asNP = Flattener 
-           (\_ start -> start)
-           (\start -> (Empty, start))
+    toNP _ start = start  
+    fromNP start = (Empty, start) 
 
 instance (Flattenable right start middle, 
           Flattenable left  (v ': middle) result)
          => Flattenable (N color left k v right) start result where
-    asNP = let Flattener flatL recL = asNP @left  @_     @result
-               Flattener flatR recR = asNP @right @start @middle
-            in Flattener
-               (\(Node left fv right) start -> 
-                    flatL left (fv :* flatR right start))
-               (\result ->
-                    let (left, fv :* middle) = recL result
-                        (right, start) = recR middle
-                     in (Node left fv right, start))
+    toNP (Node left fv right) start = 
+        toNP @left @_ @result left (fv :* toNP @right @start @middle right start)
+    fromNP result =
+        let (left, fv :* middle) = fromNP @left @_ @result result
+            (right, start) = fromNP @right @start middle
+         in (Node left fv right, start)
+
+-- class FlattenableSum (t :: RBT Symbol Type) 
+--                      (rightmost :: Bool) 
+--                      (flattened :: [Type]) | t rightmost -> flattened where
+--     asNS :: Variant f t -> NS f flattened
+-- 
+-- instance FlattenableSum (N color E k v E) 
+--                         True
+--                         '[v] where
+--     asNS (Here fv) = Z fv 
+
+-- z (s z) (s s z) (s s s s s s z)
+
+-- class FlattenableSum (t :: RBT Symbol Type) 
+--                      (start :: [Type]) 
+--                      (result :: [Type]) | t start -> result, t result -> start where
+--     toNS :: Variant f t -> (NS f start -> NS f result) -> NS f result
+--     fromNS :: NS f result -> (NS f start -> Variant f t) -> Variant f t 
+-- 
+-- instance (FlattenableSum left '[v] result) 
+--          => FlattenableSum (N color left k v E) 
+--                            '[]
+--                            result where
+--     toNS x _ = case x of
+--                     LookLeft l -> undefined
+--                     Here fv -> Z @_ @v @result fv 
+--     fromNS _ _ = undefined
+
+-- flatten :: named f t -> nameless f start -> nameless f result,
+--        recover :: nameless f result -> (named f t, nameless f start)
+--
+--fromNS :: NS result -> (NS  start -> named result) -> named result
+--toNS (Variant f t) -> (NS start -> NS result) -> NS result
+-- problema: qué pasa si pasamos 0
+
+
+
 
