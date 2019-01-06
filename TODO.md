@@ -2,4 +2,8 @@
     - Key constraint
     - KnownSymbol constraint
 
+- Interaction with normal records
+    - NominalRecord, NominalSum?
+
+
 
