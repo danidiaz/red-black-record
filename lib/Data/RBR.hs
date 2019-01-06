@@ -2,6 +2,8 @@ module Data.RBR (
         -- * Type-level Red-Black tree
         Color (..),
         RBT (..),
+        KeysAll,
+        demoteKeys,
         -- * Records and Variants
         Record,
         unit,
@@ -31,10 +33,11 @@ module Data.RBR (
         NominalSum (..),
         -- * Data.SOP re-exports
         I(..),
+        K(..),
         NP(..),
         NS(..),
         -- * Internal
     ) where
 
 import Data.RBR.Internal
-import Data.SOP (I(..),NP(..),NS(..))
+import Data.SOP (I(..),K(..),NP(..),NS(..))

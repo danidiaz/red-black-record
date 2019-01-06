@@ -9,18 +9,21 @@
              FlexibleInstances,
              FlexibleContexts,
              UndecidableInstances,
+             UndecidableSuperClasses, -- for the keys constraint and para
              TypeApplications,
              ScopedTypeVariables,
              AllowAmbiguousTypes,
              ExplicitForAll,
+             RankNTypes, -- for the keys constraint and para
              LambdaCase,
              EmptyCase #-}
 module Data.RBR.Internal where
 
+import Data.Proxy
 import Data.Kind
 import GHC.TypeLits
 
-import Data.SOP (I(..),unI,NP(..),NS(..),All)
+import Data.SOP (I(..),K(..),unI,NP(..),NS(..),All)
 
 data Color = R
            | B
@@ -29,6 +32,40 @@ data Color = R
 data RBT k v = E 
              | N Color (RBT k v) k v (RBT k v)
     deriving Show
+
+--
+--
+-- This code has been copied and adapted from the corresponding Data.SOP code (the All constraint).
+--
+type family
+  KeysAllF (c :: k -> Constraint) (t :: RBT k v) :: Constraint where
+  KeysAllF  _ E                        = ()
+  KeysAllF  c (N color left k v right) = (c k, KeysAll c left, KeysAll c right)
+
+class KeysAllF c t => KeysAll (c :: k -> Constraint) (t :: RBT k v) where
+  cpara_RBT ::
+       proxy c
+    -> r E
+    -> (forall left k v right color . (c k, KeysAll c left, KeysAll c right) => r left -> r right -> r (N color left k v right))
+    -> r t
+
+instance KeysAll c E where
+  cpara_RBT _p nil _step = nil
+
+instance (c k, KeysAll c left, KeysAll c right) => KeysAll c (N color left k v right) where
+  cpara_RBT p nil cons =
+    cons (cpara_RBT p nil cons) (cpara_RBT p nil cons)
+
+demoteKeys :: KeysAll KnownSymbol t => Record (K String) t
+demoteKeys = cpara_RBT (Proxy @KnownSymbol) unit go
+    where
+    go :: forall left k v right color. (KnownSymbol k, KeysAll KnownSymbol left, KeysAll KnownSymbol right) 
+       => Record (K String) left 
+       -> Record (K String) right 
+       -> Record (K String) (N color left k v right)
+    go left right = Node left (K (symbolVal (Proxy @k))) right 
+--
+--
 
 data Record (f :: Type -> Type) (t :: RBT Symbol Type)  where
     Empty :: Record f E 
