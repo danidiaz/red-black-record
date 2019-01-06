@@ -37,6 +37,9 @@ data RBT k v = E
 --
 -- This code has been copied and adapted from the corresponding Data.SOP code (the All constraint).
 --
+
+-- Why is this KeysAllF type family needed at all? Why is not KeysAll sufficient by itself?
+-- In fact, if I delete KeysAllF and use eclusively KeysAll, functions like demoteKeys seem to still work fine.
 type family
   KeysAllF (c :: k -> Constraint) (t :: RBT k v) :: Constraint where
   KeysAllF  _ E                        = ()
