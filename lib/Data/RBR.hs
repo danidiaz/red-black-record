@@ -26,6 +26,9 @@ module Data.RBR (
         Sumlike (..),
         fromNS',
         toNS',
+        -- * Interfacing with normal records
+        NominalRecord (..),
+        NominalSum (..),
         -- * Data.SOP re-exports
         I(..)
         -- * Internal

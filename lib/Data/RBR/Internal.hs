@@ -435,4 +435,17 @@ fromNS' ns = case fromNS ns of
     Left _ -> error "this never happens"
     Right x -> x
 
+-- Interfacing with normal records
+--
+
+-- Pending: give generic-based default implementations for these typeclasses.
+class NominalRecord (r :: Type) where
+    type RecordCode r :: RBT Symbol Type
+    toRecord :: r -> Record I (RecordCode r)
+    fromRecord :: Record I (RecordCode r) -> r
+
+class NominalSum (s :: Type) where
+    type SumCode s :: RBT Symbol Type
+    toVariant :: r -> Variant I (SumCode r)
+    fromVariant :: Variant I (SumCode r) -> r
 
