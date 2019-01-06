@@ -398,7 +398,11 @@ instance Sumlike (N colorL leftL kL vL rightL) (v ': start) result
         Right x -> 
             case x of LookLeft x  -> toNS @(N colorL leftL kL vL rightL) @(v ': start) @result (Right x)
                       Here x      -> toNS @(N colorL leftL kL vL rightL) (Left (Z x))
-    fromNS = undefined
+    fromNS ns = case fromNS @(N colorL leftL kL vL rightL) @(v ': start) ns of
+        Left x -> case x of
+            Z x -> Right (Here x)
+            S x -> Left x 
+        Right v -> Right (LookLeft v)
 
 instance Sumlike (N colorR leftR kR vR rightR) start middle
          => Sumlike (N color E k v (N colorR leftR kR vR rightR)) 

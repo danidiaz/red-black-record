@@ -5,7 +5,9 @@
 
 ## relevant / related links
 
-[Persistent Red Black Trees in Haskell](https://abhiroop.github.io/Haskell-Red-Black-Tree/). [reddit](https://www.reddit.com/r/haskell/comments/79kbog/persistent_red_black_trees_in_haskell/).
+[Persistent Red Black Trees in
+Haskell](https://abhiroop.github.io/Haskell-Red-Black-Tree/).
+[reddit](https://www.reddit.com/r/haskell/comments/79kbog/persistent_red_black_trees_in_haskell/).
 
 [red-black-tree: Red Black Trees implemented in Haskell](http://hackage.haskell.org/package/red-black-tree).
 
@@ -22,4 +24,10 @@
 [sop-core](http://hackage.haskell.org/package/sop-core).
 
 [Are open sum types dual to stores with allocation?](https://twitter.com/maxsnew/status/1081603990352220168).
+
+[Functor-generic programming](http://r6.ca/blog/20171010T001746Z.html).
+[sop-core](http://hackage.haskell.org/package/sop-core) and
+[streaming](http://hackage.haskell.org/package/streaming) are good examples of
+functor-generic programming.
+
 
