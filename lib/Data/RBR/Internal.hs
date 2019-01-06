@@ -338,19 +338,19 @@ injectI = fst (injection @k @t) . I
 --
 -- Interaction with Data.SOP
 
-class Flattenable (t :: RBT Symbol Type) 
+class Productlike (t :: RBT Symbol Type) 
                   (start :: [Type]) 
                   (result :: [Type]) | t start -> result, t result -> start where
     toNP :: Record f t -> NP f start -> NP f result
     fromNP :: NP f result -> (Record f t, NP f start)
 
-instance Flattenable E start start where
+instance Productlike E start start where
     toNP _ start = start  
     fromNP start = (Empty, start) 
 
-instance (Flattenable right start middle, 
-          Flattenable left  (v ': middle) result)
-         => Flattenable (N color left k v right) start result where
+instance (Productlike right start middle, 
+          Productlike left  (v ': middle) result)
+         => Productlike (N color left k v right) start result where
     toNP (Node left fv right) start = 
         toNP @left @_ @result left (fv :* toNP @right @start @middle right start)
     fromNP result =
@@ -358,61 +358,49 @@ instance (Flattenable right start middle,
             (right, start) = fromNP @right @start middle
          in (Node left fv right, start)
 
-class FlattenableSum (t :: RBT Symbol Type) 
+class Sumlike (t :: RBT Symbol Type) 
                      (start :: [Type]) 
                      (result :: [Type]) | t start -> result, t result -> start where
     toNS :: Either (NS f start) (Variant f t) -> NS f result
 
-instance FlattenableSum (N color E k v E) 
+instance Sumlike (N color E k v E) 
                         start 
                         (v ': start) where
     toNS = \case
         Left  l -> S l
         Right x -> case x of Here fv -> Z @_ @v @start fv
 
-instance (FlattenableSum (N colorR leftR kR vR rightR) start middle,
-          FlattenableSum (N colorL leftL kL vL rightL) (v ': middle) result)
-         => FlattenableSum (N color (N colorL leftL kL vL rightL) k v (N colorR leftR kR vR rightR)) 
+instance (Sumlike (N colorR leftR kR vR rightR) start middle,
+          Sumlike (N colorL leftL kL vL rightL) (v ': middle) result)
+         => Sumlike (N color (N colorL leftL kL vL rightL) k v (N colorR leftR kR vR rightR)) 
                            start 
                            result where
     toNS = \case
-        Left x -> toNS @(N colorL leftL kL vL rightL) (Left (S (toNS @(N colorR leftR kR vR rightR) (Left x))))
-        Right x -> case x of LookLeft x  -> toNS @(N colorL leftL kL vL rightL) @(v ': middle) @result (Right x) 
-                             Here x      -> toNS @(N colorL leftL kL vL rightL) (Left (Z x))
-                             LookRight x -> toNS @(N colorL leftL kL vL rightL) (Left (S (toNS @(N colorR leftR kR vR rightR) (Right x))))
+        Left x -> 
+            toNS @(N colorL leftL kL vL rightL) (Left (S (toNS @(N colorR leftR kR vR rightR) (Left x))))
+        Right x -> 
+            case x of LookLeft x  -> toNS @(N colorL leftL kL vL rightL) @(v ': middle) @result (Right x) 
+                      Here x      -> toNS @(N colorL leftL kL vL rightL) (Left (Z x))
+                      LookRight x -> toNS @(N colorL leftL kL vL rightL) (Left (S (toNS @(N colorR leftR kR vR rightR) (Right x))))
 
-instance FlattenableSum (N colorL leftL kL vL rightL) (v ': start) result
-         => FlattenableSum (N color (N colorL leftL kL vL rightL) k v E) 
+instance Sumlike (N colorL leftL kL vL rightL) (v ': start) result
+         => Sumlike (N color (N colorL leftL kL vL rightL) k v E) 
                            start 
                            result where
     toNS = \case
-        Left x  -> toNS @(N colorL leftL kL vL rightL) (Left (S x))
-        Right x -> case x of LookLeft x  -> toNS @(N colorL leftL kL vL rightL) @(v ': start) @result (Right x)
-                             Here x      -> toNS @(N colorL leftL kL vL rightL) (Left (Z x))
+        Left x  -> 
+            toNS @(N colorL leftL kL vL rightL) (Left (S x))
+        Right x -> 
+            case x of LookLeft x  -> toNS @(N colorL leftL kL vL rightL) @(v ': start) @result (Right x)
+                      Here x      -> toNS @(N colorL leftL kL vL rightL) (Left (Z x))
 
-instance FlattenableSum (N colorR leftR kR vR rightR) start middle
-         => FlattenableSum (N color E k v (N colorR leftR kR vR rightR)) 
+instance Sumlike (N colorR leftR kR vR rightR) start middle
+         => Sumlike (N color E k v (N colorR leftR kR vR rightR)) 
                            start 
                            (v ': middle) where
     toNS = \case
         Left x  -> S (toNS @(N colorR leftR kR vR rightR) (Left x))
-        Right x -> case x of Here x      -> Z x
-                             LookRight x -> S (toNS @(N colorR leftR kR vR rightR) (Right x))
-
-
--- instance ()
---          => FlattenableSum (N E left k v E) 
---                            '[]
---                            result where
--- 
-
--- flatten :: named f t -> nameless f start -> nameless f result,
---        recover :: nameless f result -> (named f t, nameless f start)
---
---fromNS :: NS result -> (NS  start -> named result) -> named result
---toNS (Variant f t) -> (NS start -> NS result) -> NS result
--- problema: qué pasa si pasamos 0
-
-
-
+        Right x -> 
+            case x of Here x      -> Z x
+                      LookRight x -> S (toNS @(N colorR leftR kR vR rightR) (Right x))
 

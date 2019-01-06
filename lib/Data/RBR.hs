@@ -20,7 +20,8 @@ module Data.RBR (
         projectI,
         injectI,
         -- * Interation with Data.SOP
-        Flattenable (..),
+        Productlike (..),
+        Sumlike (..),
         -- * Data.SOP re-exports
         I(..)
         -- * Internal
