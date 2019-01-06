@@ -358,33 +358,53 @@ instance (Flattenable right start middle,
             (right, start) = fromNP @right @start middle
          in (Node left fv right, start)
 
--- class FlattenableSum (t :: RBT Symbol Type) 
---                      (rightmost :: Bool) 
---                      (flattened :: [Type]) | t rightmost -> flattened where
---     asNS :: Variant f t -> NS f flattened
--- 
--- instance FlattenableSum (N color E k v E) 
---                         True
---                         '[v] where
---     asNS (Here fv) = Z fv 
-
--- z (s z) (s s z) (s s s s s s z)
-
 class FlattenableSum (t :: RBT Symbol Type) 
                      (start :: [Type]) 
                      (result :: [Type]) | t start -> result, t result -> start where
     toNS :: Either (NS f start) (Variant f t) -> NS f result
---    fromNS :: NS f result -> (NS f start -> Variant f t) -> Variant f t 
 
-instance (FlattenableSum left '[v] result) 
-         => FlattenableSum (N color left k v E) 
-                           '[]
+instance FlattenableSum (N color E k v E) 
+                        start 
+                        (v ': start) where
+    toNS = \case
+        Left  l -> S l
+        Right x -> case x of Here fv -> Z @_ @v @start fv
+
+instance (FlattenableSum (N colorR leftR kR vR rightR) start middle,
+          FlattenableSum (N colorL leftL kL vL rightL) (v ': middle) result)
+         => FlattenableSum (N color (N colorL leftL kL vL rightL) k v (N colorR leftR kR vR rightR)) 
+                           start 
                            result where
     toNS = \case
-        Left  _ -> error "impossible case"
-        Right x -> case x of
-            LookLeft l -> toNS @left @'[v] (Right l)
-            Here fv -> toNS @left @'[v] (Left (Z @_ @v @'[] fv))
+        Left x -> toNS @(N colorL leftL kL vL rightL) (Left (S (toNS @(N colorR leftR kR vR rightR) (Left x))))
+        Right x -> case x of LookLeft x  -> toNS @(N colorL leftL kL vL rightL) @(v ': middle) @result (Right x) 
+                             Here x      -> toNS @(N colorL leftL kL vL rightL) (Left (Z x))
+                             LookRight x -> toNS @(N colorL leftL kL vL rightL) (Left (S (toNS @(N colorR leftR kR vR rightR) (Right x))))
+
+instance FlattenableSum (N colorL leftL kL vL rightL) (v ': start) result
+         => FlattenableSum (N color (N colorL leftL kL vL rightL) k v E) 
+                           start 
+                           result where
+    toNS = \case
+        Left x  -> toNS @(N colorL leftL kL vL rightL) (Left (S x))
+        Right x -> case x of LookLeft x  -> toNS @(N colorL leftL kL vL rightL) @(v ': start) @result (Right x)
+                             Here x      -> toNS @(N colorL leftL kL vL rightL) (Left (Z x))
+
+instance FlattenableSum (N colorR leftR kR vR rightR) start middle
+         => FlattenableSum (N color E k v (N colorR leftR kR vR rightR)) 
+                           start 
+                           (v ': middle) where
+    toNS = \case
+        Left x  -> S (toNS @(N colorR leftR kR vR rightR) (Left x))
+        Right x -> case x of Here x      -> Z x
+                             LookRight x -> S (toNS @(N colorR leftR kR vR rightR) (Right x))
+
+
+-- instance ()
+--          => FlattenableSum (N E left k v E) 
+--                            '[]
+--                            result where
+-- 
 
 -- flatten :: named f t -> nameless f start -> nameless f result,
 --        recover :: nameless f result -> (named f t, nameless f start)
