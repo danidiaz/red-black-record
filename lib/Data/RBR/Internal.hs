@@ -20,7 +20,7 @@ module Data.RBR.Internal where
 import Data.Kind
 import GHC.TypeLits
 
-import Data.SOP (I(..),unI,NP(..),NS(..))
+import Data.SOP (I(..),unI,NP(..),NS(..),All)
 
 data Color = R
            | B
@@ -34,6 +34,9 @@ data Record (f :: Type -> Type) (t :: RBT Symbol Type)  where
     Empty :: Record f E 
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
+instance (Productlike '[] t result, Show (NP f result)) => Show (Record f t) where
+    show x = "fromNP' (" ++ show (toNP' x) ++ ")"
+
 {-| A Record without components is a boring, uninformative type whose single value can be conjured out of thin air.
 -}
 unit :: Record f E
@@ -43,6 +46,9 @@ data Variant (f :: Type -> Type) (t :: RBT Symbol Type)  where
     Here       :: f v -> Variant f (N color left k v right)
     LookRight  :: Variant f t -> Variant f (N color' left' k' v' t)
     LookLeft   :: Variant f t -> Variant f (N color' t k' v' right')
+
+instance (Sumlike '[] t result, Show (NS f result)) => Show (Variant f t) where
+    show x = "fromNS' (" ++ show (toNS' x) ++ ")"
 
 {-| A Variant without branches doesn't have any values. From an impossible thing, anything can come out. 
 -}

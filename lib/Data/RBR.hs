@@ -30,9 +30,11 @@ module Data.RBR (
         NominalRecord (..),
         NominalSum (..),
         -- * Data.SOP re-exports
-        I(..)
+        I(..),
+        NP(..),
+        NS(..),
         -- * Internal
     ) where
 
 import Data.RBR.Internal
-import Data.SOP (I(..))
+import Data.SOP (I(..),NP(..),NS(..))
