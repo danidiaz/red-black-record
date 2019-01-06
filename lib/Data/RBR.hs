@@ -19,9 +19,13 @@ module Data.RBR (
         inject,
         projectI,
         injectI,
-        -- * Interation with Data.SOP
+        -- * Interfacing with Data.SOP
         Productlike (..),
+        fromNP',
+        toNP',
         Sumlike (..),
+        fromNS',
+        toNS',
         -- * Data.SOP re-exports
         I(..)
         -- * Internal

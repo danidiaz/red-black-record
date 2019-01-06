@@ -338,34 +338,40 @@ injectI = fst (injection @k @t) . I
 --
 -- Interaction with Data.SOP
 
-class Productlike (t :: RBT Symbol Type) 
-                  (start :: [Type]) 
-                  (result :: [Type]) | t start -> result, t result -> start where
+class Productlike (start :: [Type])
+                  (t :: RBT Symbol Type) 
+                  (result :: [Type]) | start t -> result, result t -> start where
     toNP :: Record f t -> NP f start -> NP f result
     fromNP :: NP f result -> (Record f t, NP f start)
 
-instance Productlike E start start where
+instance Productlike start E start where
     toNP _ start = start  
     fromNP start = (Empty, start) 
 
-instance (Productlike right start middle, 
-          Productlike left  (v ': middle) result)
-          => Productlike (N color left k v right) start result where
+instance (Productlike start right middle, 
+          Productlike (v ': middle) left result)
+          => Productlike start (N color left k v right) result where
     toNP (Node left fv right) start = 
-        toNP @left @_ @result left (fv :* toNP @right @start @middle right start)
+        toNP @_ @left @result left (fv :* toNP @start @right @middle right start)
     fromNP result =
-        let (left, fv :* middle) = fromNP @left @_ @result result
-            (right, start) = fromNP @right @start middle
+        let (left, fv :* middle) = fromNP @_ @left @result result
+            (right, start) = fromNP @start @right middle
          in (Node left fv right, start)
 
-class Sumlike (t :: RBT Symbol Type) 
-              (start :: [Type]) 
-              (result :: [Type]) | t start -> result, t result -> start where
+toNP' :: forall t result f. Productlike '[] t result => Record f t -> NP f result
+toNP' r = toNP r Nil
+
+fromNP' :: forall t result f. Productlike '[] t result => NP f result -> Record f t
+fromNP' np = let (r,Nil) = fromNP np in r
+
+class Sumlike (start :: [Type]) 
+              (t :: RBT Symbol Type) 
+              (result :: [Type]) | start t -> result, result t -> start where
     toNS :: Either (NS f start) (Variant f t) -> NS f result
     fromNS :: NS f result -> Either (NS f start) (Variant f t)
 
-instance Sumlike (N color E k v E) 
-                 start 
+instance Sumlike start 
+                 (N color E k v E)
                  (v ': start) where
     toNS = \case
         Left  l -> S l
@@ -374,54 +380,59 @@ instance Sumlike (N color E k v E)
         Z x -> Right (Here x)
         S x -> Left x
 
-instance (Sumlike (N colorR leftR kR vR rightR) start middle,
-          Sumlike (N colorL leftL kL vL rightL) (v ': middle) result)
-         => Sumlike (N color (N colorL leftL kL vL rightL) k v (N colorR leftR kR vR rightR)) 
-                    start 
+instance (Sumlike start (N colorR leftR kR vR rightR) middle,
+          Sumlike (v ': middle) (N colorL leftL kL vL rightL) result)
+         => Sumlike start 
+                    (N color (N colorL leftL kL vL rightL) k v (N colorR leftR kR vR rightR)) 
                     result where
     toNS = \case
         Left x -> 
-            toNS @(N colorL leftL kL vL rightL) (Left (S (toNS @(N colorR leftR kR vR rightR) (Left x))))
+            toNS @_ @(N colorL leftL kL vL rightL) (Left (S (toNS @_ @(N colorR leftR kR vR rightR) (Left x))))
         Right x -> 
-            case x of LookLeft x  -> toNS @(N colorL leftL kL vL rightL) @(v ': middle) @result (Right x) 
-                      Here x      -> toNS @(N colorL leftL kL vL rightL) (Left (Z x))
-                      LookRight x -> toNS @(N colorL leftL kL vL rightL) (Left (S (toNS @(N colorR leftR kR vR rightR) (Right x))))
-    fromNS ns = case fromNS @(N colorL leftL kL vL rightL) @(v ': middle) ns of
+            case x of LookLeft x  -> toNS @(v ': middle) @(N colorL leftL kL vL rightL) @result (Right x) 
+                      Here x      -> toNS @_ @(N colorL leftL kL vL rightL) (Left (Z x))
+                      LookRight x -> toNS @_ @(N colorL leftL kL vL rightL) (Left (S (toNS @_ @(N colorR leftR kR vR rightR) (Right x))))
+    fromNS ns = case fromNS @(v ': middle) @(N colorL leftL kL vL rightL) ns of
         Left x -> case x of
             Z x -> Right (Here x)
-            S x -> case fromNS @(N colorR leftR kR vR rightR) @start x of
+            S x -> case fromNS @start @(N colorR leftR kR vR rightR) x of
                 Left ns  -> Left ns
                 Right v  -> Right (LookRight v)
         Right v -> Right (LookLeft v)
 
-instance Sumlike (N colorL leftL kL vL rightL) (v ': start) result
-         => Sumlike (N color (N colorL leftL kL vL rightL) k v E) 
-                    start 
-                    result where
+instance Sumlike (v ': start) (N colorL leftL kL vL rightL) result
+         => Sumlike start (N color (N colorL leftL kL vL rightL) k v E) result where
     toNS = \case
         Left x  -> 
-            toNS @(N colorL leftL kL vL rightL) (Left (S x))
+            toNS @_ @(N colorL leftL kL vL rightL) (Left (S x))
         Right x -> 
-            case x of LookLeft x  -> toNS @(N colorL leftL kL vL rightL) @(v ': start) @result (Right x)
-                      Here x      -> toNS @(N colorL leftL kL vL rightL) (Left (Z x))
-    fromNS ns = case fromNS @(N colorL leftL kL vL rightL) @(v ': start) ns of
+            case x of LookLeft x  -> toNS @(v ': start) @(N colorL leftL kL vL rightL) @result (Right x)
+                      Here x      -> toNS @_ @(N colorL leftL kL vL rightL) (Left (Z x))
+    fromNS ns = case fromNS @(v ': start) @(N colorL leftL kL vL rightL) ns of
         Left x -> case x of
             Z x -> Right (Here x)
             S x -> Left x 
         Right v -> Right (LookLeft v)
 
-instance Sumlike (N colorR leftR kR vR rightR) start middle
-         => Sumlike (N color E k v (N colorR leftR kR vR rightR)) 
-                    start 
-                    (v ': middle) where
+instance Sumlike start (N colorR leftR kR vR rightR) middle
+         => Sumlike start (N color E k v (N colorR leftR kR vR rightR)) (v ': middle) where
     toNS = \case
-        Left x  -> S (toNS @(N colorR leftR kR vR rightR) (Left x))
+        Left x  -> S (toNS @_ @(N colorR leftR kR vR rightR) (Left x))
         Right x -> 
             case x of Here x      -> Z x
-                      LookRight x -> S (toNS @(N colorR leftR kR vR rightR) (Right x))
+                      LookRight x -> S (toNS @_ @(N colorR leftR kR vR rightR) (Right x))
     fromNS = \case 
         Z x -> Right (Here x)
-        S x -> case fromNS @(N colorR leftR kR vR rightR) x of
+        S x -> case fromNS @_ @(N colorR leftR kR vR rightR) x of
             Left  ns     -> Left ns
             Right v      -> Right (LookRight v)
+
+toNS' :: forall t result f. Sumlike '[] t result => Variant f t -> NS f result
+toNS' = toNS . Right
+
+fromNS' :: forall t result f. Sumlike '[] t result => NS f result -> Variant f t
+fromNS' ns = case fromNS ns of 
+    Left _ -> error "this never happens"
+    Right x -> x
+
 
