@@ -1,0 +1,7 @@
+# https://docs.travis-ci.com/user/customizing-the-build/#the-build-lifecycle
+# https://docs.travis-ci.com/user/languages/haskell/
+language: haskell
+install: "cabal new-configure --enable-tests && cabal new-build --only-dependencies --enable-tests"    
+script: "cabal new-test test:tests"
+ghc:
+    - "8.4.1"
