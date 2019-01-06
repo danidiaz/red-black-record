@@ -377,8 +377,8 @@ instance Sumlike (N color E k v E)
 instance (Sumlike (N colorR leftR kR vR rightR) start middle,
           Sumlike (N colorL leftL kL vL rightL) (v ': middle) result)
          => Sumlike (N color (N colorL leftL kL vL rightL) k v (N colorR leftR kR vR rightR)) 
-                           start 
-                           result where
+                    start 
+                    result where
     toNS = \case
         Left x -> 
             toNS @(N colorL leftL kL vL rightL) (Left (S (toNS @(N colorR leftR kR vR rightR) (Left x))))
@@ -390,8 +390,8 @@ instance (Sumlike (N colorR leftR kR vR rightR) start middle,
 
 instance Sumlike (N colorL leftL kL vL rightL) (v ': start) result
          => Sumlike (N color (N colorL leftL kL vL rightL) k v E) 
-                           start 
-                           result where
+                    start 
+                    result where
     toNS = \case
         Left x  -> 
             toNS @(N colorL leftL kL vL rightL) (Left (S x))
@@ -402,12 +402,16 @@ instance Sumlike (N colorL leftL kL vL rightL) (v ': start) result
 
 instance Sumlike (N colorR leftR kR vR rightR) start middle
          => Sumlike (N color E k v (N colorR leftR kR vR rightR)) 
-                           start 
-                           (v ': middle) where
+                    start 
+                    (v ': middle) where
     toNS = \case
         Left x  -> S (toNS @(N colorR leftR kR vR rightR) (Left x))
         Right x -> 
             case x of Here x      -> Z x
                       LookRight x -> S (toNS @(N colorR leftR kR vR rightR) (Right x))
-    fromNS = undefined
+    fromNS = \case 
+        Z x -> Right (Here x)
+        S x -> case fromNS @(N colorR leftR kR vR rightR) x of
+            Left  ns     -> Left ns
+            Right v      -> Right (LookRight v)
 

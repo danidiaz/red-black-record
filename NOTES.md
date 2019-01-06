@@ -21,3 +21,5 @@
 
 [sop-core](http://hackage.haskell.org/package/sop-core).
 
+[Are open sum types dual to stores with allocation?](https://twitter.com/maxsnew/status/1081603990352220168).
+
