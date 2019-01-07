@@ -23,21 +23,21 @@ section of the .cabal file, and also for particular modules with the
 [OPTIONS_GHC](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html?highlight=options_ghc#options-ghc-pragma)
 file-header pragma.
 
-### The show instance for record doesn't show any field names.
+### The `Show` instance for record doesn't show any field names.
 
-The field names exists only at the type level. Aslo, the `Show` instance uses
+The field names exist only at the type level. Aslo, the `Show` instance uses
 n-ary products and sums from
 [sop-core](http://hackage.haskell.org/package/sop-core), which do not have
 field labels.
 
 ### Working with two records, I'm getting errors about incompatible types even as both records have the exact same fields.
 
-The order of insertion in the type-level tree matters, alas :( Different
+Alas, the order of insertion in the type-level tree matters :( Different
 insertion orders can produce structurally different trees, even as they encode
 the same symbol-to-type map.
 
-Perhaps some kind of conversion function will be implemented in the future. It
-would be opt-int, as it will likely incur in some compile-time overhead.
+Perhaps some kind of conversion function could be implemented. It should be
+opt-in, as it would likely incur in some compile-time overhead.
 
 ### I can't insert into a record when a field with the same name but different type already exists. Why not simply overwrite it?
 
