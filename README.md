@@ -2,8 +2,8 @@
 
 ## What's this?
 
-A library that provides extensible records and variants. The types are indexed
-by a type-level rose tree that maps key names to value types.
+A library that provides extensible records and variants, both indexed by a
+type-level rose tree that maps field names to value types.
 
 ## FAQ
 
