@@ -2,7 +2,7 @@ module Data.RBR (
         -- * Type-level Red-Black tree
         Color (..),
         RBT (..),
-        KeysAll,
+        KeysValuesAll,
         demoteKeys,
         -- * Records and Variants
         Record,

@@ -39,35 +39,42 @@ data RBT k v = E
 -- This code has been copied and adapted from the corresponding Data.SOP code (the All constraint).
 --
 
--- Why is this KeysAllF type family needed at all? Why is not KeysAll sufficient by itself?
--- In fact, if I delete KeysAllF and use eclusively KeysAll, functions like demoteKeys seem to still work fine.
+-- Why is this KeysValuesAllF type family needed at all? Why is not KeysValuesAll sufficient by itself?
+-- In fact, if I delete KeysValuesAllF and use eclusively KeysValuesAll, functions like demoteKeys seem to still work fine.
 type family
-  KeysAllF (c :: k -> Constraint) (t :: RBT k v) :: Constraint where
-  KeysAllF  _ E                        = ()
-  KeysAllF  c (N color left k v right) = (c k, KeysAll c left, KeysAll c right)
+  KeysValuesAllF (c :: k -> v -> Constraint) (t :: RBT k v) :: Constraint where
+  KeysValuesAllF  _ E                        = ()
+  KeysValuesAllF  c (N color left k v right) = (c k v, KeysValuesAll c left, KeysValuesAll c right)
 
-class KeysAllF c t => KeysAll (c :: k -> Constraint) (t :: RBT k v) where
+class KeysValuesAllF c t => KeysValuesAll (c :: k -> v -> Constraint) (t :: RBT k v) where
   cpara_RBT ::
        proxy c
     -> r E
-    -> (forall left k v right color . (c k, KeysAll c left, KeysAll c right) => r left -> r right -> r (N color left k v right))
+    -> (forall left k v right color . (c k v, KeysValuesAll c left, KeysValuesAll c right) => r left -> r right -> r (N color left k v right))
     -> r t
 
-instance KeysAll c E where
+instance KeysValuesAll c E where
   cpara_RBT _p nil _step = nil
 
-instance (c k, KeysAll c left, KeysAll c right) => KeysAll c (N color left k v right) where
+instance (c k v, KeysValuesAll c left, KeysValuesAll c right) => KeysValuesAll c (N color left k v right) where
   cpara_RBT p nil cons =
     cons (cpara_RBT p nil cons) (cpara_RBT p nil cons)
 
-demoteKeys :: KeysAll KnownSymbol t => Record (K String) t
-demoteKeys = cpara_RBT (Proxy @KnownSymbol) unit go
+demoteKeys :: KeysValuesAll KnownKey t => Record (K String) t
+demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
     where
-    go :: forall left k v right color. (KnownSymbol k, KeysAll KnownSymbol left, KeysAll KnownSymbol right) 
+    go :: forall left k v right color. (KnownKey k v, KeysValuesAll KnownKey left, KeysValuesAll KnownKey right) 
        => Record (K String) left 
        -> Record (K String) right 
        -> Record (K String) (N color left k v right)
-    go left right = Node left (K (symbolVal (Proxy @k))) right 
+    go left right = Node left (K (keyVal (Proxy @k) (Proxy @v))) right 
+
+class KnownKey (k :: Symbol) (v :: z) where
+    keyVal :: Proxy k -> Proxy v -> String
+
+instance KnownSymbol k => KnownKey k v where
+    keyVal _ _ = symbolVal (Proxy @k)
+
 --
 --
 
