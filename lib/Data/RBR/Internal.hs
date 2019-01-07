@@ -492,6 +492,6 @@ class NominalRecord (r :: Type) where
 
 class NominalSum (s :: Type) where
     type SumCode s :: RBT Symbol Type
-    toVariant :: r -> Variant I (SumCode r)
-    fromVariant :: Variant I (SumCode r) -> r
+    toVariant :: s -> Variant I (SumCode s)
+    fromVariant :: Variant I (SumCode s) -> s
 
