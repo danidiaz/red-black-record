@@ -14,7 +14,13 @@ The
 extension can help with that, in combination with the
 [-Wno-partial-type-signatures](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/using-warnings.html#ghc-flag--Wpartial-type-signatures)
 GHC flag that disables the warning message emitted when the underscore is
-ecountered.
+encountered.
+
+The flag can be set globally in the
+[ghc-options](https://www.haskell.org/cabal/users-guide/developing-packages.html?#pkg-field-ghc-options)
+section of the .cabal file, and also for a particular module with the
+[OPTIONS_GHC](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html?highlight=options_ghc#options-ghc-pragma)
+file-header pragma.
 
 ### The show instance for record doesn't show any field names.
 
