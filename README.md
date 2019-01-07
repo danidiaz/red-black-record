@@ -19,7 +19,7 @@ encountered.
 
 The flag can be set globally in the
 [ghc-options](https://www.haskell.org/cabal/users-guide/developing-packages.html?#pkg-field-ghc-options)
-section of the .cabal file, and also for a particular module with the
+section of the .cabal file, and also for particular modules with the
 [OPTIONS_GHC](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html?highlight=options_ghc#options-ghc-pragma)
 file-header pragma.
 
