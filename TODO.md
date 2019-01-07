@@ -8,6 +8,7 @@
 - Interaction with normal records
     - NominalRecord, NominalSum?
 
+- Add "match" and "matchI" functions.
 
 data Foo = Foo { name :: String, age :: Int } deriving Show
 
