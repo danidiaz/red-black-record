@@ -400,9 +400,13 @@ matchI v = unI <$> snd (injection @k @t) v
 
 -- In base since >= 4.12.0.0
 -- newtype Op a b = Op { getOp :: b -> a }
--- 
--- subsetProjection :: Record f t -> (f (Value k t) -> Record f t, f (Value k t))
+ 
+subsetProjection :: forall sub whole f. KeysValuesAll (PresentIn whole) sub 
+                 => Record f whole 
+                 -> (f (Record f sub) -> Record f whole, f (Record f sub))
+subsetProjection = undefined
 
+class PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) where
 
 --
 --
