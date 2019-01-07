@@ -67,13 +67,11 @@ demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
        => Record (K String) left 
        -> Record (K String) right 
        -> Record (K String) (N color left k v right)
-    go left right = Node left (K (keyVal (Proxy @k) (Proxy @v))) right 
+    go left right = Node left (K (symbolVal (Proxy @k))) right 
 
-class KnownKey (k :: Symbol) (v :: z) where
-    keyVal :: Proxy k -> Proxy v -> String
-
-instance KnownSymbol k => KnownKey k v where
-    keyVal _ _ = symbolVal (Proxy @k)
+-- a bit unsure of how this trick works, but the KnownSymbol is needed in the two places...
+class KnownSymbol k => KnownKey (k :: Symbol) (v :: z) where
+instance KnownSymbol k => KnownKey k v 
 
 --
 --
