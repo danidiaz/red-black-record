@@ -396,6 +396,16 @@ matchI v = unI <$> snd (injection @k @t) v
 
 --
 --
+-- Subsetting
+
+-- In base since >= 4.12.0.0
+-- newtype Op a b = Op { getOp :: b -> a }
+-- 
+-- subsetProjection :: Record f t -> (f (Value k t) -> Record f t, f (Value k t))
+
+
+--
+--
 -- Interaction with Data.SOP
 
 class Productlike (start :: [Type])

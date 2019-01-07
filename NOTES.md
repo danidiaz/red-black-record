@@ -30,4 +30,7 @@ Haskell](https://abhiroop.github.io/Haskell-Red-Black-Tree/).
 [streaming](http://hackage.haskell.org/package/streaming) are good examples of
 functor-generic programming.
 
+[Why doesn't TypeSynonymInstances allow partially applied type synonyms to be
+used in instance
+heads?](https://stackoverflow.com/questions/4922560/why-doesnt-typesynonyminstances-allow-partially-applied-type-synonyms-to-be-use)
 

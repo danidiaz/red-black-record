@@ -23,6 +23,7 @@ module Data.RBR (
         projectI,
         injectI,
         matchI,
+        -- * Subsetting
         -- * Interfacing with Data.SOP
         Productlike (..),
         fromNP',
@@ -38,7 +39,6 @@ module Data.RBR (
         K(..),
         NP(..),
         NS(..),
-        -- * Internal
     ) where
 
 import Data.RBR.Internal
