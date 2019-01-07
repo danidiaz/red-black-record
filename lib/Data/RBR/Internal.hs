@@ -70,7 +70,7 @@ demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
     go left right = Node left (K (symbolVal (Proxy @k))) right 
 
 -- a bit unsure of how this trick works, but the KnownSymbol is needed in the two places...
-class KnownSymbol k => KnownKey (k :: Symbol) (v :: z) where
+class KnownSymbol k => KnownKey (k :: Symbol) (v :: z)
 instance KnownSymbol k => KnownKey k v 
 
 --
@@ -397,14 +397,15 @@ matchI v = unI <$> snd (injection @k @t) v
 -- Subsetting
 
 -- In base since >= 4.12.0.0
--- newtype Op a b = Op { getOp :: b -> a }
+newtype Op a b = Op { getOp :: b -> a }
  
 subsetProjection :: forall sub whole f. KeysValuesAll (PresentIn whole) sub 
                  => Record f whole 
                  -> (f (Record f sub) -> Record f whole, f (Record f sub))
 subsetProjection = undefined
 
-class PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) where
+class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) 
+instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
 
 --
 --
