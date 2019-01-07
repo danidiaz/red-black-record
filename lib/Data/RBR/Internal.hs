@@ -401,9 +401,10 @@ newtype Op a b = Op { getOp :: b -> a }
  
 subsetProjection :: forall sub whole f. KeysValuesAll (PresentIn whole) sub 
                  => Record f whole 
-                 -> (f (Record f sub) -> Record f whole, f (Record f sub))
+                 -> (Record f sub -> Record f whole, Record f sub)
 subsetProjection = undefined
 
+-- this odd trick again...
 class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
 
