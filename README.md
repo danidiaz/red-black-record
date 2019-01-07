@@ -3,7 +3,8 @@
 ## What's this?
 
 A library that provides extensible records and variants, both indexed by a
-type-level red-black tree tree that maps field names to value types.
+type-level [red-black](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
+tree tree that maps field names to value types.
 
 ## FAQ
 
