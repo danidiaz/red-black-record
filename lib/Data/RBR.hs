@@ -19,8 +19,10 @@ module Data.RBR (
         Key (..),
         project,
         inject,
+        match,
         projectI,
         injectI,
+        matchI,
         -- * Interfacing with Data.SOP
         Productlike (..),
         fromNP',

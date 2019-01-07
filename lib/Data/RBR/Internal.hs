@@ -9,14 +9,15 @@
              FlexibleInstances,
              FlexibleContexts,
              UndecidableInstances,
-             UndecidableSuperClasses, -- for the keys constraint and para
+             UndecidableSuperClasses,
              TypeApplications,
              ScopedTypeVariables,
              AllowAmbiguousTypes,
              ExplicitForAll,
-             RankNTypes, -- for the keys constraint and para
+             RankNTypes, 
              LambdaCase,
              EmptyCase #-}
+-- UndecidableSuperClasses and RankNTypes seem to be required by KeysAllF.
 module Data.RBR.Internal where
 
 import Data.Proxy
@@ -374,11 +375,17 @@ project = snd . projection @k @t
 inject :: forall k t f. Key k t => f (Value k t) -> Variant f t
 inject = fst (injection @k @t)
 
+match :: forall k t f. Key k t => Variant f t -> Maybe (f (Value k t))
+match = snd (injection @k @t)
+
 projectI :: forall k t f. Key k t => Record I t -> Value k t
 projectI = unI . snd . projection @k @t
 
 injectI :: forall k v t. Key k t => Value k t -> Variant I t
 injectI = fst (injection @k @t) . I
+
+matchI :: forall k t . Key k t => Variant I t ->  Maybe (Value k t)
+matchI v = unI <$> snd (injection @k @t) v
 
 --
 --
