@@ -8,7 +8,7 @@ tree tree that maps field names to value types.
 
 ## FAQ
 
-### My type signatures are getting big and scary thanks to those type-level trees. What to do?
+### My type signatures are getting big and scary because of those type-level trees. What to do?
 
 The
 [`-XPartialTypeSignatures`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html?#extension-PartialTypeSignatures)
