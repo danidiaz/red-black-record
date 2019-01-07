@@ -38,7 +38,7 @@ the same symbol-to-type map.
 Perhaps some kind of conversion function will be implemented in the future. It
 would be opt-int, as it will likely incur in some compile-time overhead.
 
-### I can't  insert in a record when a field with the same name but different type already exists. Why not simply overwrite it?
+### I can't insert into a record when a field with the same name but different type already exists. Why not simply overwrite it?
 
 That limitation was intentional, because allowing it would make impossible to
 implement of `widen` for `Variant`. When/if type-level field deletion gets
@@ -53,7 +53,7 @@ typeclass declaration.
 For standalone functions, it’s the order in which the type variables appear in
 the `forall`.
 
-### What's the deal with all those -I suffixed functions?
+### What's the deal with all those -I suffixed versions of functions?
 
 This library aims to provide
 [HKD](http://reasonablypolymorphic.com/blog/higher-kinded-data/)-like
