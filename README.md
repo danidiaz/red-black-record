@@ -97,11 +97,11 @@ tree.
 
 - [generics-sop](http://hackage.haskell.org/package/generics-sop) and
   [records-sop](http://hackage.haskell.org/package/records-sop). Like
-  red-black-record, both of these libraries build upon sop-core. In fact, they
-  are written by the same author. generics-sop can provide sum-of-products
-  representations of any datatype with a Generic instance. red-black-record is
-  more limited, it only converts types that fit the record or variant mold (so
-  no types with anonymous fields for example). 
+  red-black-record, both of these libraries build upon sop-core. They are in
+  fact written by the same author of sop-core. generics-sop can provide
+  sum-of-products representations of any datatype with a Generic instance.
+  red-black-record is more limited, it only converts types that fit the record
+  or variant mold (so no types with anonymous fields for example). 
   
   If you don't need to explicitly target individual fields in the generic
   representation, perhaps you'll be better using generics-sop. And if you do,
