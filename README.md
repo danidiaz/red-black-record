@@ -4,7 +4,29 @@
 
 A library that provides extensible records and variants, both indexed by a
 type-level [red-black](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
-tree tree that maps field names to value types.
+red-black tree that maps `Symbol` keys to value `Type`s. The keys correspond to
+fields names in records, and to branch names in variants. Many record functions
+have their variant mirror-images and viceversa.
+
+Each value in these types comes wrapped in a type constructor of kind `Type -> Type`. 
+Typically, it will be an identity functor, but it can be other things
+like `Maybe` or some other `Applicative` for parsing, validation and so on.
+
+If we forget about the keys and only keep the values, records are isomorphic to
+n-ary unlabeled products, and variants are isomorphic to n-ary unlabeled sums.
+The [sop-core](http://hackage.haskell.org/package/sop-core) library provides
+such unlabeled types, along with a rich API for manipulating them. Instead of
+reinventing the wheel, red-black-record defines conversion functions to
+facilitate working in the "unlabeled" world and then coming back to records and
+variants.
+
+There is another world towards which bridges must be built: the everyday
+Haskell world of conventional records and sums. In fact, one of the motivations
+of extensible records and variants is to serve as "generalized" versions of
+plainer data types. Advanced use cases can rely on these generalized versions,
+thereby avoiding intrusive changes to the original types. red-black-record
+provides conversion typeclasses with default implementations by way of
+[`GHC.Generic`](http://hackage.haskell.org/package/base-4.12.0.0/docs/GHC-Generics.html).
 
 ## FAQ
 
@@ -25,7 +47,7 @@ file-header pragma.
 
 ### The `Show` instance for record doesn't show any field names.
 
-The field names exist only at the type level. Aslo, the `Show` instance uses
+The field names exist only at the type level. Also, the `Show` instance uses
 n-ary products and sums from
 [sop-core](http://hackage.haskell.org/package/sop-core), which do not have
 field labels.
@@ -73,11 +95,19 @@ tree.
 
 ## Alternatives
 
-- [records-sop](http://hackage.haskell.org/package/records-sop). Another
-  library based on [sop-core](http://hackage.haskell.org/package/sop-core), by
-  the autor of that library. Uses a type-level list of fields. Provides record
-  subtyping and accessors. The field's values are wrapped in a type
-  constructor.
+- [generics-sop](http://hackage.haskell.org/package/generics-sop) and
+  [records-sop](http://hackage.haskell.org/package/records-sop). Like
+  red-black-record, both of these libraries build upon sop-core. In fact, they
+  are written by the same author. generics-sop can provide sum-of-products
+  representations of any datatype with a Generic instance. red-black-record is
+  more limited, it only converts types that fit the record or variant mold (so
+  no types with anonymous fields for example). 
+  
+  If you don't need to explicitly target individual fields in the generic
+  representation, perhaps you'll be better using generics-sop. You can also use
+  records-sop, which provides record subtyping and named field accessors based
+  on a type-level list of fields (unlike the type-level tree used by
+  red-black-record).
 
 - [superrecord](http://hackage.haskell.org/package/superrecord). This library
   provides very efficient access at runtime because the fields are backed
@@ -86,5 +116,7 @@ tree.
 
 - [vinyl](http://hackage.haskell.org/package/vinyl). One of the oldest and more
   fully-featured extensible records libraries. Uses a type level list of
-  fields. The field's values are wrapped in a type constructor.
+  fields. The fields' values are wrapped in a type constructor, like in
+  sop-core. The records seem to use an auxiliary sum type that serves as a
+  "code" for the fields.
 
