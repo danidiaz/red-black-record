@@ -42,8 +42,8 @@ opt-in, as it would likely incur in some compile-time overhead.
 ### I can't insert into a record when a field with the same name but different type already exists. Why not simply overwrite it?
 
 That limitation was intentional, because allowing it would make impossible to
-implement of `widen` for `Variant`. When/if type-level field deletion gets
-implemented, one solution would be to explicitly delete the field and then
+implement of `widen` for `Variant`. When/if key deletion gets implemented
+type-level tree, one solution would be to explicitly delete the field and then
 insert it again.
 
 ### The library doesn't use Proxy and relies on type application instead. But what’s the order of the type parameters?
@@ -65,6 +65,11 @@ want to get and set a field's value. In that case, the type constructor that
 wraps each field will be an identity functor `I` (from
 [sop-core](http://hackage.haskell.org/package/sop-core)). The -I suffixed
 functions wrap and unwrap the field's value on behalf of the user.
+
+### I want a version of "match" that when it fails returns a variant with the unmatched cases.
+
+That isn't implemented (yet). It would require key deletion on the type-level
+tree.
 
 ## Alternatives
 

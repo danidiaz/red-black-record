@@ -21,6 +21,9 @@
   Will require the constraint that all the keys in one tree
   are keys in the original tree.
 
-- Implement "handleAll"
+- Implement "handleAll". 
 
+- Use the example of parsing a subset of fields form JSON.
+
+- Perhaps use the example of building a validator.
 
