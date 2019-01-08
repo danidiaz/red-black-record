@@ -23,7 +23,7 @@ variants.
 There is another world towards which bridges must be built: the everyday
 Haskell world of conventional records and sums. In fact, one of the motivations
 of extensible records and variants is to serve as "generalized" versions of
-plainer data types. Advanced use cases can rely on these generalized versions,
+vanilla data types. Advanced use cases can rely on these generalized versions,
 thereby avoiding intrusive changes to the original types. red-black-record
 provides conversion typeclasses with default implementations by way of
 [`GHC.Generic`](http://hackage.haskell.org/package/base-4.12.0.0/docs/GHC-Generics.html).
