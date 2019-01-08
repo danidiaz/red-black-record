@@ -104,10 +104,10 @@ tree.
   no types with anonymous fields for example). 
   
   If you don't need to explicitly target individual fields in the generic
-  representation, perhaps you'll be better using generics-sop. You can also use
-  records-sop, which provides record subtyping and named field accessors based
-  on a type-level list of fields (unlike the type-level tree used by
-  red-black-record).
+  representation, perhaps you'll be better using generics-sop. And if you do,
+  you can also use records-sop, which provides record subtyping and named field
+  accessors based on a type-level list of fields (unlike the type-level tree
+  used by red-black-record).
 
 - [superrecord](http://hackage.haskell.org/package/superrecord). This library
   provides very efficient access at runtime because the fields are backed
