@@ -15,7 +15,6 @@ module Data.RBR (
         InsertAll,
         FromList,
         -- ** Projecting and injecting
-        KeyIn,
         Key (..),
         project,
         inject,

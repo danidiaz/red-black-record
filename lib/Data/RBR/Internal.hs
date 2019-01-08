@@ -20,9 +20,10 @@
 -- UndecidableSuperClasses and RankNTypes seem to be required by KeysAllF.
 module Data.RBR.Internal where
 
-import Data.Proxy
-import Data.Kind
-import GHC.TypeLits
+import           Data.Proxy
+import           Data.Kind
+import           GHC.TypeLits
+import qualified GHC.Generics as G
 
 import Data.SOP (I(..),K(..),unI,NP(..),NS(..),All)
 
@@ -69,7 +70,7 @@ demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
        -> Record (K String) (N color left k v right)
     go left right = Node left (K (symbolVal (Proxy @k))) right 
 
--- a bit unsure of how this trick works, but the KnownSymbol is needed in the two places...
+-- the "class synonym" trick. https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/
 class KnownSymbol k => KnownKey (k :: Symbol) (v :: z)
 instance KnownSymbol k => KnownKey k v 
 
@@ -327,8 +328,6 @@ instance BalanceableHelper DoNotBalance color a k v b where
 --
 -- Accessing fields
 
-type KeyIn (t :: RBT Symbol Type) (k :: Symbol) = Key k t
-
 class Key (k :: Symbol) (t :: RBT Symbol Type) where
     type Value k t :: Type
     projection :: Record f t -> (f (Value k t) -> Record f t, f (Value k t))
@@ -399,14 +398,22 @@ matchI v = unI <$> snd (injection @k @t) v
 -- In base since >= 4.12.0.0
 newtype Op a b = Op { getOp :: b -> a }
  
-subsetProjection :: forall sub whole f. KeysValuesAll (PresentIn whole) sub 
-                 => Record f whole 
-                 -> (Record f sub -> Record f whole, Record f sub)
-subsetProjection = undefined
-
 -- this odd trick again...
 class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
+
+subsetProjection :: forall subset whole f. KeysValuesAll (PresentIn whole) subset 
+                 => Record f whole 
+                 -> (Record f subset -> Record f whole, Record f subset)
+subsetProjection r = 
+    let   
+        go :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
+                                                                 KeysValuesAll (PresentIn whole) right) 
+           => Record ((->) (Record f whole)) left 
+           -> Record ((->) (Record f whole)) right 
+           -> Record ((->) (Record f whole)) (N color left k v right)
+        go left right = undefined -- Node left (K (symbolVal (Proxy @k))) right 
+     in undefined
 
 --
 --
@@ -518,8 +525,18 @@ class NominalRecord (r :: Type) where
     toRecord :: r -> Record I (RecordCode r)
     fromRecord :: Record I (RecordCode r) -> r
 
+instance NominalRecord () where
+    type RecordCode () = E
+    toRecord _ = Empty
+    fromRecord _ = ()
+
 class NominalSum (s :: Type) where
     type SumCode s :: RBT Symbol Type
     toVariant :: s -> Variant I (SumCode s)
     fromVariant :: Variant I (SumCode s) -> s
+
+instance (G.Generic s, G.Rep s ~ G.D1 meta G.V1) => NominalSum r where
+    type SumCode r = E
+    toVariant _ = error "never happens"
+    fromVariant _ = error "never happens"
 
