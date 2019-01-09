@@ -403,17 +403,15 @@ class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol)
 instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
 
 subsetProjection :: forall subset whole f. KeysValuesAll (PresentIn whole) subset 
-                 => Record f whole 
-                 -> (Record f subset -> Record f whole, Record f subset)
+                 => Record f whole -> (Record f subset -> Record f whole, Record f subset)
 subsetProjection r = 
-    let   
-        go :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
+    let go :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
                                                                  KeysValuesAll (PresentIn whole) right) 
-           => Record ((->) (Record f whole)) left 
-           -> Record ((->) (Record f whole)) right 
-           -> Record ((->) (Record f whole)) (N color left k v right)
-        go left right = undefined -- Node left (K (symbolVal (Proxy @k))) right 
-     in undefined
+           => Record f left 
+           -> Record f right 
+           -> Record f (N color left k v right)
+        go left right = Node left (project @k @whole r) right
+     in (undefined, cpara_RBT (Proxy @(PresentIn whole)) unit go)
 
 --
 --
@@ -534,9 +532,4 @@ class NominalSum (s :: Type) where
     type SumCode s :: RBT Symbol Type
     toVariant :: s -> Variant I (SumCode s)
     fromVariant :: Variant I (SumCode s) -> s
-
-instance (G.Generic s, G.Rep s ~ G.D1 meta G.V1) => NominalSum r where
-    type SumCode r = E
-    toVariant _ = error "never happens"
-    fromVariant _ = error "never happens"
 
