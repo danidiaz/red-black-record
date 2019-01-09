@@ -22,10 +22,12 @@ module Data.RBR.Internal where
 
 import           Data.Proxy
 import           Data.Kind
+import           Data.Monoid
 import           GHC.TypeLits
 import qualified GHC.Generics as G
 
-import Data.SOP (I(..),K(..),unI,NP(..),NS(..),All)
+import           Data.SOP (I(..),K(..),unI,NP(..),NS(..),All,SListI)
+import           Data.SOP.NP (collapse_NP,liftA2_NP)
 
 data Color = R
            | B
@@ -51,7 +53,8 @@ class KeysValuesAllF c t => KeysValuesAll (c :: k -> v -> Constraint) (t :: RBT 
   cpara_RBT ::
        proxy c
     -> r E
-    -> (forall left k v right color . (c k v, KeysValuesAll c left, KeysValuesAll c right) => r left -> r right -> r (N color left k v right))
+    -> (forall left k v right color . (c k v, KeysValuesAll c left, KeysValuesAll c right) 
+                                   => r left -> r right -> r (N color left k v right))
     -> r t
 
 instance KeysValuesAll c E where
@@ -395,23 +398,43 @@ matchI v = unI <$> snd (injection @k @t) v
 --
 -- Subsetting
 
--- In base since >= 4.12.0.0
-newtype Op a b = Op { getOp :: b -> a }
+newtype Setz f a b = Setz { getSetz :: f b -> a -> a }
  
 -- this odd trick again...
 class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
 
-subsetProjection :: forall subset whole f. KeysValuesAll (PresentIn whole) subset 
+subsetProjection :: forall subset whole f flat. 
+                    (Productlike '[] subset flat,
+                     SListI flat,
+                     KeysValuesAll (PresentIn whole) subset)
                  => Record f whole -> (Record f subset -> Record f whole, Record f subset)
 subsetProjection r = 
-    let go :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
-                                                                 KeysValuesAll (PresentIn whole) right) 
-           => Record f left 
-           -> Record f right 
-           -> Record f (N color left k v right)
-        go left right = Node left (project @k @whole r) right
-     in (undefined, cpara_RBT (Proxy @(PresentIn whole)) unit go)
+    (,)
+    (let goset :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
+                                                                     KeysValuesAll (PresentIn whole) right) 
+               => Record (Setz f (Record f whole)) left 
+               -> Record (Setz f (Record f whole)) right 
+               -> Record (Setz f (Record f whole)) (N color left k v right)
+         goset left right = Node left (Setz (\v w -> fst (projection @k @whole w) v)) right
+         setters = toNP' @subset @_ @(Setz f (Record f whole)) (cpara_RBT (Proxy @(PresentIn whole)) unit goset)
+         appz (Setz func) fv = K (Endo (func fv))
+      in \toset -> appEndo (mconcat (collapse_NP (liftA2_NP appz setters (toNP' toset)))) r)
+    (let goget :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
+                                                                     KeysValuesAll (PresentIn whole) right) 
+               => Record f left 
+               -> Record f right 
+               -> Record f (N color left k v right)
+         goget left right = Node left (project @k @whole r) right
+      in cpara_RBT (Proxy @(PresentIn whole)) unit goget)
+
+projectSubset :: forall subset whole f flat. 
+                 (Productlike '[] subset flat,
+                  SListI flat,
+                  KeysValuesAll (PresentIn whole) subset)
+              => Record f whole 
+              -> Record f subset
+projectSubset =  snd . subsetProjection
 
 --
 --

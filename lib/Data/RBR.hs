@@ -24,6 +24,7 @@ module Data.RBR (
         matchI,
         -- * Subsetting
         subsetProjection,
+        projectSubset,
         -- * Interfacing with Data.SOP
         Productlike (..),
         fromNP',
