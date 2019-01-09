@@ -115,8 +115,8 @@ tree.
   example). 
   
   If you don't need to explicitly target *individual* fields in the generic
-  representation, you'll be better using generics-sop instead of red-black
-  record. 
+  representation, you'll be better using generics-sop instead of
+  red-black-record. 
   
   On top of generics-sop, records-sop provides named field accessors and record
   subtyping based on a type-level list of fields (unlike the type-level tree
