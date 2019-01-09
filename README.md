@@ -8,9 +8,9 @@ tree that maps `Symbol` keys to value `Type`s. The keys correspond to fields
 names in records, and to branch names in variants. Many record functions have
 their variant mirror-images and viceversa.
 
-Each value in these types comes wrapped in a type constructor of kind `Type -> Type`. 
-Typically, it will be an identity functor, but it can be other things
-like `Maybe` or some other `Applicative` for parsing, validation and so on.
+Each value in these types comes wrapped in a type constructor of kind `Type ->
+Type`. Typically, it will be an identity functor, but it can also be `Maybe` or
+some other `Applicative` for parsing, validation and so on.
 
 If we forget about the keys and only keep the values, records are isomorphic to
 n-ary unlabeled products, and variants are isomorphic to n-ary unlabeled sums.
