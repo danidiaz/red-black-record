@@ -470,7 +470,7 @@ instance (Sumlike start (N colorR leftR kR vR rightR) middle,
         Right x -> 
             case x of LookLeft x  -> toNS @(v ': middle) @(N colorL leftL kL vL rightL) @result (Right x) 
                       Here x      -> toNS @_ @(N colorL leftL kL vL rightL) (Left (Z x))
-                      LookRight x -> toNS @_ @(N colorL leftL kL vL rightL) (Left (S (toNS @_ @(N colorR leftR kR vR rightR) (Right x))))
+                      LookRight x -> toNS @_ @(N colorL leftL kL vL rightL) (Left (S (toNS (Right x))))
     fromNS ns = case fromNS @(v ': middle) @(N colorL leftL kL vL rightL) ns of
         Left x -> case x of
             Z x -> Right (Here x)
