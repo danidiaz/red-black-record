@@ -541,6 +541,12 @@ fromNS' ns = case fromNS ns of
 --
 
 -- Pending: give generic-based default implementations for these typeclasses.
+
+newtype P (p :: (a, Type)) = P (Snd p)
+
+type family Snd (p :: (a, b)) :: b where
+    Snd '(a, b) = b
+
 class NominalRecord (r :: Type) where
     type RecordCode r :: RBT Symbol Type
     toRecord :: r -> Record I (RecordCode r)

@@ -95,13 +95,13 @@ tree.
 
 ## Inspirations
 
-- The code for the red-black tree has been lifted (in several senses) from
-  ["Persistent Red Black Trees in
-  Haskell"](https://abhiroop.github.io/Haskell-Red-Black-Tree/).
+- The code for the red-black tree has been lifted from ["Persistent Red Black
+  Trees in Haskell"](https://abhiroop.github.io/Haskell-Red-Black-Tree/).
 
 - Besides depending on sop-core, I have copied and adapted code from it. In
-  particular the KeysValuessAll typeclass is a version of the All typeclass
-  from sop-core.
+  particular the `KeysValuessAll` typeclass is a version of the `All` typeclass
+  from sop-core. Parts of the Generics-based conversion code are from
+  records-sop.
 
 ## Alternatives
 
