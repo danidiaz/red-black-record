@@ -99,20 +99,22 @@ tree.
   [records-sop](http://hackage.haskell.org/package/records-sop). Like
   red-black-record, both of these libraries build upon sop-core. They are in
   fact written by the same author of sop-core. generics-sop can provide
-  sum-of-products representations of any datatype with a Generic instance.
-  red-black-record is more limited, it only converts types that fit the record
-  or variant mold (so no types with anonymous fields for example). 
+  sum-of-products representations of any datatype with a Generic instance
+  (red-black-record is more limited, it only converts types that fit the
+  labelled record or variant mold—so no types with anonymous fields for
+  example). 
   
-  If you don't need to explicitly target individual fields in the generic
-  representation, perhaps you'll be better using generics-sop. If you do need
-  that, records-sop provides named field accessors and record subtyping based
-  on a type-level list of fields (unlike the type-level tree used by
-  red-black-record).
+  If you don't need to explicitly target *individual* fields in the generic
+  representation, you'll be better using generics-sop. 
+  
+  On top of generics-sop, records-sop provides named field accessors and record
+  subtyping based on a type-level list of fields (unlike the type-level tree
+  used by red-black-record). It doesn't seem to provide variants.
 
 - [superrecord](http://hackage.haskell.org/package/superrecord). This library
   provides very efficient access at runtime because the fields are backed
   internally by an array. Uses a *sorted* type-level list of fields, to avoid
-  the problems of multiple field orderings.
+  the problems of multiple orderings of the same fields.
 
 - [vinyl](http://hackage.haskell.org/package/vinyl). One of the oldest and more
   fully-featured extensible records libraries. Uses a type level list of
