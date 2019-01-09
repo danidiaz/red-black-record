@@ -4,9 +4,9 @@
 
 A library that provides extensible records and variants, both indexed by a
 type-level [red-black](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
-red-black tree that maps `Symbol` keys to value `Type`s. The keys correspond to
-fields names in records, and to branch names in variants. Many record functions
-have their variant mirror-images and viceversa.
+tree that maps `Symbol` keys to value `Type`s. The keys correspond to fields
+names in records, and to branch names in variants. Many record functions have
+their variant mirror-images and viceversa.
 
 Each value in these types comes wrapped in a type constructor of kind `Type -> Type`. 
 Typically, it will be an identity functor, but it can be other things
@@ -104,10 +104,10 @@ tree.
   or variant mold (so no types with anonymous fields for example). 
   
   If you don't need to explicitly target individual fields in the generic
-  representation, perhaps you'll be better using generics-sop. And if you do,
-  you can also use records-sop, which provides record subtyping and named field
-  accessors based on a type-level list of fields (unlike the type-level tree
-  used by red-black-record).
+  representation, perhaps you'll be better using generics-sop. If you do,
+  records-sop provides named field accessors and record subtyping based on a
+  type-level list of fields (unlike the type-level tree used by
+  red-black-record).
 
 - [superrecord](http://hackage.haskell.org/package/superrecord). This library
   provides very efficient access at runtime because the fields are backed
