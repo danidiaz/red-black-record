@@ -93,6 +93,16 @@ functions wrap and unwrap the field's value on behalf of the user.
 That isn't implemented (yet). It would require key deletion on the type-level
 tree.
 
+## Inspirations
+
+- The code for the red-black tree has been lifted (in several senses) from
+  ["Persistent Red Black Trees in
+  Haskell"](https://abhiroop.github.io/Haskell-Red-Black-Tree/).
+
+- Besides depending on sop-core, I have copied and adapted code from it. In
+  particular the KeysValuessAll typeclass is a version of the All typeclass
+  from sop-core.
+
 ## Alternatives
 
 - [generics-sop](http://hackage.haskell.org/package/generics-sop) and
@@ -121,4 +131,8 @@ tree.
   fields. The fields' values are wrapped in a type constructor, like in
   sop-core. The records seem to use an auxiliary sum type that serves as a
   "code" for the fields.
+
+- [HTree](https://github.com/i-am-tom/learn-me-a-haskell#htree). Another
+  implementation of extensible records using type-level red-black trees, which
+  I discovered about halfway through the implemenation of this package.
 
