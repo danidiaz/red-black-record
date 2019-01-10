@@ -85,7 +85,7 @@ data Record (f :: Type -> Type) (t :: RBT Symbol Type)  where
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
 instance (Productlike '[] t result, Show (NP f result)) => Show (Record f t) where
-    show x = "fromNP' (" ++ show (toNP' x) ++ ")"
+    show x = "fromNP (" ++ show (toNP x) ++ ")"
 
 {-| A Record without components is a boring, uninformative type whose single value can be conjured out of thin air.
 -}
@@ -98,7 +98,7 @@ data Variant (f :: Type -> Type) (t :: RBT Symbol Type)  where
     LookLeft   :: Variant f t -> Variant f (N color' t k' v' right')
 
 instance (Sumlike '[] t result, Show (NS f result)) => Show (Variant f t) where
-    show x = "fromNS' (" ++ show (toNS' x) ++ ")"
+    show x = "fromNS (" ++ show (toNS x) ++ ")"
 
 {-| A Variant without branches doesn't have any values. From an impossible thing, anything can come out. 
 -}
@@ -334,12 +334,12 @@ instance BalanceableHelper DoNotBalance color a k v b where
 class Key (k :: Symbol) (t :: RBT Symbol Type) where
     type Value k t :: Type
     projection :: Record f t -> (f (Value k t) -> Record f t, f (Value k t))
-    injection :: (f (Value k t) -> Variant f t, Variant f t -> Maybe (f (Value k t)))
+    injection :: (Variant f t -> Maybe (f (Value k t)), f (Value k t) -> Variant f t)
 
 class KeyHelper (ordering :: Ordering) (k :: Symbol) (t :: RBT Symbol Type) where 
     type Value' ordering k t :: Type
     projection' :: Record f t -> (f (Value' ordering k t) -> Record f t, f (Value' ordering k t))
-    injection' :: (f (Value' ordering k t) -> Variant f t, Variant f t -> Maybe (f (Value' ordering k t)))
+    injection' :: (Variant f t -> Maybe (f (Value' ordering k t)), f (Value' ordering k t) -> Variant f t)
 
 instance (CmpSymbol k' k ~ ordering, KeyHelper ordering k (N color left k' v' right)) 
          => Key k (N color left k' v' right) where
@@ -353,10 +353,10 @@ instance Key k right => KeyHelper LT k (N color left k' v' right) where
         let (setter,x) = projection @k right
          in (\z -> Node left fv (setter z),x)
     injection' = 
-        let (inj,match) = injection @k @right
-         in (\fv -> LookRight (inj fv), 
-             \case LookRight x -> match x
-                   _ -> Nothing)
+        let (match,inj) = injection @k @right
+         in (\case LookRight x -> match x
+                   _ -> Nothing,
+             \fv -> LookRight (inj fv))
 
 instance Key k left => KeyHelper GT k (N color left k' v' right) where
     type Value' GT k (N color left k' v' right) = Value k left
@@ -364,35 +364,35 @@ instance Key k left => KeyHelper GT k (N color left k' v' right) where
         let (setter,x) = projection @k left
          in (\z -> Node (setter z) fv right,x)
     injection' =
-        let (inj,match) = injection @k @left
-         in (\fv -> LookLeft (inj fv), 
-             \case LookLeft x -> match x
-                   _ -> Nothing)
+        let (match,inj) = injection @k @left
+         in (\case LookLeft x -> match x
+                   _ -> Nothing,
+             \fv -> LookLeft (inj fv))
 
 instance KeyHelper EQ k (N color left k v right) where
     type Value' EQ k (N color left k v right) = v
     projection' (Node left fv right) = (\x -> Node left x right, fv)
-    injection' = (Here,
-            \case Here x -> Just x
-                  _ -> Nothing)
+    injection' = (\case Here x -> Just x
+                        _ -> Nothing,
+                  Here)
 
 project :: forall k t f . Key k t => Record f t -> f (Value k t)
 project = snd . projection @k @t
 
 inject :: forall k t f. Key k t => f (Value k t) -> Variant f t
-inject = fst (injection @k @t)
+inject = snd (injection @k @t)
 
 match :: forall k t f. Key k t => Variant f t -> Maybe (f (Value k t))
-match = snd (injection @k @t)
+match = fst (injection @k @t)
 
 projectI :: forall k t f. Key k t => Record I t -> Value k t
 projectI = unI . snd . projection @k @t
 
 injectI :: forall k v t. Key k t => Value k t -> Variant I t
-injectI = fst (injection @k @t) . I
+injectI = snd (injection @k @t) . I
 
 matchI :: forall k t . Key k t => Variant I t ->  Maybe (Value k t)
-matchI v = unI <$> snd (injection @k @t) v
+matchI v = unI <$> fst (injection @k @t) v
 
 --
 --
@@ -417,9 +417,9 @@ subsetProjection r =
                -> Record (Setz f (Record f whole)) right 
                -> Record (Setz f (Record f whole)) (N color left k v right)
          goset left right = Node left (Setz (\v w -> fst (projection @k @whole w) v)) right
-         setters = toNP' @subset @_ @(Setz f (Record f whole)) (cpara_RBT (Proxy @(PresentIn whole)) unit goset)
+         setters = toNP @subset @_ @(Setz f (Record f whole)) (cpara_RBT (Proxy @(PresentIn whole)) unit goset)
          appz (Setz func) fv = K (Endo (func fv))
-      in \toset -> appEndo (mconcat (collapse_NP (liftA2_NP appz setters (toNP' toset)))) r)
+      in \toset -> appEndo (mconcat (collapse_NP (liftA2_NP appz setters (toNP toset)))) r)
     (let goget :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
                                                                      KeysValuesAll (PresentIn whole) right) 
                => Record f left 
@@ -443,42 +443,42 @@ projectSubset =  snd . subsetProjection
 class Productlike (start :: [Type])
                   (t :: RBT Symbol Type) 
                   (result :: [Type]) | start t -> result, result t -> start where
-    toNP :: Record f t -> NP f start -> NP f result
-    fromNP :: NP f result -> (Record f t, NP f start)
+    prefixNP:: Record f t -> NP f start -> NP f result
+    breakNP :: NP f result -> (Record f t, NP f start)
 
 instance Productlike start E start where
-    toNP _ start = start  
-    fromNP start = (Empty, start) 
+    prefixNP _ start = start  
+    breakNP start = (Empty, start) 
 
 instance (Productlike start right middle, 
           Productlike (v ': middle) left result)
           => Productlike start (N color left k v right) result where
-    toNP (Node left fv right) start = 
-        toNP @_ @left @result left (fv :* toNP @start @right @middle right start)
-    fromNP result =
-        let (left, fv :* middle) = fromNP @_ @left @result result
-            (right, start) = fromNP @start @right middle
+    prefixNP (Node left fv right) start = 
+        prefixNP @_ @left @result left (fv :* prefixNP @start @right @middle right start)
+    breakNP result =
+        let (left, fv :* middle) = breakNP @_ @left @result result
+            (right, start) = breakNP @start @right middle
          in (Node left fv right, start)
 
-toNP' :: forall t result f. Productlike '[] t result => Record f t -> NP f result
-toNP' r = toNP r Nil
+toNP :: forall t result f. Productlike '[] t result => Record f t -> NP f result
+toNP r = prefixNP r Nil
 
-fromNP' :: forall t result f. Productlike '[] t result => NP f result -> Record f t
-fromNP' np = let (r,Nil) = fromNP np in r
+fromNP :: forall t result f. Productlike '[] t result => NP f result -> Record f t
+fromNP np = let (r,Nil) = breakNP np in r
 
 class Sumlike (start :: [Type]) 
               (t :: RBT Symbol Type) 
               (result :: [Type]) | start t -> result, result t -> start where
-    toNS :: Either (NS f start) (Variant f t) -> NS f result
-    fromNS :: NS f result -> Either (NS f start) (Variant f t)
+    prefixNS :: Either (NS f start) (Variant f t) -> NS f result
+    breakNS :: NS f result -> Either (NS f start) (Variant f t)
 
 instance Sumlike start 
                  (N color E k v E)
                  (v ': start) where
-    toNS = \case
+    prefixNS = \case
         Left  l -> S l
         Right x -> case x of Here fv -> Z @_ @v @start fv
-    fromNS = \case 
+    breakNS = \case 
         Z x -> Right (Here x)
         S x -> Left x
 
@@ -487,30 +487,30 @@ instance (Sumlike start (N colorR leftR kR vR rightR) middle,
          => Sumlike start 
                     (N color (N colorL leftL kL vL rightL) k v (N colorR leftR kR vR rightR)) 
                     result where
-    toNS = \case
+    prefixNS = \case
         Left x -> 
-            toNS @_ @(N colorL leftL kL vL rightL) (Left (S (toNS @_ @(N colorR leftR kR vR rightR) (Left x))))
+            prefixNS @_ @(N colorL leftL kL vL rightL) (Left (S (prefixNS @_ @(N colorR leftR kR vR rightR) (Left x))))
         Right x -> 
-            case x of LookLeft x  -> toNS @(v ': middle) @(N colorL leftL kL vL rightL) @result (Right x) 
-                      Here x      -> toNS @_ @(N colorL leftL kL vL rightL) (Left (Z x))
-                      LookRight x -> toNS @_ @(N colorL leftL kL vL rightL) (Left (S (toNS (Right x))))
-    fromNS ns = case fromNS @(v ': middle) @(N colorL leftL kL vL rightL) ns of
+            case x of LookLeft x  -> prefixNS @(v ': middle) @(N colorL leftL kL vL rightL) @result (Right x) 
+                      Here x      -> prefixNS @_ @(N colorL leftL kL vL rightL) (Left (Z x))
+                      LookRight x -> prefixNS @_ @(N colorL leftL kL vL rightL) (Left (S (prefixNS (Right x))))
+    breakNS ns = case breakNS @(v ': middle) @(N colorL leftL kL vL rightL) ns of
         Left x -> case x of
             Z x -> Right (Here x)
-            S x -> case fromNS @start @(N colorR leftR kR vR rightR) x of
+            S x -> case breakNS @start @(N colorR leftR kR vR rightR) x of
                 Left ns  -> Left ns
                 Right v  -> Right (LookRight v)
         Right v -> Right (LookLeft v)
 
 instance Sumlike (v ': start) (N colorL leftL kL vL rightL) result
          => Sumlike start (N color (N colorL leftL kL vL rightL) k v E) result where
-    toNS = \case
+    prefixNS = \case
         Left x  -> 
-            toNS @_ @(N colorL leftL kL vL rightL) (Left (S x))
+            prefixNS @_ @(N colorL leftL kL vL rightL) (Left (S x))
         Right x -> 
-            case x of LookLeft x  -> toNS @(v ': start) @(N colorL leftL kL vL rightL) @result (Right x)
-                      Here x      -> toNS @_ @(N colorL leftL kL vL rightL) (Left (Z x))
-    fromNS ns = case fromNS @(v ': start) @(N colorL leftL kL vL rightL) ns of
+            case x of LookLeft x  -> prefixNS @(v ': start) @(N colorL leftL kL vL rightL) @result (Right x)
+                      Here x      -> prefixNS @_ @(N colorL leftL kL vL rightL) (Left (Z x))
+    breakNS ns = case breakNS @(v ': start) @(N colorL leftL kL vL rightL) ns of
         Left x -> case x of
             Z x -> Right (Here x)
             S x -> Left x 
@@ -518,22 +518,22 @@ instance Sumlike (v ': start) (N colorL leftL kL vL rightL) result
 
 instance Sumlike start (N colorR leftR kR vR rightR) middle
          => Sumlike start (N color E k v (N colorR leftR kR vR rightR)) (v ': middle) where
-    toNS = \case
-        Left x  -> S (toNS @_ @(N colorR leftR kR vR rightR) (Left x))
+    prefixNS = \case
+        Left x  -> S (prefixNS @_ @(N colorR leftR kR vR rightR) (Left x))
         Right x -> 
             case x of Here x      -> Z x
-                      LookRight x -> S (toNS @_ @(N colorR leftR kR vR rightR) (Right x))
-    fromNS = \case 
+                      LookRight x -> S (prefixNS @_ @(N colorR leftR kR vR rightR) (Right x))
+    breakNS = \case 
         Z x -> Right (Here x)
-        S x -> case fromNS @_ @(N colorR leftR kR vR rightR) x of
+        S x -> case breakNS @_ @(N colorR leftR kR vR rightR) x of
             Left  ns     -> Left ns
             Right v      -> Right (LookRight v)
 
-toNS' :: forall t result f. Sumlike '[] t result => Variant f t -> NS f result
-toNS' = toNS . Right
+toNS :: forall t result f. Sumlike '[] t result => Variant f t -> NS f result
+toNS = prefixNS . Right
 
-fromNS' :: forall t result f. Sumlike '[] t result => NS f result -> Variant f t
-fromNS' ns = case fromNS ns of 
+fromNS :: forall t result f. Sumlike '[] t result => NS f result -> Variant f t
+fromNS ns = case breakNS ns of 
     Left _ -> error "this never happens"
     Right x -> x
 

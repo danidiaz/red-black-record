@@ -27,11 +27,11 @@ module Data.RBR (
         projectSubset,
         -- * Interfacing with Data.SOP
         Productlike (..),
-        fromNP',
-        toNP',
+        fromNP,
+        toNP,
         Sumlike (..),
-        fromNS',
-        toNS',
+        fromNS,
+        toNS,
         -- * Interfacing with normal records
         NominalRecord (..),
         NominalSum (..),
