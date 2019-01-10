@@ -137,3 +137,7 @@ tree.
   implementation of extensible records using type-level red-black trees, which
   I discovered about halfway through the implemenation of this package.
 
+- [megarecord](https://github.com/jvanbruegge/Megarecord). Seems to be a
+  proof-of-concept for a future row polymorphism extension for Haskell.
+
+
