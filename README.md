@@ -138,6 +138,7 @@ tree.
   I discovered about halfway through the implemenation of this package.
 
 - [megarecord](https://github.com/jvanbruegge/Megarecord). Seems to be a
-  proof-of-concept for a future row polymorphism extension for Haskell.
-
+  proof-of-concept for a future [row polymorphism
+  extension](https://github.com/ghc-proposals/ghc-proposals/pull/180) for
+  Haskell.
 

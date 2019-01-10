@@ -115,8 +115,14 @@ type family InsertAll (es :: [(Symbol,Type)]) (t :: RBT Symbol Type) :: RBT Symb
 
 type FromList (es :: [(Symbol,Type)]) = InsertAll es E
 
-insertI :: forall k v t f . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
+addField :: forall k v t f . Insertable k v t => f v -> Record f t -> Record f (Insert k v t)
+addField = insert @k @v @t @f
+
+insertI :: forall k v t . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
 insertI = insert @k @v @t . I
+
+addFieldI :: forall k v t . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
+addFieldI = insertI @k @v @t
 
 --
 --
@@ -379,14 +385,29 @@ instance KeyHelper EQ k (N color left k v right) where
 project :: forall k t f . Key k t => Record f t -> f (Value k t)
 project = snd . projection @k @t
 
+getField :: forall k t f . Key k t => Record f t -> f (Value k t)
+getField = project @k @t @f
+
+setField :: forall k t f . Key k t => f (Value k t) -> Record f t -> Record f t
+setField fv r = fst (projection @k @t @f r) fv
+
+modifyField :: forall k t f . Key k t => (f (Value k t) -> f (Value k t)) -> Record f t -> Record f t
+modifyField f r = uncurry ($) (fmap f (projection @k @t @f r))
+
 inject :: forall k t f. Key k t => f (Value k t) -> Variant f t
 inject = snd (injection @k @t)
 
 match :: forall k t f. Key k t => Variant f t -> Maybe (f (Value k t))
 match = fst (injection @k @t)
 
-projectI :: forall k t f. Key k t => Record I t -> Value k t
+projectI :: forall k t . Key k t => Record I t -> Value k t
 projectI = unI . snd . projection @k @t
+
+getFieldI :: forall k t . Key k t => Record I t -> Value k t
+getFieldI = projectI @k @t
+
+setFieldI :: forall k t . Key k t => Value k t -> Record I t -> Record I t
+setFieldI v r = fst (projection @k @t r) (I v)
 
 injectI :: forall k v t. Key k t => Value k t -> Variant I t
 injectI = snd (injection @k @t) . I

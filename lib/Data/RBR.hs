@@ -11,7 +11,9 @@ module Data.RBR (
         impossible,
         -- ** Inserting and widening
         Insertable (..),
+        addField,
         insertI,
+        addFieldI,
         InsertAll,
         FromList,
         -- ** Projecting and injecting
