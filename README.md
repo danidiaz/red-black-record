@@ -110,9 +110,8 @@ tree.
   red-black-record, both of these libraries build upon sop-core. They are in
   fact written by the same author of sop-core. generics-sop can provide
   sum-of-products representations of any datatype with a Generic instance
-  (red-black-record is more limited, it only converts types that fit the
-  labelled record or variant mold—so no types with anonymous fields for
-  example). 
+  (red-black-record is more limited, it only converts types that fit the named
+  record or variant mold—so no types with anonymous fields for example). 
   
   If you don't need to explicitly target *individual* fields in the generic
   representation, you'll be better off using generics-sop instead of

@@ -24,6 +24,7 @@ import           Data.Proxy
 import           Data.Kind
 import           Data.Monoid
 import           GHC.TypeLits
+import           GHC.Generics (S1(..),M1(..),K1(..),Rec0(..))
 import qualified GHC.Generics as G
 
 import           Data.SOP (I(..),K(..),unI,NP(..),NS(..),All,SListI)
@@ -596,6 +597,38 @@ newtype P (p :: (a, Type)) = P (Snd p)
 
 type family Snd (p :: (a, b)) :: b where
     Snd '(a, b) = b
+
+class NamedFieldsProduct (start :: [(Symbol,Type)])
+                         (t :: Type) 
+                         (result :: [(Symbol,Type)]) | start t -> result, result t -> start where
+    prefixNamedNP :: t -> NP P start -> NP P result
+    breakNamedNP :: NP P result -> (t, NP P start)
+
+-- instance NamedFieldsProduct start E start where
+--     prefixNamedNP _ start = start  
+--     breakNamedNP start = (Empty, start) 
+-- 
+-- instance (NamedFieldsProduct start right middle, 
+--           NamedFieldsProduct ('(k,v) ': middle) left result)
+--           => NamedFieldsProduct start (N color left k v right) result where
+--     prefixNamedNP (Node left (I v) right) start = 
+--         prefixNamedNP @_ @left @result left (P v :* prefixNamedNP @start @right @middle right start)
+--     breakNamedNP result =
+--         let (left, (P v) :* middle) = breakNamedNP @_ @left @result result
+--             (right, start) = breakNamedNP @start @right middle
+--          in (Node left (I v) right, start)
+
+instance KnownSymbol k =>
+         NamedFieldsProduct start 
+                            (S1 ('G.MetaSel ('Just k)
+                                            'G.NoSourceUnpackedness
+                                            'G.NoSourceStrictness
+                                            'G.DecidedLazy)
+                                (Rec0 v)
+                                x) 
+                            ('(k,v) ': start) where
+    prefixNamedNP (M1 (K1 v)) start = P v :* start
+    breakNamedNP (P v :* start) = (M1 (K1 v), start)
 
 class NominalRecord (r :: Type) where
     type RecordCode r :: RBT Symbol Type
