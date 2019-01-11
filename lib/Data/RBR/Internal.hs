@@ -599,10 +599,10 @@ type family Snd (p :: (a, b)) :: b where
     Snd '(a, b) = b
 
 class NamedFieldsProduct (start :: [(Symbol,Type)])
-                         (t :: Type) 
+                         (t :: Type -> Type) 
                          (result :: [(Symbol,Type)]) | start t -> result, result t -> start where
-    prefixNamedNP :: t -> NP P start -> NP P result
-    breakNamedNP :: NP P result -> (t, NP P start)
+    prefixNamedNP :: t x -> NP P start -> NP P result
+    breakNamedNP :: NP P result -> (t x, NP P start)
 
 -- instance NamedFieldsProduct start E start where
 --     prefixNamedNP _ start = start  
@@ -624,11 +624,19 @@ instance KnownSymbol k =>
                                             'G.NoSourceUnpackedness
                                             'G.NoSourceStrictness
                                             'G.DecidedLazy)
-                                (Rec0 v)
-                                x) 
+                                (Rec0 v)) 
                             ('(k,v) ': start) where
     prefixNamedNP (M1 (K1 v)) start = P v :* start
     breakNamedNP (P v :* start) = (M1 (K1 v), start)
+
+instance ( NamedFieldsProduct middle t1 result,
+           NamedFieldsProduct start t2 middle
+         ) =>
+         NamedFieldsProduct start 
+                            (t1 G.:*: t2)
+                            result where
+    prefixNamedNP (t1 G.:*: t2) start = prefixNamedNP @middle t1 (prefixNamedNP @start t2 start)
+    breakNamedNP _ = undefined --
 
 class NominalRecord (r :: Type) where
     type RecordCode r :: RBT Symbol Type
