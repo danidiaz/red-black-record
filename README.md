@@ -134,8 +134,7 @@ tree.
   "code" for the fields.
 
 - [HTree](https://github.com/i-am-tom/learn-me-a-haskell#htree). Another
-  implementation of extensible records using type-level red-black trees, which
-  I discovered about halfway through the implemenation of this package.
+  implementation of extensible records using type-level red-black trees.
 
 - [megarecord](https://github.com/jvanbruegge/Megarecord). Seems to be a
   proof-of-concept for a future [row polymorphism
