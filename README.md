@@ -8,9 +8,9 @@ tree that maps `Symbol` keys to value `Type`s. The keys correspond to fields
 names in records, and to branch names in variants. Many record functions have
 their variant mirror-images and viceversa.
 
-Each value in these types comes wrapped in a type constructor of kind `Type ->
-Type`. Typically, it will be an identity functor, but it can also be `Maybe` or
-some other `Applicative` for parsing, validation and so on.
+Each value type in a field or branch comes wrapped in a type constructor of
+kind `Type -> Type`. Typically, it will be an identity functor, but it can also
+be `Maybe` or some other `Applicative` for parsing, validation and so on.
 
 If we forget about the keys and only keep the values, records are isomorphic to
 n-ary unlabeled products, and variants are isomorphic to n-ary unlabeled sums.
@@ -37,7 +37,7 @@ The
 extension can help with that, in combination with the
 [-Wno-partial-type-signatures](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/using-warnings.html#ghc-flag--Wpartial-type-signatures)
 GHC flag that disables the warning message emitted when the underscore is
-encountered.
+encountered in a signature.
 
 The flag can be set globally in the
 [ghc-options](https://www.haskell.org/cabal/users-guide/developing-packages.html?#pkg-field-ghc-options)
@@ -123,7 +123,7 @@ tree.
   used by red-black-record). It doesn't seem to provide variants.
 
 - [superrecord](http://hackage.haskell.org/package/superrecord). This library
-  provides very efficient access at runtime because the fields are backed
+  provides very efficient field access at runtime because the fields are backed
   internally by an array. Uses a *sorted* type-level list of fields, to avoid
   the problems of multiple orderings of the same fields.
 

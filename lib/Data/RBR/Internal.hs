@@ -409,6 +409,9 @@ getFieldI = projectI @k @t
 setFieldI :: forall k t . Key k t => Value k t -> Record I t -> Record I t
 setFieldI v r = fst (projection @k @t r) (I v)
 
+modifyFieldI :: forall k t . Key k t => (Value k t -> Value k t) -> Record I t -> Record I t
+modifyFieldI f = modifyField @k @t (I . f . unI)
+
 injectI :: forall k v t. Key k t => Value k t -> Variant I t
 injectI = snd (injection @k @t) . I
 
@@ -456,6 +459,32 @@ projectSubset :: forall subset whole f flat.
               => Record f whole 
               -> Record f subset
 projectSubset =  snd . subsetProjection
+
+getFieldSubset :: forall subset whole f flat. 
+                  (Productlike '[] subset flat,
+                   SListI flat,
+                   KeysValuesAll (PresentIn whole) subset)
+               => Record f whole 
+               -> Record f subset
+getFieldSubset = projectSubset
+
+setFieldSubset :: forall subset whole f flat. 
+                  (Productlike '[] subset flat,
+                   SListI flat,
+                   KeysValuesAll (PresentIn whole) subset)
+               => Record f subset
+               -> Record f whole 
+               -> Record f whole
+setFieldSubset subset whole = fst (subsetProjection whole) subset 
+
+modifyFieldSubset :: forall subset whole f flat. 
+                     (Productlike '[] subset flat,
+                      SListI flat,
+                      KeysValuesAll (PresentIn whole) subset)
+                  => (Record f subset -> Record f subset)
+                  -> Record f whole 
+                  -> Record f whole
+modifyFieldSubset f r = uncurry ($) (fmap f (subsetProjection @subset @whole @f r))
 
 --
 --
