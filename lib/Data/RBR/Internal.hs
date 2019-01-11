@@ -339,84 +339,84 @@ instance BalanceableHelper DoNotBalance color a k v b where
 
 class Key (k :: Symbol) (t :: RBT Symbol Type) where
     type Value k t :: Type
-    projection :: Record f t -> (f (Value k t) -> Record f t, f (Value k t))
-    injection :: (Variant f t -> Maybe (f (Value k t)), f (Value k t) -> Variant f t)
+    field :: Record f t -> (f (Value k t) -> Record f t, f (Value k t))
+    branch :: (Variant f t -> Maybe (f (Value k t)), f (Value k t) -> Variant f t)
 
 class KeyHelper (ordering :: Ordering) (k :: Symbol) (t :: RBT Symbol Type) where 
     type Value' ordering k t :: Type
-    projection' :: Record f t -> (f (Value' ordering k t) -> Record f t, f (Value' ordering k t))
-    injection' :: (Variant f t -> Maybe (f (Value' ordering k t)), f (Value' ordering k t) -> Variant f t)
+    field' :: Record f t -> (f (Value' ordering k t) -> Record f t, f (Value' ordering k t))
+    branch' :: (Variant f t -> Maybe (f (Value' ordering k t)), f (Value' ordering k t) -> Variant f t)
 
 instance (CmpSymbol k' k ~ ordering, KeyHelper ordering k (N color left k' v' right)) 
          => Key k (N color left k' v' right) where
     type Value k (N color left k' v' right) = Value' (CmpSymbol k' k) k (N color left k' v' right)
-    projection = projection' @ordering @k
-    injection = injection' @ordering @k
+    field = field' @ordering @k
+    branch = branch' @ordering @k
 
 instance Key k right => KeyHelper LT k (N color left k' v' right) where
     type Value' LT k (N color left k' v' right) = Value k right
-    projection' (Node left fv right) = 
-        let (setter,x) = projection @k right
+    field' (Node left fv right) = 
+        let (setter,x) = field @k right
          in (\z -> Node left fv (setter z),x)
-    injection' = 
-        let (match,inj) = injection @k @right
+    branch' = 
+        let (match,inj) = branch @k @right
          in (\case LookRight x -> match x
                    _ -> Nothing,
              \fv -> LookRight (inj fv))
 
 instance Key k left => KeyHelper GT k (N color left k' v' right) where
     type Value' GT k (N color left k' v' right) = Value k left
-    projection' (Node left fv right) = 
-        let (setter,x) = projection @k left
+    field' (Node left fv right) = 
+        let (setter,x) = field @k left
          in (\z -> Node (setter z) fv right,x)
-    injection' =
-        let (match,inj) = injection @k @left
+    branch' =
+        let (match,inj) = branch @k @left
          in (\case LookLeft x -> match x
                    _ -> Nothing,
              \fv -> LookLeft (inj fv))
 
 instance KeyHelper EQ k (N color left k v right) where
     type Value' EQ k (N color left k v right) = v
-    projection' (Node left fv right) = (\x -> Node left x right, fv)
-    injection' = (\case Here x -> Just x
-                        _ -> Nothing,
-                  Here)
+    field' (Node left fv right) = (\x -> Node left x right, fv)
+    branch' = (\case Here x -> Just x
+                     _ -> Nothing,
+               Here)
 
 project :: forall k t f . Key k t => Record f t -> f (Value k t)
-project = snd . projection @k @t
+project = snd . field @k @t
 
 getField :: forall k t f . Key k t => Record f t -> f (Value k t)
 getField = project @k @t @f
 
 setField :: forall k t f . Key k t => f (Value k t) -> Record f t -> Record f t
-setField fv r = fst (projection @k @t @f r) fv
+setField fv r = fst (field @k @t @f r) fv
 
 modifyField :: forall k t f . Key k t => (f (Value k t) -> f (Value k t)) -> Record f t -> Record f t
-modifyField f r = uncurry ($) (fmap f (projection @k @t @f r))
+modifyField f r = uncurry ($) (fmap f (field @k @t @f r))
 
 inject :: forall k t f. Key k t => f (Value k t) -> Variant f t
-inject = snd (injection @k @t)
+inject = snd (branch @k @t)
 
 match :: forall k t f. Key k t => Variant f t -> Maybe (f (Value k t))
-match = fst (injection @k @t)
+match = fst (branch @k @t)
 
 projectI :: forall k t . Key k t => Record I t -> Value k t
-projectI = unI . snd . projection @k @t
+projectI = unI . snd . field @k @t
 
 getFieldI :: forall k t . Key k t => Record I t -> Value k t
 getFieldI = projectI @k @t
 
 setFieldI :: forall k t . Key k t => Value k t -> Record I t -> Record I t
-setFieldI v r = fst (projection @k @t r) (I v)
+setFieldI v r = fst (field @k @t r) (I v)
 
 modifyFieldI :: forall k t . Key k t => (Value k t -> Value k t) -> Record I t -> Record I t
 modifyFieldI f = modifyField @k @t (I . f . unI)
 
 injectI :: forall k v t. Key k t => Value k t -> Variant I t
-injectI = snd (injection @k @t) . I
+injectI = snd (branch @k @t) . I
 
 matchI :: forall k t . Key k t => Variant I t ->  Maybe (Value k t)
-matchI v = unI <$> fst (injection @k @t) v
+matchI v = unI <$> fst (branch @k @t) v
 
 --
 --
@@ -428,19 +428,19 @@ newtype Setz f a b = Setz { getSetz :: f b -> a -> a }
 class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
 
-subsetProjection :: forall subset whole f flat. 
+fieldSubset :: forall subset whole f flat. 
                     (Productlike '[] subset flat,
                      SListI flat,
                      KeysValuesAll (PresentIn whole) subset)
                  => Record f whole -> (Record f subset -> Record f whole, Record f subset)
-subsetProjection r = 
+fieldSubset r = 
     (,)
     (let goset :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
                                                                      KeysValuesAll (PresentIn whole) right) 
                => Record (Setz f (Record f whole)) left 
                -> Record (Setz f (Record f whole)) right 
                -> Record (Setz f (Record f whole)) (N color left k v right)
-         goset left right = Node left (Setz (\v w -> fst (projection @k @whole w) v)) right
+         goset left right = Node left (Setz (\v w -> fst (field @k @whole w) v)) right
          setters = toNP @subset @_ @(Setz f (Record f whole)) (cpara_RBT (Proxy @(PresentIn whole)) unit goset)
          appz (Setz func) fv = K (Endo (func fv))
       in \toset -> appEndo (mconcat (collapse_NP (liftA2_NP appz setters (toNP toset)))) r)
@@ -458,7 +458,7 @@ projectSubset :: forall subset whole f flat.
                   KeysValuesAll (PresentIn whole) subset)
               => Record f whole 
               -> Record f subset
-projectSubset =  snd . subsetProjection
+projectSubset =  snd . fieldSubset
 
 getFieldSubset :: forall subset whole f flat. 
                   (Productlike '[] subset flat,
@@ -475,7 +475,7 @@ setFieldSubset :: forall subset whole f flat.
                => Record f subset
                -> Record f whole 
                -> Record f whole
-setFieldSubset subset whole = fst (subsetProjection whole) subset 
+setFieldSubset subset whole = fst (fieldSubset whole) subset 
 
 modifyFieldSubset :: forall subset whole f flat. 
                      (Productlike '[] subset flat,
@@ -484,7 +484,7 @@ modifyFieldSubset :: forall subset whole f flat.
                   => (Record f subset -> Record f subset)
                   -> Record f whole 
                   -> Record f whole
-modifyFieldSubset f r = uncurry ($) (fmap f (subsetProjection @subset @whole @f r))
+modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole @f r))
 
 --
 --

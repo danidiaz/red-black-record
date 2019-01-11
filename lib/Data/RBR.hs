@@ -31,7 +31,7 @@ module Data.RBR (
         match,
         matchI,
         -- * Subsetting
-        subsetProjection,
+        fieldSubset,
         projectSubset,
         getFieldSubset,
         setFieldSubset,
