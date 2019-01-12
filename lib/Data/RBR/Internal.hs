@@ -423,7 +423,7 @@ matchI v = unI <$> fst (branch @k @t) v
 --
 -- Subsetting
 
-newtype Setz f a b = Setz { getSetz :: f b -> a -> a }
+newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
  
 -- this odd trick again...
 class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) 
@@ -438,12 +438,12 @@ fieldSubset r =
     (,)
     (let goset :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
                                                                      KeysValuesAll (PresentIn whole) right) 
-               => Record (Setz f (Record f whole)) left 
-               -> Record (Setz f (Record f whole)) right 
-               -> Record (Setz f (Record f whole)) (N color left k v right)
-         goset left right = Node left (Setz (\v w -> fst (field @k @whole w) v)) right
-         setters = toNP @subset @_ @(Setz f (Record f whole)) (cpara_RBT (Proxy @(PresentIn whole)) unit goset)
-         appz (Setz func) fv = K (Endo (func fv))
+               => Record (SetField f (Record f whole)) left 
+               -> Record (SetField f (Record f whole)) right 
+               -> Record (SetField f (Record f whole)) (N color left k v right)
+         goset left right = Node left (SetField (\v w -> fst (field @k @whole w) v)) right
+         setters = toNP @subset @_ @(SetField f (Record f whole)) (cpara_RBT (Proxy @(PresentIn whole)) unit goset)
+         appz (SetField func) fv = K (Endo (func fv))
       in \toset -> appEndo (mconcat (collapse_NP (liftA2_NP appz setters (toNP toset)))) r)
     (let goget :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
                                                                      KeysValuesAll (PresentIn whole) right) 
@@ -636,7 +636,10 @@ instance ( NamedFieldsProduct middle t1 result,
                             (t1 G.:*: t2)
                             result where
     prefixNamedNP (t1 G.:*: t2) start = prefixNamedNP @middle t1 (prefixNamedNP @start t2 start)
-    breakNamedNP _ = undefined --
+    breakNamedNP result =
+       let (t1, middle) = breakNamedNP @middle @t1 result
+           (t2, start) = breakNamedNP @start @t2 middle
+        in (t1 G.:*: t2, start) 
 
 class NominalRecord (r :: Type) where
     type RecordCode r :: RBT Symbol Type
