@@ -24,7 +24,7 @@ import           Data.Proxy
 import           Data.Kind
 import           Data.Monoid
 import           GHC.TypeLits
-import           GHC.Generics (S1(..),M1(..),K1(..),Rec0(..))
+import           GHC.Generics (D1,S1(..),M1(..),K1(..),Rec0(..))
 import qualified GHC.Generics as G
 
 import           Data.SOP (I(..),K(..),unI,NP(..),NS(..),All,SListI)
@@ -598,58 +598,68 @@ newtype P (p :: (a, Type)) = P (Snd p)
 type family Snd (p :: (a, b)) :: b where
     Snd '(a, b) = b
 
-class NamedFieldsProduct (start :: [(Symbol,Type)])
-                         (t :: Type -> Type) 
-                         (result :: [(Symbol,Type)]) | start t -> result, result t -> start where
-    prefixNamedNP :: t x -> NP P start -> NP P result
-    breakNamedNP :: NP P result -> (t x, NP P start)
+class ToRecordHelper (start :: RBT Symbol Type) (t :: Type -> Type) where
+    type RecordCode' start t :: RBT Symbol Type
+    toRecord' :: Record I start -> t x -> Record I (RecordCode' start t)
+    --breakNamedNP :: NP P result -> (t x, NP P start)
 
 -- instance NamedFieldsProduct start E start where
---     prefixNamedNP _ start = start  
+--     toRecord' _ start = start  
 --     breakNamedNP start = (Empty, start) 
 -- 
 -- instance (NamedFieldsProduct start right middle, 
 --           NamedFieldsProduct ('(k,v) ': middle) left result)
 --           => NamedFieldsProduct start (N color left k v right) result where
---     prefixNamedNP (Node left (I v) right) start = 
---         prefixNamedNP @_ @left @result left (P v :* prefixNamedNP @start @right @middle right start)
+--     toRecord' (Node left (I v) right) start = 
+--         toRecord' @_ @left @result left (P v :* toRecord' @start @right @middle right start)
 --     breakNamedNP result =
 --         let (left, (P v) :* middle) = breakNamedNP @_ @left @result result
 --             (right, start) = breakNamedNP @start @right middle
 --          in (Node left (I v) right, start)
 
-instance KnownSymbol k =>
-         NamedFieldsProduct start 
-                            (S1 ('G.MetaSel ('Just k)
-                                            'G.NoSourceUnpackedness
-                                            'G.NoSourceStrictness
-                                            'G.DecidedLazy)
-                                (Rec0 v)) 
-                            ('(k,v) ': start) where
-    prefixNamedNP (M1 (K1 v)) start = P v :* start
-    breakNamedNP (P v :* start) = (M1 (K1 v), start)
+instance (Insertable k v start) =>
+         ToRecordHelper start
+                        (S1 ('G.MetaSel ('Just k)
+                                         'G.NoSourceUnpackedness
+                                         'G.NoSourceStrictness
+                                         'G.DecidedLazy)
+                            (Rec0 v)) 
+  where
+    type RecordCode'    start
+                        (S1 ('G.MetaSel ('Just k)
+                                        'G.NoSourceUnpackedness
+                                        'G.NoSourceStrictness
+                                        'G.DecidedLazy)
+                            (Rec0 v))                           = Insert k v start
+    toRecord' start (M1 (K1 v)) = insertI @k v start
 
-instance ( NamedFieldsProduct middle t1 result,
-           NamedFieldsProduct start t2 middle
+instance ( ToRecordHelper start  t2,
+           RecordCode'    start  t2 ~ middle,
+           ToRecordHelper middle t1 
          ) =>
-         NamedFieldsProduct start 
-                            (t1 G.:*: t2)
-                            result where
-    prefixNamedNP (t1 G.:*: t2) start = prefixNamedNP @middle t1 (prefixNamedNP @start t2 start)
-    breakNamedNP result =
-       let (t1, middle) = breakNamedNP @middle @t1 result
-           (t2, start) = breakNamedNP @start @t2 middle
-        in (t1 G.:*: t2, start) 
+         ToRecordHelper start (t1 G.:*: t2)
+  where
+    type RecordCode'    start (t1 G.:*: t2) = RecordCode' (RecordCode' start t2) t1 
+    toRecord'           start (t1 G.:*: t2) = toRecord' @middle (toRecord' @start start t2) t1 
+--    breakNamedNP result =
+--       let (t1, middle) = breakNamedNP @middle @t1 result
+--           (t2, start) = breakNamedNP @start @t2 middle
+--        in (t1 G.:*: t2, start) 
 
-class NominalRecord (r :: Type) where
+class ToRecord (r :: Type) where
     type RecordCode r :: RBT Symbol Type
     toRecord :: r -> Record I (RecordCode r)
-    fromRecord :: Record I (RecordCode r) -> r
 
-instance NominalRecord () where
-    type RecordCode () = E
-    toRecord _ = Empty
-    fromRecord _ = ()
+instance ToRecordHelper E fields => ToRecordHelper E (D1 meta fields) where
+    type RecordCode' E (D1 meta fields) = RecordCode' E fields
+    toRecord' = toRecord' 
+
+instance (G.Generic r,ToRecordHelper E (G.Rep r)) => ToRecord r where
+    type RecordCode r = RecordCode' E (G.Rep r)
+    toRecord r = toRecord' unit (G.from r)
+
+class FromRecord (r :: Type) where
+    fromRecord :: Record I t -> r
 
 class NominalSum (s :: Type) where
     type SumCode s :: RBT Symbol Type

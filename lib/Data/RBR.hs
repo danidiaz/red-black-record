@@ -44,7 +44,8 @@ module Data.RBR (
         fromNS,
         toNS,
         -- * Interfacing with normal records
-        NominalRecord (..),
+        FromRecord (..),
+        ToRecord (..),
         NominalSum (..),
         -- * Data.SOP re-exports
         I(..),
