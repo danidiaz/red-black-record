@@ -25,7 +25,7 @@ import           Data.Proxy
 import           Data.Kind
 import           Data.Monoid
 import           GHC.TypeLits
-import           GHC.Generics (D1,S1(..),M1(..),K1(..),Rec0(..))
+import           GHC.Generics (D1,C1,S1(..),M1(..),K1(..),Rec0(..))
 import qualified GHC.Generics as G
 
 import           Data.SOP (I(..),K(..),unI,NP(..),NS(..),All,SListI)
@@ -650,7 +650,7 @@ instance ( ToRecordHelper start  t2,
 class ToRecord (r :: Type) where
     type RecordCode r :: RBT Symbol Type
     -- https://stackoverflow.com/questions/22087549/defaultsignatures-and-associated-type-families/22088808
-    -- type RecordCode r = RecordCode' E (G.Rep r)
+    type RecordCode r = RecordCode' E (G.Rep r)
     toRecord :: r -> Record I (RecordCode r)
     default toRecord :: (G.Generic r,ToRecordHelper E (G.Rep r),RecordCode r ~ RecordCode' E (G.Rep r)) => r -> Record I (RecordCode r)
     toRecord r = toRecord' unit (G.from r)
@@ -660,8 +660,8 @@ class ToRecord (r :: Type) where
 --     type RecordCode r = RecordCode' E (G.Rep r)
 --     toRecord r = toRecord' unit (G.from r)
 
-instance ToRecordHelper E fields => ToRecordHelper E (D1 meta fields) where
-    type RecordCode' E (D1 meta fields) = RecordCode' E fields
+instance ToRecordHelper E fields => ToRecordHelper E (D1 meta (C1 metacons fields)) where
+    type RecordCode' E (D1 meta (C1 metacons fields)) = RecordCode' E fields
     toRecord' = toRecord' 
 
 
