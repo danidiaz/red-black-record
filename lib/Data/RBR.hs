@@ -41,6 +41,7 @@ module Data.RBR (
         getFieldSubset,
         setFieldSubset,
         modifyFieldSubset,
+        branchSubset,
         -- * Interfacing with normal records
         FromRecord (..),
         ToRecord (..),

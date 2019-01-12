@@ -28,9 +28,9 @@ import           GHC.TypeLits
 import           GHC.Generics (D1,C1,S1(..),M1(..),K1(..),Rec0(..))
 import qualified GHC.Generics as G
 
-import           Data.SOP (I(..),K(..),unI,NP(..),NS(..),All,SListI,type (-.->)(Fn))
-import           Data.SOP.NP (collapse_NP,liftA_NP,liftA2_NP)
-import           Data.SOP.NS (collapse_NS,ap_NS)
+import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.->)(Fn))
+import           Data.SOP.NP (collapse_NP,liftA_NP,liftA2_NP,pure_NP)
+import           Data.SOP.NS (collapse_NS,ap_NS,injections)
 
 data Color = R
            | B
@@ -79,6 +79,9 @@ demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
 -- the "class synonym" trick. https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/
 class KnownSymbol k => KnownKey (k :: Symbol) (v :: z)
 instance KnownSymbol k => KnownKey k v 
+
+-- class KeyValueTop (k :: Symbol) (v :: z)
+-- instance KeyValueTop k v
 
 --
 --
@@ -445,10 +448,10 @@ class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol)
 instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
 
 fieldSubset :: forall subset whole flat f.  
-                    (KeysValuesAll (PresentIn whole) subset,
-                     PrefixNP '[] subset flat,
-                     SListI flat)
-                 => Record f whole -> (Record f subset -> Record f whole, Record f subset)
+                      (KeysValuesAll (PresentIn whole) subset,
+                       PrefixNP '[] subset flat,
+                       SListI flat)
+                      => Record f whole -> (Record f subset -> Record f whole, Record f subset)
 fieldSubset r = 
     (,)
     (let goset :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
@@ -508,6 +511,26 @@ modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
 --                     SListI flat)
 -- eliminateSubset cases variant = 
 
+
+branchSubset :: forall subset whole subflat wholeflat f.  
+                       (KeysValuesAll (PresentIn whole) subset,
+                        PrefixNP '[] whole  wholeflat,
+                        PrefixNS '[] whole  wholeflat,
+                        SListI wholeflat,
+                        PrefixNP '[] subset subflat,
+                        PrefixNS '[] subset subflat,
+                        SListI subflat)
+                       => (Variant f whole -> Maybe (Variant f subset), Variant f subset -> Variant f whole)
+branchSubset = 
+    (,)
+    (let injs :: Record (Case f (Maybe (Variant f subset))) subset 
+         injs = fromNP @subset (liftA_NP (\(Fn fn) -> Case (\fv -> Just (fromNS @subset @subflat (unK (fn fv))))) 
+                                         (injections @subflat))
+         biginjs :: Record (Case f (Maybe (Variant f subset))) whole 
+         biginjs = fromNP @whole (pure_NP (Case (\_ -> Nothing)))
+         mixedinjs = setFieldSubset @subset @whole injs biginjs 
+      in eliminate mixedinjs)
+    (\subset -> undefined)
 
 --
 --
