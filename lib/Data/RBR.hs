@@ -37,10 +37,10 @@ module Data.RBR (
         setFieldSubset,
         modifyFieldSubset,
         -- * Interfacing with Data.SOP
-        Productlike (..),
+        PrefixNP (..),
         fromNP,
         toNP,
-        Sumlike (..),
+        PrefixNS (..),
         fromNS,
         toNS,
         -- * Interfacing with normal records

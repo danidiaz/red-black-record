@@ -85,7 +85,7 @@ data Record (f :: Type -> Type) (t :: RBT Symbol Type)  where
     Empty :: Record f E 
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
-instance (Productlike '[] t result, Show (NP f result)) => Show (Record f t) where
+instance (PrefixNP '[] t result, Show (NP f result)) => Show (Record f t) where
     show x = "fromNP (" ++ show (toNP x) ++ ")"
 
 {-| A Record without components is a boring, uninformative type whose single value can be conjured out of thin air.
@@ -98,7 +98,7 @@ data Variant (f :: Type -> Type) (t :: RBT Symbol Type)  where
     LookRight  :: Variant f t -> Variant f (N color' left' k' v' t)
     LookLeft   :: Variant f t -> Variant f (N color' t k' v' right')
 
-instance (Sumlike '[] t result, Show (NS f result)) => Show (Variant f t) where
+instance (PrefixNS '[] t result, Show (NS f result)) => Show (Variant f t) where
     show x = "fromNS (" ++ show (toNS x) ++ ")"
 
 {-| A Variant without branches doesn't have any values. From an impossible thing, anything can come out. 
@@ -430,7 +430,7 @@ class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol)
 instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
 
 fieldSubset :: forall subset whole f flat. 
-                    (Productlike '[] subset flat,
+                    (PrefixNP '[] subset flat,
                      SListI flat,
                      KeysValuesAll (PresentIn whole) subset)
                  => Record f whole -> (Record f subset -> Record f whole, Record f subset)
@@ -454,7 +454,7 @@ fieldSubset r =
       in cpara_RBT (Proxy @(PresentIn whole)) unit goget)
 
 projectSubset :: forall subset whole f flat. 
-                 (Productlike '[] subset flat,
+                 (PrefixNP '[] subset flat,
                   SListI flat,
                   KeysValuesAll (PresentIn whole) subset)
               => Record f whole 
@@ -462,7 +462,7 @@ projectSubset :: forall subset whole f flat.
 projectSubset =  snd . fieldSubset
 
 getFieldSubset :: forall subset whole f flat. 
-                  (Productlike '[] subset flat,
+                  (PrefixNP '[] subset flat,
                    SListI flat,
                    KeysValuesAll (PresentIn whole) subset)
                => Record f whole 
@@ -470,7 +470,7 @@ getFieldSubset :: forall subset whole f flat.
 getFieldSubset = projectSubset
 
 setFieldSubset :: forall subset whole f flat. 
-                  (Productlike '[] subset flat,
+                  (PrefixNP '[] subset flat,
                    SListI flat,
                    KeysValuesAll (PresentIn whole) subset)
                => Record f subset
@@ -479,7 +479,7 @@ setFieldSubset :: forall subset whole f flat.
 setFieldSubset subset whole = fst (fieldSubset whole) subset 
 
 modifyFieldSubset :: forall subset whole f flat. 
-                     (Productlike '[] subset flat,
+                     (PrefixNP '[] subset flat,
                       SListI flat,
                       KeysValuesAll (PresentIn whole) subset)
                   => (Record f subset -> Record f subset)
@@ -491,19 +491,19 @@ modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole @f r))
 --
 -- Interaction with Data.SOP
 
-class Productlike (start :: [Type])
+class PrefixNP (start :: [Type])
                   (t :: RBT Symbol Type) 
                   (result :: [Type]) | start t -> result, result t -> start where
     prefixNP:: Record f t -> NP f start -> NP f result
     breakNP :: NP f result -> (Record f t, NP f start)
 
-instance Productlike start E start where
+instance PrefixNP start E start where
     prefixNP _ start = start  
     breakNP start = (Empty, start) 
 
-instance (Productlike start right middle, 
-          Productlike (v ': middle) left result)
-          => Productlike start (N color left k v right) result where
+instance (PrefixNP start right middle, 
+          PrefixNP (v ': middle) left result)
+          => PrefixNP start (N color left k v right) result where
     prefixNP (Node left fv right) start = 
         prefixNP @_ @left @result left (fv :* prefixNP @start @right @middle right start)
     breakNP result =
@@ -511,19 +511,19 @@ instance (Productlike start right middle,
             (right, start) = breakNP @start @right middle
          in (Node left fv right, start)
 
-toNP :: forall t result f. Productlike '[] t result => Record f t -> NP f result
+toNP :: forall t result f. PrefixNP '[] t result => Record f t -> NP f result
 toNP r = prefixNP r Nil
 
-fromNP :: forall t result f. Productlike '[] t result => NP f result -> Record f t
+fromNP :: forall t result f. PrefixNP '[] t result => NP f result -> Record f t
 fromNP np = let (r,Nil) = breakNP np in r
 
-class Sumlike (start :: [Type]) 
+class PrefixNS (start :: [Type]) 
               (t :: RBT Symbol Type) 
               (result :: [Type]) | start t -> result, result t -> start where
     prefixNS :: Either (NS f start) (Variant f t) -> NS f result
     breakNS :: NS f result -> Either (NS f start) (Variant f t)
 
-instance Sumlike start 
+instance PrefixNS start 
                  (N color E k v E)
                  (v ': start) where
     prefixNS = \case
@@ -533,9 +533,9 @@ instance Sumlike start
         Z x -> Right (Here x)
         S x -> Left x
 
-instance (Sumlike start (N colorR leftR kR vR rightR) middle,
-          Sumlike (v ': middle) (N colorL leftL kL vL rightL) result)
-         => Sumlike start 
+instance (PrefixNS start (N colorR leftR kR vR rightR) middle,
+          PrefixNS (v ': middle) (N colorL leftL kL vL rightL) result)
+         => PrefixNS start 
                     (N color (N colorL leftL kL vL rightL) k v (N colorR leftR kR vR rightR)) 
                     result where
     prefixNS = \case
@@ -553,8 +553,8 @@ instance (Sumlike start (N colorR leftR kR vR rightR) middle,
                 Right v  -> Right (LookRight v)
         Right v -> Right (LookLeft v)
 
-instance Sumlike (v ': start) (N colorL leftL kL vL rightL) result
-         => Sumlike start (N color (N colorL leftL kL vL rightL) k v E) result where
+instance PrefixNS (v ': start) (N colorL leftL kL vL rightL) result
+         => PrefixNS start (N color (N colorL leftL kL vL rightL) k v E) result where
     prefixNS = \case
         Left x  -> 
             prefixNS @_ @(N colorL leftL kL vL rightL) (Left (S x))
@@ -567,8 +567,8 @@ instance Sumlike (v ': start) (N colorL leftL kL vL rightL) result
             S x -> Left x 
         Right v -> Right (LookLeft v)
 
-instance Sumlike start (N colorR leftR kR vR rightR) middle
-         => Sumlike start (N color E k v (N colorR leftR kR vR rightR)) (v ': middle) where
+instance PrefixNS start (N colorR leftR kR vR rightR) middle
+         => PrefixNS start (N color E k v (N colorR leftR kR vR rightR)) (v ': middle) where
     prefixNS = \case
         Left x  -> S (prefixNS @_ @(N colorR leftR kR vR rightR) (Left x))
         Right x -> 
@@ -580,10 +580,10 @@ instance Sumlike start (N colorR leftR kR vR rightR) middle
             Left  ns     -> Left ns
             Right v      -> Right (LookRight v)
 
-toNS :: forall t result f. Sumlike '[] t result => Variant f t -> NS f result
+toNS :: forall t result f. PrefixNS '[] t result => Variant f t -> NS f result
 toNS = prefixNS . Right
 
-fromNS :: forall t result f. Sumlike '[] t result => NS f result -> Variant f t
+fromNS :: forall t result f. PrefixNS '[] t result => NS f result -> Variant f t
 fromNS ns = case breakNS ns of 
     Left _ -> error "this never happens"
     Right x -> x
