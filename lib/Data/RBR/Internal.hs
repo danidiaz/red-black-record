@@ -15,6 +15,7 @@
              AllowAmbiguousTypes,
              ExplicitForAll,
              RankNTypes, 
+             DefaultSignatures,
              LambdaCase,
              EmptyCase #-}
 -- UndecidableSuperClasses and RankNTypes seem to be required by KeysAllF.
@@ -598,9 +599,9 @@ newtype P (p :: (a, Type)) = P (Snd p)
 type family Snd (p :: (a, b)) :: b where
     Snd '(a, b) = b
 
-class ToRecordHelper (start :: RBT Symbol Type) (t :: Type -> Type) where
-    type RecordCode' start t :: RBT Symbol Type
-    toRecord' :: Record I start -> t x -> Record I (RecordCode' start t)
+class ToRecordHelper (start :: RBT Symbol Type) (g :: Type -> Type) where
+    type RecordCode' start g :: RBT Symbol Type
+    toRecord' :: Record I start -> g x -> Record I (RecordCode' start g)
     --breakNamedNP :: NP P result -> (t x, NP P start)
 
 -- instance NamedFieldsProduct start E start where
@@ -648,18 +649,47 @@ instance ( ToRecordHelper start  t2,
 
 class ToRecord (r :: Type) where
     type RecordCode r :: RBT Symbol Type
+    -- https://stackoverflow.com/questions/22087549/defaultsignatures-and-associated-type-families/22088808
+    -- type RecordCode r = RecordCode' E (G.Rep r)
     toRecord :: r -> Record I (RecordCode r)
+    default toRecord :: (G.Generic r,ToRecordHelper E (G.Rep r),RecordCode r ~ RecordCode' E (G.Rep r)) => r -> Record I (RecordCode r)
+    toRecord r = toRecord' unit (G.from r)
+
+
+-- instance (G.Generic r,ToRecordHelper E (G.Rep r)) => ToRecord r where
+--     type RecordCode r = RecordCode' E (G.Rep r)
+--     toRecord r = toRecord' unit (G.from r)
 
 instance ToRecordHelper E fields => ToRecordHelper E (D1 meta fields) where
     type RecordCode' E (D1 meta fields) = RecordCode' E fields
     toRecord' = toRecord' 
 
-instance (G.Generic r,ToRecordHelper E (G.Rep r)) => ToRecord r where
-    type RecordCode r = RecordCode' E (G.Rep r)
-    toRecord r = toRecord' unit (G.from r)
 
 class FromRecord (r :: Type) where
     fromRecord :: Record I t -> r
+
+class FromRecordHelper (t :: RBT Symbol Type) (g :: Type -> Type) where
+    fromRecord' :: Record I t -> g x
+
+instance (Key k t, Value k t ~ v) =>
+         FromRecordHelper t
+                          (S1 ('G.MetaSel ('Just k)
+                                         'G.NoSourceUnpackedness
+                                         'G.NoSourceStrictness
+                                         'G.DecidedLazy)
+                              (Rec0 v)) 
+ where
+   fromRecord' r = let v = projectI @k r in M1 (K1 v)
+
+instance ( FromRecordHelper t t1,
+           FromRecordHelper t t2
+         ) => 
+         FromRecordHelper t (t1 G.:*: t2) 
+  where 
+   fromRecord' r = 
+        let v1 = fromRecord' @_ @t1 r
+            v2 = fromRecord' @_ @t2 r
+         in v1 G.:*: v2
 
 class NominalSum (s :: Type) where
     type SumCode s :: RBT Symbol Type
