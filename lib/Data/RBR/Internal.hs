@@ -634,16 +634,16 @@ instance ToRecordHelper E fields => ToRecordHelper E (D1 meta (C1 metacons field
 instance (Insertable k v start) =>
          ToRecordHelper start
                         (S1 ('G.MetaSel ('Just k)
-                                         'G.NoSourceUnpackedness
-                                         'G.NoSourceStrictness
-                                         'G.DecidedLazy)
+                                        unpackedness
+                                        strictness
+                                        laziness)
                             (Rec0 v)) 
   where
     type RecordCode'    start
                         (S1 ('G.MetaSel ('Just k)
-                                        'G.NoSourceUnpackedness
-                                        'G.NoSourceStrictness
-                                        'G.DecidedLazy)
+                                        unpackedness
+                                        strictness
+                                        laziness)
                             (Rec0 v))                           = Insert k v start
     toRecord' start (M1 (K1 v)) = insertI @k v start
 
@@ -674,9 +674,9 @@ class FromRecordHelper (t :: RBT Symbol Type) (g :: Type -> Type) where
 instance (Key k t, Value k t ~ v) =>
          FromRecordHelper t
                           (S1 ('G.MetaSel ('Just k)
-                                         'G.NoSourceUnpackedness
-                                         'G.NoSourceStrictness
-                                         'G.DecidedLazy)
+                                         unpackedness
+                                         strictness
+                                         laziness)
                               (Rec0 v)) 
  where
    fromRecord' r = let v = projectI @k r in M1 (K1 v)
