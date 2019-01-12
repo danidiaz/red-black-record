@@ -32,9 +32,9 @@ module Data.RBR (
         matchI,
         -- ** Eliminating variants
         eliminate,
-        Eliminator (..),
-        addEliminator,
-        addEliminatorI,
+        Case (..),
+        addCase,
+        addCaseI,
         -- * Subsetting
         fieldSubset,
         projectSubset,

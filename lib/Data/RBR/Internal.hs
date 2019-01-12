@@ -421,18 +421,18 @@ injectI = snd (branch @k @t) . I
 matchI :: forall k t . Key k t => Variant I t ->  Maybe (Value k t)
 matchI v = unI <$> fst (branch @k @t) v
 
-eliminate :: (PrefixNP '[] t result, PrefixNS '[] t result, SListI result) => Record (Eliminator f r) t -> Variant f t -> r
-eliminate elims variant = 
-    let adapt (Eliminator e) = Fn (\fv -> K (e fv))
-     in collapse_NS (ap_NS (liftA_NP adapt (toNP elims)) (toNS variant)) 
+eliminate :: (PrefixNP '[] t result, PrefixNS '[] t result, SListI result) => Record (Case f r) t -> Variant f t -> r
+eliminate cases variant = 
+    let adapt (Case e) = Fn (\fv -> K (e fv))
+     in collapse_NS (ap_NS (liftA_NP adapt (toNP cases)) (toNS variant)) 
 
-newtype Eliminator f a b = Eliminator { runEliminator :: f b -> a }
+newtype Case f a b = Case (f b -> a)
 
-addEliminator :: forall k v t f a. Insertable k v t => (f v -> a) -> Record (Eliminator f a) t -> Record (Eliminator f a) (Insert k v t)
-addEliminator f = addField @k @v @t (Eliminator f)
+addCase :: forall k v t f a. Insertable k v t => (f v -> a) -> Record (Case f a) t -> Record (Case f a) (Insert k v t)
+addCase f = addField @k @v @t (Case f)
 
-addEliminatorI :: forall k v t f a. Insertable k v t => (v -> a) -> Record (Eliminator I a) t -> Record (Eliminator I a) (Insert k v t)
-addEliminatorI f = addField @k @v @t (Eliminator (f . unI))
+addCaseI :: forall k v t f a. Insertable k v t => (v -> a) -> Record (Case I a) t -> Record (Case I a) (Insert k v t)
+addCaseI f = addField @k @v @t (Case (f . unI))
 
 --
 --
@@ -445,9 +445,9 @@ class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol)
 instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
 
 fieldSubset :: forall subset whole f flat. 
-                    (PrefixNP '[] subset flat,
-                     SListI flat,
-                     KeysValuesAll (PresentIn whole) subset)
+                    (KeysValuesAll (PresentIn whole) subset,
+                     PrefixNP '[] subset flat,
+                     SListI flat)
                  => Record f whole -> (Record f subset -> Record f whole, Record f subset)
 fieldSubset r = 
     (,)
@@ -469,46 +469,53 @@ fieldSubset r =
       in cpara_RBT (Proxy @(PresentIn whole)) unit goget)
 
 projectSubset :: forall subset whole f flat. 
-                 (PrefixNP '[] subset flat,
-                  SListI flat,
-                  KeysValuesAll (PresentIn whole) subset)
+                 (KeysValuesAll (PresentIn whole) subset,
+                  PrefixNP '[] subset flat,
+                  SListI flat)
               => Record f whole 
               -> Record f subset
 projectSubset =  snd . fieldSubset
 
 getFieldSubset :: forall subset whole f flat. 
-                  (PrefixNP '[] subset flat,
-                   SListI flat,
-                   KeysValuesAll (PresentIn whole) subset)
+                  (KeysValuesAll (PresentIn whole) subset,
+                   PrefixNP '[] subset flat,
+                   SListI flat)
                => Record f whole 
                -> Record f subset
 getFieldSubset = projectSubset
 
 setFieldSubset :: forall subset whole f flat. 
-                  (PrefixNP '[] subset flat,
-                   SListI flat,
-                   KeysValuesAll (PresentIn whole) subset)
+                  (KeysValuesAll (PresentIn whole) subset,
+                   PrefixNP '[] subset flat,
+                   SListI flat)
                => Record f subset
                -> Record f whole 
                -> Record f whole
 setFieldSubset subset whole = fst (fieldSubset whole) subset 
 
 modifyFieldSubset :: forall subset whole f flat. 
-                     (PrefixNP '[] subset flat,
-                      SListI flat,
-                      KeysValuesAll (PresentIn whole) subset)
+                     (KeysValuesAll (PresentIn whole) subset,
+                      PrefixNP '[] subset flat,
+                      SListI flat)
                   => (Record f subset -> Record f subset)
                   -> Record f whole 
                   -> Record f whole
 modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole @f r))
+
+-- eliminateSubset :: forall subset whole f flat. 
+--                    (KeysValuesAll (PresentIn whole) subset,
+--                     PrefixNP '[] subset flat,
+--                     SListI flat)
+-- eliminateSubset cases variant = 
+
 
 --
 --
 -- Interaction with Data.SOP
 
 class PrefixNP (start :: [Type])
-                  (t :: RBT Symbol Type) 
-                  (result :: [Type]) | start t -> result, result t -> start where
+               (t :: RBT Symbol Type) 
+               (result :: [Type]) | start t -> result, result t -> start where
     prefixNP:: Record f t -> NP f start -> NP f result
     breakNP :: NP f result -> (Record f t, NP f start)
 
@@ -539,8 +546,8 @@ class PrefixNS (start :: [Type])
     breakNS :: NS f result -> Either (NS f start) (Variant f t)
 
 instance PrefixNS start 
-                 (N color E k v E)
-                 (v ': start) where
+                  (N color E k v E)
+                  (v ': start) where
     prefixNS = \case
         Left  l -> S l
         Right x -> case x of Here fv -> Z @_ @v @start fv
