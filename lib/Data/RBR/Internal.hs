@@ -599,10 +599,23 @@ newtype P (p :: (a, Type)) = P (Snd p)
 type family Snd (p :: (a, b)) :: b where
     Snd '(a, b) = b
 
+
+class ToRecord (r :: Type) where
+    type RecordCode r :: RBT Symbol Type
+    -- https://stackoverflow.com/questions/22087549/defaultsignatures-and-associated-type-families/22088808
+    type RecordCode r = RecordCode' E (G.Rep r)
+    toRecord :: r -> Record I (RecordCode r)
+    default toRecord :: (G.Generic r,ToRecordHelper E (G.Rep r),RecordCode r ~ RecordCode' E (G.Rep r)) => r -> Record I (RecordCode r)
+    toRecord r = toRecord' unit (G.from r)
+
 class ToRecordHelper (start :: RBT Symbol Type) (g :: Type -> Type) where
     type RecordCode' start g :: RBT Symbol Type
     toRecord' :: Record I start -> g x -> Record I (RecordCode' start g)
     --breakNamedNP :: NP P result -> (t x, NP P start)
+    --
+instance ToRecordHelper E fields => ToRecordHelper E (D1 meta (C1 metacons fields)) where
+    type RecordCode' E (D1 meta (C1 metacons fields)) = RecordCode' E fields
+    toRecord' r (M1 (M1 g)) = toRecord' @E @fields r g
 
 -- instance NamedFieldsProduct start E start where
 --     toRecord' _ start = start  
@@ -647,23 +660,10 @@ instance ( ToRecordHelper start  t2,
 --           (t2, start) = breakNamedNP @start @t2 middle
 --        in (t1 G.:*: t2, start) 
 
-class ToRecord (r :: Type) where
-    type RecordCode r :: RBT Symbol Type
-    -- https://stackoverflow.com/questions/22087549/defaultsignatures-and-associated-type-families/22088808
-    type RecordCode r = RecordCode' E (G.Rep r)
-    toRecord :: r -> Record I (RecordCode r)
-    default toRecord :: (G.Generic r,ToRecordHelper E (G.Rep r),RecordCode r ~ RecordCode' E (G.Rep r)) => r -> Record I (RecordCode r)
-    toRecord r = toRecord' unit (G.from r)
 
-
--- instance (G.Generic r,ToRecordHelper E (G.Rep r)) => ToRecord r where
---     type RecordCode r = RecordCode' E (G.Rep r)
---     toRecord r = toRecord' unit (G.from r)
-
-instance ToRecordHelper E fields => ToRecordHelper E (D1 meta (C1 metacons fields)) where
-    type RecordCode' E (D1 meta (C1 metacons fields)) = RecordCode' E fields
-    toRecord' = toRecord' 
-
+--
+--
+--
 
 class FromRecord (r :: Type) where
     fromRecord :: Record I t -> r
