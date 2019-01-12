@@ -36,6 +36,10 @@ module Data.RBR (
         getFieldSubset,
         setFieldSubset,
         modifyFieldSubset,
+        -- * Interfacing with normal records
+        FromRecord (..),
+        ToRecord (..),
+        NominalSum (..),
         -- * Interfacing with Data.SOP
         PrefixNP (..),
         fromNP,
@@ -43,10 +47,6 @@ module Data.RBR (
         PrefixNS (..),
         fromNS,
         toNS,
-        -- * Interfacing with normal records
-        FromRecord (..),
-        ToRecord (..),
-        NominalSum (..),
         -- * Data.SOP re-exports
         I(..),
         K(..),
