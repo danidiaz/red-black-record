@@ -664,19 +664,23 @@ instance ( ToRecordHelper start  t2,
 --
 --
 --
-
 class FromRecord (r :: Type) where
-    fromRecord :: Record I t -> r
+    fromRecord :: forall r t. Record I t -> r
+    default fromRecord :: forall r t . (G.Generic r, FromRecordHelper t (G.Rep r)) => Record I t -> r
+    fromRecord r = G.to (fromRecord' @t @(G.Rep r) r)
 
 class FromRecordHelper (t :: RBT Symbol Type) (g :: Type -> Type) where
     fromRecord' :: Record I t -> g x
 
+instance FromRecordHelper E fields => FromRecordHelper E (D1 meta (C1 metacons fields)) where
+    fromRecord' r = M1 (M1 (fromRecord' @E @fields r))
+
 instance (Key k t, Value k t ~ v) =>
          FromRecordHelper t
                           (S1 ('G.MetaSel ('Just k)
-                                         unpackedness
-                                         strictness
-                                         laziness)
+                                          unpackedness
+                                          strictness
+                                          laziness)
                               (Rec0 v)) 
  where
    fromRecord' r = let v = projectI @k r in M1 (K1 v)
