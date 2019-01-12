@@ -30,6 +30,11 @@ module Data.RBR (
         injectI,
         match,
         matchI,
+        -- ** Eliminating variants
+        eliminate,
+        Eliminator (..),
+        addEliminator,
+        addEliminatorI,
         -- * Subsetting
         fieldSubset,
         projectSubset,
@@ -39,7 +44,7 @@ module Data.RBR (
         -- * Interfacing with normal records
         FromRecord (..),
         ToRecord (..),
-        NominalSum (..),
+        -- NominalSum (..),
         -- * Interfacing with Data.SOP
         PrefixNP (..),
         fromNP,

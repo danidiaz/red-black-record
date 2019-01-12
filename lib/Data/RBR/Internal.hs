@@ -28,8 +28,9 @@ import           GHC.TypeLits
 import           GHC.Generics (D1,C1,S1(..),M1(..),K1(..),Rec0(..))
 import qualified GHC.Generics as G
 
-import           Data.SOP (I(..),K(..),unI,NP(..),NS(..),All,SListI)
-import           Data.SOP.NP (collapse_NP,liftA2_NP)
+import           Data.SOP (I(..),K(..),unI,NP(..),NS(..),All,SListI,type (-.->)(Fn))
+import           Data.SOP.NP (collapse_NP,liftA_NP,liftA2_NP)
+import           Data.SOP.NS (collapse_NS,ap_NS)
 
 data Color = R
            | B
@@ -420,6 +421,19 @@ injectI = snd (branch @k @t) . I
 matchI :: forall k t . Key k t => Variant I t ->  Maybe (Value k t)
 matchI v = unI <$> fst (branch @k @t) v
 
+eliminate :: (PrefixNP '[] t result, PrefixNS '[] t result, SListI result) => Record (Eliminator f r) t -> Variant f t -> r
+eliminate elims variant = 
+    let adapt (Eliminator e) = Fn (\fv -> K (e fv))
+     in collapse_NS (ap_NS (liftA_NP adapt (toNP elims)) (toNS variant)) 
+
+newtype Eliminator f a b = Eliminator { runEliminator :: f b -> a }
+
+addEliminator :: forall k v t f a. Insertable k v t => (f v -> a) -> Record (Eliminator f a) t -> Record (Eliminator f a) (Insert k v t)
+addEliminator f = addField @k @v @t (Eliminator f)
+
+addEliminatorI :: forall k v t f a. Insertable k v t => (v -> a) -> Record (Eliminator I a) t -> Record (Eliminator I a) (Insert k v t)
+addEliminatorI f = addField @k @v @t (Eliminator (f . unI))
+
 --
 --
 -- Subsetting
@@ -594,10 +608,10 @@ fromNS ns = case breakNS ns of
 
 -- Pending: give generic-based default implementations for these typeclasses.
 
-newtype P (p :: (a, Type)) = P (Snd p)
-
-type family Snd (p :: (a, b)) :: b where
-    Snd '(a, b) = b
+-- newtype P (p :: (a, Type)) = P (Snd p)
+-- 
+-- type family Snd (p :: (a, b)) :: b where
+--     Snd '(a, b) = b
 
 
 class ToRecord (r :: Type) where
@@ -695,8 +709,19 @@ instance ( FromRecordHelper t t1,
             v2 = fromRecord' @_ @t2 r
          in v1 G.:*: v2
 
-class NominalSum (s :: Type) where
-    type SumCode s :: RBT Symbol Type
-    toVariant :: s -> Variant I (SumCode s)
-    fromVariant :: Variant I (SumCode s) -> s
+--
+--
+--
+
+-- class ToVariant (s :: Type) where
+--     type SumCode s :: RBT Symbol Type
+--     toVariant :: s -> Variant I (SumCode s)
+-- 
+-- 
+--     fromVariant :: Variant I (SumCode s) -> s
+-- 
+-- class NominalSum (s :: Type) where
+--     type SumCode s :: RBT Symbol Type
+--     toVariant :: s -> Variant I (SumCode s)
+--     fromVariant :: Variant I (SumCode s) -> s
 
