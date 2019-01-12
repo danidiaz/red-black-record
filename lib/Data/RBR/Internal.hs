@@ -415,7 +415,7 @@ setFieldI v r = fst (field @k @t r) (I v)
 modifyFieldI :: forall k t . Key k t => (Value k t -> Value k t) -> Record I t -> Record I t
 modifyFieldI f = modifyField @k @t (I . f . unI)
 
-injectI :: forall k v t. Key k t => Value k t -> Variant I t
+injectI :: forall k t. Key k t => Value k t -> Variant I t
 injectI = snd (branch @k @t) . I
 
 matchI :: forall k t . Key k t => Variant I t ->  Maybe (Value k t)
@@ -431,7 +431,7 @@ newtype Case f a b = Case (f b -> a)
 addCase :: forall k v t f a. Insertable k v t => (f v -> a) -> Record (Case f a) t -> Record (Case f a) (Insert k v t)
 addCase f = addField @k @v @t (Case f)
 
-addCaseI :: forall k v t f a. Insertable k v t => (v -> a) -> Record (Case I a) t -> Record (Case I a) (Insert k v t)
+addCaseI :: forall k v t a. Insertable k v t => (v -> a) -> Record (Case I a) t -> Record (Case I a) (Insert k v t)
 addCaseI f = addField @k @v @t (Case (f . unI))
 
 --
@@ -444,7 +444,7 @@ newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
 class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
 
-fieldSubset :: forall subset whole f flat. 
+fieldSubset :: forall subset whole flat f.  
                     (KeysValuesAll (PresentIn whole) subset,
                      PrefixNP '[] subset flat,
                      SListI flat)
@@ -468,7 +468,7 @@ fieldSubset r =
          goget left right = Node left (project @k @whole r) right
       in cpara_RBT (Proxy @(PresentIn whole)) unit goget)
 
-projectSubset :: forall subset whole f flat. 
+projectSubset :: forall subset whole flat f. 
                  (KeysValuesAll (PresentIn whole) subset,
                   PrefixNP '[] subset flat,
                   SListI flat)
@@ -476,7 +476,7 @@ projectSubset :: forall subset whole f flat.
               -> Record f subset
 projectSubset =  snd . fieldSubset
 
-getFieldSubset :: forall subset whole f flat. 
+getFieldSubset :: forall subset whole flat f. 
                   (KeysValuesAll (PresentIn whole) subset,
                    PrefixNP '[] subset flat,
                    SListI flat)
@@ -484,7 +484,7 @@ getFieldSubset :: forall subset whole f flat.
                -> Record f subset
 getFieldSubset = projectSubset
 
-setFieldSubset :: forall subset whole f flat. 
+setFieldSubset :: forall subset whole flat f. 
                   (KeysValuesAll (PresentIn whole) subset,
                    PrefixNP '[] subset flat,
                    SListI flat)
@@ -493,14 +493,14 @@ setFieldSubset :: forall subset whole f flat.
                -> Record f whole
 setFieldSubset subset whole = fst (fieldSubset whole) subset 
 
-modifyFieldSubset :: forall subset whole f flat. 
+modifyFieldSubset :: forall subset whole flat f. 
                      (KeysValuesAll (PresentIn whole) subset,
                       PrefixNP '[] subset flat,
                       SListI flat)
                   => (Record f subset -> Record f subset)
                   -> Record f whole 
                   -> Record f whole
-modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole @f r))
+modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
 
 -- eliminateSubset :: forall subset whole f flat. 
 --                    (KeysValuesAll (PresentIn whole) subset,
