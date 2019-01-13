@@ -450,11 +450,13 @@ newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
 class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
 
-fieldSubset :: forall subset whole flat f.  
-                      (KeysValuesAll (PresentIn whole) subset,
-                       PrefixNP '[] subset flat,
-                       SListI flat)
-                      => Record f whole -> (Record f subset -> Record f whole, Record f subset)
+type ProjectableSubset (subset :: RBT Symbol Type) (whole :: RBT Symbol Type) (flat :: [Type]) = 
+                       (KeysValuesAll (PresentIn whole) subset,
+                        PrefixNP '[] subset flat,
+                        SListI flat)
+
+fieldSubset :: forall subset whole flat f. (ProjectableSubset subset whole flat) 
+            => Record f whole -> (Record f subset -> Record f whole, Record f subset)
 fieldSubset r = 
     (,)
     (let goset :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
@@ -474,35 +476,23 @@ fieldSubset r =
          goget left right = Node left (project @k @whole r) right
       in cpara_RBT (Proxy @(PresentIn whole)) unit goget)
 
-projectSubset :: forall subset whole flat f. 
-                 (KeysValuesAll (PresentIn whole) subset,
-                  PrefixNP '[] subset flat,
-                  SListI flat)
+projectSubset :: forall subset whole flat f. (ProjectableSubset subset whole flat) 
               => Record f whole 
               -> Record f subset
 projectSubset =  snd . fieldSubset
 
-getFieldSubset :: forall subset whole flat f. 
-                  (KeysValuesAll (PresentIn whole) subset,
-                   PrefixNP '[] subset flat,
-                   SListI flat)
+getFieldSubset :: forall subset whole flat f. (ProjectableSubset subset whole flat)  
                => Record f whole 
                -> Record f subset
 getFieldSubset = projectSubset
 
-setFieldSubset :: forall subset whole flat f. 
-                  (KeysValuesAll (PresentIn whole) subset,
-                   PrefixNP '[] subset flat,
-                   SListI flat)
+setFieldSubset :: forall subset whole flat f.  (ProjectableSubset subset whole flat) 
                => Record f subset
                -> Record f whole 
                -> Record f whole
 setFieldSubset subset whole = fst (fieldSubset whole) subset 
 
-modifyFieldSubset :: forall subset whole flat f. 
-                     (KeysValuesAll (PresentIn whole) subset,
-                      PrefixNP '[] subset flat,
-                      SListI flat)
+modifyFieldSubset :: forall subset whole flat f.  (ProjectableSubset subset whole flat) 
                   => (Record f subset -> Record f subset)
                   -> Record f whole 
                   -> Record f whole
