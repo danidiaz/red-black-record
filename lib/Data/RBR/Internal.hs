@@ -741,11 +741,6 @@ instance ( ToRecordHelper start  t2,
   where
     type RecordCode'    start (t1 G.:*: t2) = RecordCode' (RecordCode' start t2) t1 
     toRecord'           start (t1 G.:*: t2) = toRecord' @middle (toRecord' @start start t2) t1 
---    breakNamedNP result =
---       let (t1, middle) = breakNamedNP @middle @t1 result
---           (t2, start) = breakNamedNP @start @t2 middle
---        in (t1 G.:*: t2, start) 
-
 
 --
 --
@@ -785,10 +780,45 @@ instance ( FromRecordHelper t t1,
 --
 --
 
--- class ToVariant (s :: Type) where
---     type SumCode s :: RBT Symbol Type
---     toVariant :: s -> Variant I (SumCode s)
--- 
+-- for variants, 
+type family VariantCode (s :: Type) :: RBT Symbol Type where
+    VariantCode s = VariantCode' E (G.Rep s)
+
+type family VariantCode' (acc :: RBT Symbol Type) (g :: Type -> Type) :: RBT Symbol Type where
+    VariantCode' acc (D1 meta fields) = VariantCode' acc fields
+    VariantCode' acc (t1 G.:+: t2) = VariantCode' (VariantCode' acc t2) t1
+    VariantCode' acc (C1 (G.MetaCons k _ _) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v))) = Insert k v acc
+     
+-- class FromVariant (s :: Type) where
+--     type VariantCode r :: RBT Symbol Type
+--     type VaraintCode r = VariantCode' E (G.Rep r)
+--     fromVariant :: Vara
+
+class ToVariant (s :: Type) where
+    toVariant :: s -> Variant I (VariantCode s)
+    default toVariant :: (G.Generic s, ToVariantHelper (VariantCode s) (G.Rep s)) => s -> Variant I (VariantCode s)
+    toVariant s = toVariant' @(VariantCode s) @(G.Rep s) (G.from s)
+
+class ToVariantHelper (t :: RBT Symbol Type) (g :: Type -> Type) where
+    toVariant' :: g x -> Variant I t 
+
+instance ToVariantHelper t fields => ToVariantHelper t (D1 meta fields) where
+    toVariant' (M1 fields) = toVariant' @t fields
+
+instance (Key k t, Value k t ~ v) =>
+    ToVariantHelper t (C1 (G.MetaCons k x y) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v))) 
+  where
+    toVariant' (M1 (M1 (K1 v))) = injectI @k v
+
+instance ( ToVariantHelper t t1,
+           ToVariantHelper t t2 
+         ) =>
+         ToVariantHelper t (t1 G.:+: t2)
+  where
+    toVariant' = \case
+        G.L1 l -> toVariant' @t l
+        G.R1 r -> toVariant' @t r
+
 -- 
 --     fromVariant :: Variant I (SumCode s) -> s
 -- 
@@ -797,3 +827,11 @@ instance ( FromRecordHelper t t1,
 --     toVariant :: s -> Variant I (SumCode s)
 --     fromVariant :: Variant I (SumCode s) -> s
 
+
+-- class ToVariant (r :: Type) where
+--     type RecordCode r :: RBT Symbol Type
+--     -- https://stackoverflow.com/questions/22087549/defaultsignatures-and-associated-type-families/22088808
+--     type RecordCode r = RecordCode' E (G.Rep r)
+--     toRecord :: r -> Record I (RecordCode r)
+--     default toRecord :: (G.Generic r,ToRecordHelper E (G.Rep r),RecordCode r ~ RecordCode' E (G.Rep r)) => r -> Record I (RecordCode r)
+--     toRecord r = toRecord' unit (G.from r)

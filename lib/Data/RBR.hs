@@ -54,6 +54,8 @@ module Data.RBR (
         -- * Interfacing with normal records
         FromRecord (..),
         ToRecord (..),
+        VariantCode,
+        ToVariant (..),
         -- NominalSum (..),
         -- * Interfacing with Data.SOP
         Productlike (..),

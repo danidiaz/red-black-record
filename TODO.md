@@ -7,6 +7,8 @@
 
 - Interaction with normal records
     - NominalRecord, NominalSum?
+    - Make ToRecord a precondition to FromRecord?
+    - What to do with sums?
 
 - Implement deletion in the type-level tree?
 
@@ -16,12 +18,6 @@
     support that.
     - Perhaps it would allow to progressively "expand"
     a Variant-consuming function with new cases, but I'm not sure.
-
-- Implement "project a subset of the fields".
-  Will require the constraint that all the keys in one tree
-  are keys in the original tree.
-
-- Implement "handleAll". 
 
 - Use the example of parsing a subset of fields form JSON.
 
