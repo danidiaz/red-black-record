@@ -7,8 +7,11 @@ module Data.RBR (
         -- * Records and Variants
         Record,
         unit,
+        prettyShowRecord,
+        prettyShowRecordI,
         Variant,
         impossible,
+        prettyShowVariantI,
         -- ** Inserting and widening
         Insertable (..),
         addField,

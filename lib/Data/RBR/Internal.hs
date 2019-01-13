@@ -26,13 +26,15 @@ module Data.RBR.Internal where
 
 import           Data.Proxy
 import           Data.Kind
-import           Data.Monoid
+import           Data.Monoid (Endo(..))
+import           Data.List (intersperse)
+import           Data.Foldable (toList)
 import           GHC.TypeLits
 import           GHC.Generics (D1,C1,S1(..),M1(..),K1(..),Rec0(..))
 import qualified GHC.Generics as G
 
-import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.->)(Fn,apFn))
-import           Data.SOP.NP (collapse_NP,liftA_NP,liftA2_NP,pure_NP)
+import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.->)(Fn,apFn),mapKIK)
+import           Data.SOP.NP (collapse_NP,liftA_NP,liftA2_NP,cliftA_NP,cliftA2_NP,pure_NP)
 import           Data.SOP.NS (collapse_NS,ap_NS,injections,Injection)
 
 data Color = R
@@ -70,7 +72,7 @@ instance (c k v, KeysValuesAll c left, KeysValuesAll c right) => KeysValuesAll c
   cpara_RBT p nil cons =
     cons (cpara_RBT p nil cons) (cpara_RBT p nil cons)
 
-demoteKeys :: KeysValuesAll KnownKey t => Record (K String) t
+demoteKeys :: forall t. KeysValuesAll KnownKey t => Record (K String) t
 demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
     where
     go :: forall left k v right color. (KnownKey k v, KeysValuesAll KnownKey left, KeysValuesAll KnownKey right) 
@@ -96,6 +98,21 @@ data Record (f :: Type -> Type) (t :: RBT Symbol Type)  where
 instance (PrefixNP '[] t result, Show (NP f result)) => Show (Record f t) where
     show x = "fromNP (" ++ show (toNP x) ++ ")"
 
+prettyShowRecord :: forall t flat f. (KeysValuesAll KnownKey t,PrefixNP '[] t flat, All Show flat, SListI flat) 
+                 => (forall x. Show x => f x -> String) 
+                 -> Record f t 
+                 -> String
+prettyShowRecord showf r = 
+    let keysflat = toNP @t (demoteKeys @t)
+        valuesflat = toNP @t r
+        entries = cliftA2_NP (Proxy @Show) (\(K key) fv -> K (key ++ " = " ++ showf fv))
+                                           keysflat 
+                                           valuesflat
+     in "{" ++ mconcat (intersperse ", " (collapse_NP entries)) ++ "}"
+
+prettyShowRecordI :: forall t flat. (KeysValuesAll KnownKey t,PrefixNP '[] t flat, All Show flat, SListI flat) => Record I t -> String
+prettyShowRecordI r = prettyShowRecord (show . unI) r 
+
 {-| A Record without components is a boring, uninformative type whose single value can be conjured out of thin air.
 -}
 unit :: Record f E
@@ -113,6 +130,14 @@ instance (PrefixNS '[] t result, Show (NS f result)) => Show (Variant f t) where
 -}
 impossible :: Variant f E -> b
 impossible v = case v of
+
+prettyShowVariantI :: forall t flat. (KeysValuesAll KnownKey t,PrefixNP '[] t flat, PrefixNS '[] t flat, All Show flat, SListI flat) => Variant I t -> String
+prettyShowVariantI v = 
+    let keysflat = toNP @t (demoteKeys @t)
+        printf (K k) = Fn (\(I v) -> (K (k ++ " (" ++ show v ++ ")"))) 
+        eliminators = cliftA_NP (Proxy @Show) printf keysflat
+        valuesflat = toNS @t v
+     in collapse_NS (ap_NS eliminators valuesflat)
 
 --
 --
