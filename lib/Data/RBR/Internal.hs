@@ -28,7 +28,7 @@ import           GHC.TypeLits
 import           GHC.Generics (D1,C1,S1(..),M1(..),K1(..),Rec0(..))
 import qualified GHC.Generics as G
 
-import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.->)(Fn))
+import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.->)(Fn,apFn))
 import           Data.SOP.NP (collapse_NP,liftA_NP,liftA2_NP,pure_NP)
 import           Data.SOP.NS (collapse_NS,ap_NS,injections)
 
@@ -524,7 +524,7 @@ branchSubset :: forall subset whole subflat wholeflat f.
 branchSubset = 
     (,)
     (let injs :: Record (Case f (Maybe (Variant f subset))) subset 
-         injs = fromNP @subset (liftA_NP (\(Fn fn) -> Case (\fv -> Just (fromNS @subset @subflat (unK (fn fv))))) 
+         injs = fromNP @subset (liftA_NP (\fn -> Case (\fv -> Just (fromNS @subset (unK (apFn fn fv))))) 
                                          (injections @subflat))
          biginjs :: Record (Case f (Maybe (Variant f subset))) whole 
          biginjs = fromNP @whole (pure_NP (Case (\_ -> Nothing)))
