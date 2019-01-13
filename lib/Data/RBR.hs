@@ -41,6 +41,7 @@ module Data.RBR (
         getFieldSubset,
         setFieldSubset,
         modifyFieldSubset,
+        InjectableSubset,
         branchSubset,
         injectSubset,
         matchSubset,

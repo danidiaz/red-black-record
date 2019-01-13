@@ -508,15 +508,18 @@ modifyFieldSubset :: forall subset whole flat f.
                   -> Record f whole
 modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
 
-branchSubset :: forall subset whole subflat wholeflat f.  
-                       (KeysValuesAll (PresentIn whole) subset,
-                        PrefixNP '[] whole  wholeflat,
-                        PrefixNS '[] whole  wholeflat,
-                        SListI wholeflat,
-                        PrefixNP '[] subset subflat,
-                        PrefixNS '[] subset subflat,
-                        SListI subflat)
-                       => (Variant f whole -> Maybe (Variant f subset), Variant f subset -> Variant f whole)
+
+type InjectableSubset (subset :: RBT Symbol Type) (whole :: RBT Symbol Type) (subflat :: [Type]) (wholeflat :: [Type]) = 
+                      (KeysValuesAll (PresentIn whole) subset,
+                       PrefixNP '[] whole  wholeflat,
+                       PrefixNS '[] whole  wholeflat,
+                       SListI wholeflat,
+                       PrefixNP '[] subset subflat,
+                       PrefixNS '[] subset subflat,
+                       SListI subflat)
+
+branchSubset :: forall subset whole subflat wholeflat f. (InjectableSubset subset whole subflat wholeflat)
+             => (Variant f whole -> Maybe (Variant f subset), Variant f subset -> Variant f whole)
 branchSubset = 
     let inj2case :: forall t flat f v. PrefixNS '[] t flat => (_ -> _) -> Injection _ flat v -> Case _ _ v
         inj2case = \adapt -> \fn -> Case (\fv -> adapt (fromNS @t (unK (apFn fn fv))))
@@ -537,36 +540,15 @@ branchSubset =
           injs = snd (subs wholeinjs)
        in eliminate injs)
 
-injectSubset :: forall subset whole subflat wholeflat f.  
-                (KeysValuesAll (PresentIn whole) subset,
-                 PrefixNP '[] whole  wholeflat,
-                 PrefixNS '[] whole  wholeflat,
-                 SListI wholeflat,
-                 PrefixNP '[] subset subflat,
-                 PrefixNS '[] subset subflat,
-                 SListI subflat)
+injectSubset :: forall subset whole subflat wholeflat f. (InjectableSubset subset whole subflat wholeflat)
              => Variant f subset -> Variant f whole
 injectSubset = snd (branchSubset @subset @whole @subflat @wholeflat)
 
-matchSubset :: forall subset whole subflat wholeflat f.  
-               (KeysValuesAll (PresentIn whole) subset,
-                PrefixNP '[] whole  wholeflat,
-                PrefixNS '[] whole  wholeflat,
-                SListI wholeflat,
-                PrefixNP '[] subset subflat,
-                PrefixNS '[] subset subflat,
-                SListI subflat)
+matchSubset :: forall subset whole subflat wholeflat f. (InjectableSubset subset whole subflat wholeflat)
             => Variant f whole -> Maybe (Variant f subset)
 matchSubset = fst (branchSubset @subset @whole @subflat @wholeflat)
 
-eliminateSubset :: forall subset whole subflat wholeflat f r.  
-                   (KeysValuesAll (PresentIn whole) subset,
-                    PrefixNP '[] whole  wholeflat,
-                    PrefixNS '[] whole  wholeflat,
-                    SListI wholeflat,
-                    PrefixNP '[] subset subflat,
-                    PrefixNS '[] subset subflat,
-                    SListI subflat)
+eliminateSubset :: forall subset whole subflat wholeflat f r. (InjectableSubset subset whole subflat wholeflat)
                 => Record (Case f r) whole -> Variant f subset -> r
 eliminateSubset cases = 
     let reducedCases = getFieldSubset @subset @whole cases
