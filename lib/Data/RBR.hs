@@ -11,6 +11,7 @@ module Data.RBR (
         prettyShowRecordI,
         Variant,
         impossible,
+        prettyShowVariant,
         prettyShowVariantI,
         -- ** Inserting and widening
         Insertable (..),
@@ -39,13 +40,13 @@ module Data.RBR (
         addCase,
         addCaseI,
         -- ** Subsets of fields and branches
-        ProjectableSubset,
+        ProductlikeSubset,
         fieldSubset,
         projectSubset,
         getFieldSubset,
         setFieldSubset,
         modifyFieldSubset,
-        InjectableSubset,
+        SumlikeSubset,
         branchSubset,
         injectSubset,
         matchSubset,
@@ -55,10 +56,10 @@ module Data.RBR (
         ToRecord (..),
         -- NominalSum (..),
         -- * Interfacing with Data.SOP
-        PrefixNP (..),
+        Productlike (..),
         fromNP,
         toNP,
-        PrefixNS (..),
+        Sumlike (..),
         fromNS,
         toNS,
         -- * Data.SOP re-exports

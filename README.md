@@ -104,8 +104,7 @@ tree.
 
 - Besides depending on sop-core, I have copied and adapted code from it. In
   particular the `KeysValuessAll` typeclass is a version of the `All` typeclass
-  from sop-core. Parts of the Generics-based conversion code are from
-  records-sop.
+  from sop-core. 
 
 ## Alternatives
 
