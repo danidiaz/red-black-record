@@ -508,13 +508,6 @@ modifyFieldSubset :: forall subset whole flat f.
                   -> Record f whole
 modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
 
--- eliminateSubset :: forall subset whole f flat. 
---                    (KeysValuesAll (PresentIn whole) subset,
---                     PrefixNP '[] subset flat,
---                     SListI flat)
--- eliminateSubset cases variant = 
-
-
 branchSubset :: forall subset whole subflat wholeflat f.  
                        (KeysValuesAll (PresentIn whole) subset,
                         PrefixNP '[] whole  wholeflat,
@@ -543,6 +536,41 @@ branchSubset =
           wholeinjs = fromNP @whole (liftA_NP (inj2case id) (injections @wholeflat))
           injs = snd (subs wholeinjs)
        in eliminate injs)
+
+injectSubset :: forall subset whole subflat wholeflat f.  
+                (KeysValuesAll (PresentIn whole) subset,
+                 PrefixNP '[] whole  wholeflat,
+                 PrefixNS '[] whole  wholeflat,
+                 SListI wholeflat,
+                 PrefixNP '[] subset subflat,
+                 PrefixNS '[] subset subflat,
+                 SListI subflat)
+             => Variant f subset -> Variant f whole
+injectSubset = snd (branchSubset @subset @whole @subflat @wholeflat)
+
+matchSubset :: forall subset whole subflat wholeflat f.  
+               (KeysValuesAll (PresentIn whole) subset,
+                PrefixNP '[] whole  wholeflat,
+                PrefixNS '[] whole  wholeflat,
+                SListI wholeflat,
+                PrefixNP '[] subset subflat,
+                PrefixNS '[] subset subflat,
+                SListI subflat)
+            => Variant f whole -> Maybe (Variant f subset)
+matchSubset = fst (branchSubset @subset @whole @subflat @wholeflat)
+
+eliminateSubset :: forall subset whole subflat wholeflat f r.  
+                   (KeysValuesAll (PresentIn whole) subset,
+                    PrefixNP '[] whole  wholeflat,
+                    PrefixNS '[] whole  wholeflat,
+                    SListI wholeflat,
+                    PrefixNP '[] subset subflat,
+                    PrefixNS '[] subset subflat,
+                    SListI subflat)
+                => Record (Case f r) whole -> Variant f subset -> r
+eliminateSubset cases = 
+    let reducedCases = getFieldSubset @subset @whole cases
+     in eliminate reducedCases 
 
 --
 --

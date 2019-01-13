@@ -88,6 +88,10 @@ wraps each field will be an identity functor `I` (from
 [sop-core](http://hackage.haskell.org/package/sop-core)). The -I suffixed
 functions wrap and unwrap the field's value on behalf of the user.
 
+### What's the deal with all those -Subset suffixed versions of functions?
+
+TODO
+
 ### I want a version of "match" that when it fails returns a variant with the unmatched cases.
 
 That isn't implemented (yet). It would require key deletion on the type-level

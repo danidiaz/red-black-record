@@ -35,13 +35,16 @@ module Data.RBR (
         Case (..),
         addCase,
         addCaseI,
-        -- * Subsetting
+        -- ** Subsetting
         fieldSubset,
         projectSubset,
         getFieldSubset,
         setFieldSubset,
         modifyFieldSubset,
         branchSubset,
+        injectSubset,
+        matchSubset,
+        eliminateSubset,
         -- * Interfacing with normal records
         FromRecord (..),
         ToRecord (..),
