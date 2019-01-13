@@ -16,8 +16,11 @@
              ExplicitForAll,
              RankNTypes, 
              DefaultSignatures,
+             PartialTypeSignatures,
              LambdaCase,
-             EmptyCase #-}
+             EmptyCase 
+#-}
+{-#  OPTIONS_GHC -Wno-partial-type-signatures  #-}
 -- UndecidableSuperClasses and RankNTypes seem to be required by KeysAllF.
 module Data.RBR.Internal where
 
