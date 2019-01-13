@@ -38,7 +38,7 @@ module Data.RBR (
         Case (..),
         addCase,
         addCaseI,
-        -- ** Subsetting
+        -- ** Subsets of fields and branches
         ProjectableSubset,
         fieldSubset,
         projectSubset,
