@@ -33,7 +33,7 @@ import qualified GHC.Generics as G
 
 import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.->)(Fn,apFn))
 import           Data.SOP.NP (collapse_NP,liftA_NP,liftA2_NP,pure_NP)
-import           Data.SOP.NS (collapse_NS,ap_NS,injections)
+import           Data.SOP.NS (collapse_NS,ap_NS,injections,Injection)
 
 data Color = R
            | B
@@ -525,15 +525,24 @@ branchSubset :: forall subset whole subflat wholeflat f.
                         SListI subflat)
                        => (Variant f whole -> Maybe (Variant f subset), Variant f subset -> Variant f whole)
 branchSubset = 
-    (,)
-    (let injs :: Record (Case f (Maybe (Variant f subset))) subset 
-         injs = fromNP @subset (liftA_NP (\fn -> Case (\fv -> Just (fromNS @subset (unK (apFn fn fv))))) 
-                                         (injections @subflat))
-         biginjs :: Record (Case f (Maybe (Variant f subset))) whole 
-         biginjs = fromNP @whole (pure_NP (Case (\_ -> Nothing)))
-         mixedinjs = setFieldSubset @subset @whole injs biginjs 
-      in eliminate mixedinjs)
-    (\subset -> undefined)
+    let inj2case :: forall t flat f v. PrefixNS '[] t flat => (_ -> _) -> Injection _ flat v -> Case _ _ v
+        inj2case = \adapt -> \fn -> Case (\fv -> adapt (fromNS @t (unK (apFn fn fv))))
+        -- The intuition is that getting the setter and the getter together might be faster at compile-time.
+        -- The intuition might be wrong.
+        subs :: forall f. Record f whole -> (Record f subset -> Record f whole, Record f subset)
+        subs = fieldSubset @subset @whole
+     in
+     (,)
+     (let injs :: Record (Case f (Maybe (Variant f subset))) subset 
+          injs = fromNP @subset (liftA_NP (inj2case Just) (injections @subflat))
+          wholeinjs :: Record (Case f (Maybe (Variant f subset))) whole 
+          wholeinjs = fromNP @whole (pure_NP (Case (\_ -> Nothing)))
+          mixedinjs = fst (subs wholeinjs) injs
+       in eliminate mixedinjs)
+     (let wholeinjs :: Record (Case f (Variant f whole)) whole
+          wholeinjs = fromNP @whole (liftA_NP (inj2case id) (injections @wholeflat))
+          injs = snd (subs wholeinjs)
+       in eliminate injs)
 
 --
 --
