@@ -35,3 +35,5 @@ heads?](https://stackoverflow.com/questions/4922560/why-doesnt-typesynonyminstan
 II](https://www.reddit.com/r/haskell/comments/afrn47/a_touch_of_topological_quantum_computation_in/).
 Type-level tree tricks.
 
+[Declarative record migration](https://twitter.com/am_i_tom/status/1084942686975610881).
+

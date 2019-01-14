@@ -1,5 +1,6 @@
 module Data.RBR (
         -- * Type-level Red-Black tree
+        -- $typelevel
         Color (..),
         RBT (..),
         KeysValuesAll,
@@ -73,3 +74,11 @@ module Data.RBR (
 
 import Data.RBR.Internal
 import Data.SOP (I(..),K(..),NP(..),NS(..))
+
+{- $typelevel
+ 
+   A Red-Black tree that is used at the type level, with @DataKinds@. The tree
+   keeps track of what keys are present and to what types they correspond.
+ 
+
+-} 

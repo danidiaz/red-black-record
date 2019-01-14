@@ -37,10 +37,12 @@ import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.
 import           Data.SOP.NP (collapse_NP,liftA_NP,liftA2_NP,cliftA_NP,cliftA2_NP,pure_NP)
 import           Data.SOP.NS (collapse_NS,ap_NS,injections,Injection)
 
+-- | The color of a node.
 data Color = R
            | B
     deriving Show
 
+-- | The Red-Black tree. It will be used, as a kind, to index the 'Record' and 'Variant' types.
 data RBT k v = E 
              | N Color (RBT k v) k v (RBT k v)
     deriving Show
@@ -59,6 +61,12 @@ type family
   KeysValuesAllF  _ E                        = ()
   KeysValuesAllF  c (N color left k v right) = (c k v, KeysValuesAll c left, KeysValuesAll c right)
 
+{- | Require a constraint for every key-value pair in a tree. This is a generalization of 'Data.SOP.All' from "Data.SOP".
+ 
+     'cpara_RBT' constructs a 'Record' by using a using a constraint to produce
+     the nodes of the tree. The constraint is passed as a 'Data.Proxy.Proxy'.
+     This function seldom needs to be called directly.
+-}
 class KeysValuesAllF c t => KeysValuesAll (c :: k -> v -> Constraint) (t :: RBT k v) where
   cpara_RBT ::
        proxy c
@@ -74,6 +82,12 @@ instance (c k v, KeysValuesAll c left, KeysValuesAll c right) => KeysValuesAll c
   cpara_RBT p nil cons =
     cons (cpara_RBT p nil cons) (cpara_RBT p nil cons)
 
+{- | Create a 'Record' containing the names of each field. 
+    
+     The names are represented by a constant functor 'K' carrying an annotation
+     of type 'String'. This means that there are no values of the type
+     corresponding to each field, only the 'String's.
+-} 
 demoteKeys :: forall t. KeysValuesAll KnownKey t => Record (K String) t
 demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
     where
@@ -93,6 +107,11 @@ instance KnownSymbol k => KnownKey k v
 --
 --
 
+{- | An extensible product-like type with named fields.
+ 
+     The values in the 'Record' come wrapped in a type constructor @f@, which
+     por pure records will be the indentity functor 'I'.
+-}
 data Record (f :: Type -> Type) (t :: RBT Symbol Type)  where
     Empty :: Record f E 
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
@@ -100,6 +119,10 @@ data Record (f :: Type -> Type) (t :: RBT Symbol Type)  where
 instance (Productlike '[] t result, Show (NP f result)) => Show (Record f t) where
     show x = "fromNP (" ++ show (toNP x) ++ ")"
 
+{- | Show a 'Record' in a friendlier way than the default 'Show' instance. The
+     function argument will usually be 'show', but it can be used to unwrap the
+     value of each field before showing it.
+-}
 prettyShowRecord :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) 
                  => (forall x. Show x => f x -> String) 
                  -> Record f t 
@@ -112,6 +135,9 @@ prettyShowRecord showf r =
                                            valuesflat
      in "{" ++ mconcat (intersperse ", " (collapse_NP entries)) ++ "}"
 
+
+{- | Like 'prettyShowRecord' but specialized to pure records.
+-}
 prettyShowRecordI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) => Record I t -> String
 prettyShowRecordI r = prettyShowRecord (show . unI) r 
 
@@ -120,6 +146,11 @@ prettyShowRecordI r = prettyShowRecord (show . unI) r
 unit :: Record f E
 unit = Empty
 
+{- | An extensible sum-like type with named branches.
+ 
+     The values in the 'Variant' come wrapped in a type constructor @f@, which
+     por pure variants will be the indentity functor 'I'.
+-}
 data Variant (f :: Type -> Type) (t :: RBT Symbol Type)  where
     Here       :: f v -> Variant f (N color left k v right)
     LookRight  :: Variant f t -> Variant f (N color' left' k' v' t)
@@ -133,6 +164,10 @@ instance (Sumlike '[] t result, Show (NS f result)) => Show (Variant f t) where
 impossible :: Variant f E -> b
 impossible v = case v of
 
+{- | Show a 'Variant' in a friendlier way than the default 'Show' instance. The
+     function argument will usually be 'show', but it can be used to unwrap the
+     value of the branch before showing it.
+-}
 prettyShowVariant :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat)
                   => (forall x. Show x => f x -> String) 
                   -> Variant f t 
@@ -143,6 +178,8 @@ prettyShowVariant showf v =
         valuesflat = toNS @t v
      in collapse_NS (ap_NS eliminators valuesflat)
 
+{- | Like 'prettyShowVariant' but specialized to pure variants.
+-}
 prettyShowVariantI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) => Variant I t -> String
 prettyShowVariantI v = prettyShowVariant (show . unI) v 
 
@@ -150,18 +187,28 @@ prettyShowVariantI v = prettyShowVariant (show . unI) v
 --
 -- Insertion
 
+{- | Insert a list of type level key / value pairs into a type-level tree. 
+-}
 type family InsertAll (es :: [(Symbol,Type)]) (t :: RBT Symbol Type) :: RBT Symbol Type where
     InsertAll '[] t = t
     InsertAll ( '(name,fieldType) ': es ) t = Insert name fieldType (InsertAll es t)
 
+{- | Build a type-level tree out of a list of type level key / value pairs. 
+-}
 type FromList (es :: [(Symbol,Type)]) = InsertAll es E
 
+{- | Alias for 'insert'. 
+-}
 addField :: forall k v t f . Insertable k v t => f v -> Record f t -> Record f (Insert k v t)
 addField = insert @k @v @t @f
 
+{- | Like 'insert' but specialized to pure 'Record's.
+-}
 insertI :: forall k v t . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
 insertI = insert @k @v @t . I
 
+{- | Like 'addField' but specialized to pure 'Record's.
+-}
 addFieldI :: forall k v t . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
 addFieldI = insertI @k @v @t
 
@@ -187,6 +234,19 @@ addFieldI = insertI @k @v @t
 -- balance B a x (T R b y (T R c z d)) = T R (T B a x b) y (T B c z d)
 -- balance color a x b = T color a x b
 
+{- | Class that determines if the pair of a 'Symbol' key and a value 'Type' can
+     be inserted into a type-level tree.
+ 
+     The associated type family 'Insert' produces the resulting tree.
+
+     At the term level, this manifests in 'insert', which adds a new field to a
+     record, and in 'widen', which lets you use a 'Variant' in a bigger context
+     than the one in which is was defined. 'insert' tends to be more useful in
+     practice.
+
+     If the tree already has the key but with a /different/ type, the insertion
+     fails to compile.
+ -}
 class Insertable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     type Insert k v t :: RBT Symbol Type
     insert :: f v -> Record f t -> Record f (Insert k v t)
@@ -378,6 +438,20 @@ instance BalanceableHelper DoNotBalance color a k v b where
 --
 -- Accessing fields
 
+{- | 
+     Class that determines if a given 'Symbol' key is present in a type-level
+     tree.
+
+     The 'Value' type family gives the 'Type' corresponding to the key.
+
+     'field' takes a field name (given through @TypeApplications@) and a
+     'Record', and returns a pair of a setter for the field and the original
+     value of the field.
+     
+     'branch' takes a branch name (given through @TypeApplications@) and
+     returns a pair of a match function and a constructor.
+-} 
+
 class Key (k :: Symbol) (t :: RBT Symbol Type) where
     type Value k t :: Type
     field :: Record f t -> (f (Value k t) -> Record f t, f (Value k t))
@@ -423,52 +497,85 @@ instance KeyHelper EQ k (N color left k v right) where
                      _ -> Nothing,
                Here)
 
+{- | Get the value of a field for a 'Record'. 
+-}
 project :: forall k t f . Key k t => Record f t -> f (Value k t)
 project = snd . field @k @t
 
+{- | Alias for 'project'.
+-}
 getField :: forall k t f . Key k t => Record f t -> f (Value k t)
 getField = project @k @t @f
 
+{- | Set the value of a field for a 'Record'. 
+-}
 setField :: forall k t f . Key k t => f (Value k t) -> Record f t -> Record f t
 setField fv r = fst (field @k @t @f r) fv
 
+{- | Modify the value of a field for a 'Record'. 
+-}
 modifyField :: forall k t f . Key k t => (f (Value k t) -> f (Value k t)) -> Record f t -> Record f t
 modifyField f r = uncurry ($) (fmap f (field @k @t @f r))
 
+{- | Put a value into the branch of a 'Variant'.
+-}
 inject :: forall k t f. Key k t => f (Value k t) -> Variant f t
 inject = snd (branch @k @t)
 
+{- | Check if a 'Variant' value is of the given branch.
+-}
 match :: forall k t f. Key k t => Variant f t -> Maybe (f (Value k t))
 match = fst (branch @k @t)
 
+{- | Like 'project' but specialized to pure 'Record's.
+-}
 projectI :: forall k t . Key k t => Record I t -> Value k t
 projectI = unI . snd . field @k @t
 
+{- | Like 'getField' but specialized to pure 'Record's.
+-}
 getFieldI :: forall k t . Key k t => Record I t -> Value k t
 getFieldI = projectI @k @t
 
+{- | Like 'setField' but specialized to pure 'Record's.
+-}
 setFieldI :: forall k t . Key k t => Value k t -> Record I t -> Record I t
 setFieldI v r = fst (field @k @t r) (I v)
 
+{- | Like 'modifyField' but specialized to pure 'Record's.
+-}
 modifyFieldI :: forall k t . Key k t => (Value k t -> Value k t) -> Record I t -> Record I t
 modifyFieldI f = modifyField @k @t (I . f . unI)
 
+{- | Like 'inject' but specialized to pure 'Variant's.
+-}
 injectI :: forall k t. Key k t => Value k t -> Variant I t
 injectI = snd (branch @k @t) . I
 
+{- | Like 'match' but specialized to pure 'Variants's.
+-}
 matchI :: forall k t . Key k t => Variant I t ->  Maybe (Value k t)
 matchI v = unI <$> fst (branch @k @t) v
 
+{- | Process a 'Variant' using a eliminator 'Record' that carries
+     handlers for each possible branch of the 'Variant'.
+-}
 eliminate :: (Productlike '[] t result, Sumlike '[] t result, SListI result) => Record (Case f r) t -> Variant f t -> r
 eliminate cases variant = 
     let adapt (Case e) = Fn (\fv -> K (e fv))
      in collapse_NS (ap_NS (liftA_NP adapt (toNP cases)) (toNS variant)) 
 
+{- | Represents a handler for a branch of a 'Variant'.  
+-}
 newtype Case f a b = Case (f b -> a)
 
+{- | A form of 'addField' for creating eliminators for 'Variant's.
+-}
 addCase :: forall k v t f a. Insertable k v t => (f v -> a) -> Record (Case f a) t -> Record (Case f a) (Insert k v t)
 addCase f = addField @k @v @t (Case f)
 
+{- | A pure version of 'addCase'.
+-}
 addCaseI :: forall k v t a. Insertable k v t => (v -> a) -> Record (Case I a) t -> Record (Case I a) (Insert k v t)
 addCaseI f = addField @k @v @t (Case (f . unI))
 
@@ -482,11 +589,15 @@ newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
 class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
 
+{- | Constraint for trees that can represent subsets of fields of 'Record'-like types.
+-}
 type ProductlikeSubset (subset :: RBT Symbol Type) (whole :: RBT Symbol Type) (flat :: [Type]) = 
                        (KeysValuesAll (PresentIn whole) subset,
                         Productlike '[] subset flat,
                         SListI flat)
 
+{- | Like 'field', but targets multiple fields at the same time 
+-}
 fieldSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat) 
             => Record f whole -> (Record f subset -> Record f whole, Record f subset)
 fieldSubset r = 
@@ -508,22 +619,35 @@ fieldSubset r =
          goget left right = Node left (project @k @whole r) right
       in cpara_RBT (Proxy @(PresentIn whole)) unit goget)
 
+{- | Like 'project', but extracts multiple fields at the same time.
+ 
+     Can also be used to convert between structurally dissimilar trees that
+     nevertheless have the same entries. 
+-}
 projectSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat) 
               => Record f whole 
               -> Record f subset
 projectSubset =  snd . fieldSubset
 
+{- | Alias for 'projectSubset'.
+-}
 getFieldSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat)  
                => Record f whole 
                -> Record f subset
 getFieldSubset = projectSubset
 
+{- | Like 'setField', but sets multiple fields at the same time.
+ 
+-}
 setFieldSubset :: forall subset whole flat f.  (ProductlikeSubset subset whole flat) 
                => Record f subset
                -> Record f whole 
                -> Record f whole
 setFieldSubset subset whole = fst (fieldSubset whole) subset 
 
+{- | Like 'modifyField', but modifies multiple fields at the same time.
+ 
+-}
 modifyFieldSubset :: forall subset whole flat f.  (ProductlikeSubset subset whole flat) 
                   => (Record f subset -> Record f subset)
                   -> Record f whole 
@@ -531,6 +655,8 @@ modifyFieldSubset :: forall subset whole flat f.  (ProductlikeSubset subset whol
 modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
 
 
+{- | Constraint for trees that can represent subsets of branches of 'Variant'-like types.
+-}
 type SumlikeSubset (subset :: RBT Symbol Type) (whole :: RBT Symbol Type) (subflat :: [Type]) (wholeflat :: [Type]) = 
                    (KeysValuesAll (PresentIn whole) subset,
                     Productlike '[] whole  wholeflat,
@@ -540,6 +666,8 @@ type SumlikeSubset (subset :: RBT Symbol Type) (whole :: RBT Symbol Type) (subfl
                     Sumlike '[] subset subflat,
                     SListI subflat)
 
+{- | Like 'branch', but targets multiple branches at the same time.
+-}
 branchSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
              => (Variant f whole -> Maybe (Variant f subset), Variant f subset -> Variant f whole)
 branchSubset = 
@@ -562,14 +690,22 @@ branchSubset =
           injs = snd (subs wholeinjs)
        in eliminate injs)
 
+{- | Like 'inject', but injects one of several possible branches.
+-}
 injectSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
              => Variant f subset -> Variant f whole
 injectSubset = snd (branchSubset @subset @whole @subflat @wholeflat)
 
+{- | Like 'match', but matches more than one branch.
+-}
 matchSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
             => Variant f whole -> Maybe (Variant f subset)
 matchSubset = fst (branchSubset @subset @whole @subflat @wholeflat)
 
+{- | 
+     Like 'eliminate', but allows the eliminator 'Record' to have more fields
+     than there are branches in the 'Variant'.
+-}
 eliminateSubset :: forall subset whole subflat wholeflat f r. (SumlikeSubset subset whole subflat wholeflat)
                 => Record (Case f r) whole -> Variant f subset -> r
 eliminateSubset cases = 
@@ -580,9 +716,13 @@ eliminateSubset cases =
 --
 -- Interaction with Data.SOP
 
+{- | Class from converting 'Record's to and from the n-ary product type 'NP' from "Data.SOP".
+    
+     The functions 'toNP' and 'fromNP' are usually easier to use. 
+-}
 class Productlike (start :: [Type])
-               (t :: RBT Symbol Type) 
-               (result :: [Type]) | start t -> result, result t -> start where
+                  (t :: RBT Symbol Type) 
+                  (result :: [Type]) | start t -> result, result t -> start where
     prefixNP:: Record f t -> NP f start -> NP f result
     breakNP :: NP f result -> (Record f t, NP f start)
 
@@ -600,9 +740,13 @@ instance (Productlike start right middle,
             (right, start) = breakNP @start @right middle
          in (Node left fv right, start)
 
+{- | Convert a 'Record' to an n-ary product type 'NP'. 
+-}
 toNP :: forall t result f. Productlike '[] t result => Record f t -> NP f result
 toNP r = prefixNP r Nil
 
+{- | Convert a n-ary product type 'NP' into a compatible 'Record'. 
+-}
 fromNP :: forall t result f. Productlike '[] t result => NP f result -> Record f t
 fromNP np = let (r,Nil) = breakNP np in r
 
