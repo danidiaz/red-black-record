@@ -18,12 +18,46 @@ main :: IO ()
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Tests" [ testCase "testProjectSubset01" testProjectSubset01,
+tests = testGroup "Tests" [ testCase "testRecordGetSet01" testRecordGetSet01,
+                            testCase "testProjectSubset01" testProjectSubset01,
                             testCase "testToRecord01" testToRecord01,
                             testCase "testFromRecord01" testFromRecord01,
                             testCase "testToVariant01" testToVariant01,
                             testCase "testFromVariant01" testFromVariant01
                           ]
+
+testRecordGetSet01 :: Assertion
+testRecordGetSet01 = do
+    let r = insertI @"bfoo" 'c'
+          . insertI @"bbar" True
+          . insertI @"bbaz" (1::Int)
+          . insertI @"afoo" 'd'
+          . insertI @"abar" False
+          . insertI @"abaz" (2::Int)
+          . insertI @"zfoo" 'x'
+          . insertI @"zbar" False
+          . insertI @"zbaz" (4::Int)
+          . insertI @"dfoo" 'z'
+          . insertI @"dbar" True
+          . insertI @"dbaz" (5::Int)
+          . insertI @"fbaz" (6::Int)
+          $ unit
+        s = setFieldI @"fbaz" 9 (setFieldI @"zfoo" 'k' r)
+    assertEqual "bfoo" (getFieldI  @"bfoo" s) 'c'
+    assertEqual "bbar" (getFieldI  @"bbar" s) True
+    assertEqual "bbaz" (getFieldI  @"bbaz" s) (1::Int)
+    assertEqual "afoo" (getFieldI  @"afoo" s) 'd'
+    assertEqual "abar" (getFieldI  @"abar" s) False
+    assertEqual "abaz" (getFieldI  @"abaz" s) (2::Int)
+    assertEqual "zfoo" (getFieldI  @"zfoo" s) 'k'
+    assertEqual "zbar" (getFieldI  @"zbar" s) False
+    assertEqual "zbaz" (getFieldI  @"zbaz" s) (4::Int)
+    assertEqual "dfoo" (getFieldI  @"dfoo" s) 'z'
+    assertEqual "dbar" (getFieldI  @"dbar" s) True
+    assertEqual "dbaz" (getFieldI  @"dbaz" s) (5::Int)
+    assertEqual "fbaz" (getFieldI  @"fbaz" s) (9::Int)
+    return ()
+
 
 testProjectSubset01 :: Assertion
 testProjectSubset01 = do
