@@ -19,6 +19,7 @@ main = defaultMain tests
 
 tests :: TestTree
 tests = testGroup "Tests" [ testCase "testRecordGetSet01" testRecordGetSet01,
+                            testCase "testVariantInjectMatch01" testVariantInjectMatch01,
                             testCase "testProjectSubset01" testProjectSubset01,
                             testCase "testToRecord01" testToRecord01,
                             testCase "testFromRecord01" testFromRecord01,
@@ -56,6 +57,53 @@ testRecordGetSet01 = do
     assertEqual "dbar" (getFieldI  @"dbar" s) True
     assertEqual "dbaz" (getFieldI  @"dbaz" s) (5::Int)
     assertEqual "fbaz" (getFieldI  @"fbaz" s) (9::Int)
+    return ()
+
+type Tree01 = FromList [ '("bfoo",Char),
+                         '("bbar",Bool),
+                         '("bbaz",Int),
+                         '("afoo",Char),
+                         '("abar",Bool),
+                         '("abaz",Int),
+                         '("zfoo",Char),
+                         '("zbar",Bool),
+                         '("zbaz",Int),
+                         '("dfoo",Char),
+                         '("dbar",Bool),
+                         '("dbaz",Int),
+                         '("fbaz",Int),
+                         '("kgoz",Int) ]
+
+testVariantInjectMatch01 :: Assertion
+testVariantInjectMatch01 = do
+    let r0  =  injectI @"bfoo" @Tree01 'c'
+        r1  =  injectI @"bbar" @Tree01 True
+        r2  =  injectI @"bbaz" @Tree01 (1::Int)
+        r3  =  injectI @"afoo" @Tree01 'd'
+        r4  =  injectI @"abar" @Tree01 False
+        r5  =  injectI @"abaz" @Tree01 (2::Int)
+        r6  =  injectI @"zfoo" @Tree01 'x'
+        r7  =  injectI @"zbar" @Tree01 False
+        r8  =  injectI @"zbaz" @Tree01 (4::Int)
+        r9  =  injectI @"dfoo" @Tree01 'z'
+        r10 =  injectI @"dbar" @Tree01 True
+        r11 =  injectI @"dbaz" @Tree01 (5::Int)
+        r12 =  injectI @"fbaz" @Tree01 (6::Int)
+        r13 =  injectI @"kgoz" @Tree01 (9::Int)
+    assertEqual "bfoo" (matchI  @"bfoo" r0 ) $ Just 'c'
+    assertEqual "bbar" (matchI  @"bbar" r1 ) $ Just True
+    assertEqual "bbaz" (matchI  @"bbaz" r2 ) $ Just (1::Int)
+    assertEqual "afoo" (matchI  @"afoo" r3 ) $ Just 'd'
+    assertEqual "abar" (matchI  @"abar" r4 ) $ Just False
+    assertEqual "abaz" (matchI  @"abaz" r5 ) $ Just (2::Int)
+    assertEqual "zfoo" (matchI  @"zfoo" r6 ) $ Just 'x'
+    assertEqual "zbar" (matchI  @"zbar" r7 ) $ Just False
+    assertEqual "zbaz" (matchI  @"zbaz" r8 ) $ Just (4::Int)
+    assertEqual "dfoo" (matchI  @"dfoo" r9 ) $ Just 'z'
+    assertEqual "dbar" (matchI  @"dbar" r10) $ Just True
+    assertEqual "dbaz" (matchI  @"dbaz" r11) $ Just (5::Int)
+    assertEqual "fbaz" (matchI  @"fbaz" r12) $ Just (6::Int)
+    assertEqual "kgoz" (matchI  @"kgoz" r13) $ Just (9::Int)
     return ()
 
 
