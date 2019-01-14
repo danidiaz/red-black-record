@@ -52,8 +52,8 @@ module Data.RBR (
         matchSubset,
         eliminateSubset,
         -- * Interfacing with normal records
-        FromRecord (..),
         ToRecord (..),
+        FromRecord (..),
         VariantCode,
         ToVariant (..),
         -- NominalSum (..),
