@@ -52,14 +52,16 @@ n-ary products and sums from
 [sop-core](http://hackage.haskell.org/package/sop-core), which do not have
 field labels.
 
+For fancier output, use the "pretty-show" functions instead.
+
 ### Working with two records, I'm getting errors about incompatible types even as both records have the exact same fields.
 
 Alas, the order of insertion in the type-level tree matters :( Different
 insertion orders can produce structurally different trees, even as they encode
 the same symbol-to-type map.
 
-Perhaps some kind of conversion function could be implemented. It should be
-opt-in, as it would likely incur in some compile-time overhead.
+As a workaround, one can use the `-Subset` functions to convert between
+equivalent structures.
 
 ### I can't insert into a record when a field with the same name but different type already exists. Why not simply overwrite it?
 
@@ -90,7 +92,11 @@ functions wrap and unwrap the field's value on behalf of the user.
 
 ### What's the deal with all those -Subset suffixed versions of functions?
 
-TODO
+These functions target multiple fields or branches at the same time. They can
+be used to build lawful lenses and prisms over fragmenst of a structure.
+
+They can also be used to convert between type-level trees that have the same
+entries but different structure.
 
 ### I want a version of "match" that when it fails returns a variant with the unmatched cases.
 
