@@ -1,8 +1,15 @@
 module Data.RBR.Examples (
-    -- * Type-level Red-Black tree
-    -- * Type-level Red-Black tree
+    -- * entry1
+    -- * entry2
     ) where
 
--- $setup
--- >>> :set -XDataKinds -XTypeApplications
+import Data.RBR
+import Data.SOP
 
+{- $setup
+ 
+>>> :set -XDataKinds -XTypeApplications
+>>> import Data.RBR
+>>> import Data.SOP
+
+-}
