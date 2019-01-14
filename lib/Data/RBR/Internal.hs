@@ -779,8 +779,6 @@ instance ( FromRecordHelper t t1,
 --
 --
 --
-
--- for variants, 
 type family VariantCode (s :: Type) :: RBT Symbol Type where
     VariantCode s = VariantCode' E (G.Rep s)
 
@@ -789,11 +787,13 @@ type family VariantCode' (acc :: RBT Symbol Type) (g :: Type -> Type) :: RBT Sym
     VariantCode' acc (t1 G.:+: t2) = VariantCode' (VariantCode' acc t2) t1
     VariantCode' acc (C1 (G.MetaCons k _ _) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v))) = Insert k v acc
      
--- class FromVariant (s :: Type) where
---     type VariantCode r :: RBT Symbol Type
---     type VaraintCode r = VariantCode' E (G.Rep r)
---     fromVariant :: Vara
+class FromVariant (s :: Type) where
+    fromVariant :: Variant I (VariantCode s) -> s
 
+-- TODO -- finish this
+
+--
+--
 class ToVariant (s :: Type) where
     toVariant :: s -> Variant I (VariantCode s)
     default toVariant :: (G.Generic s, ToVariantHelper (VariantCode s) (G.Rep s)) => s -> Variant I (VariantCode s)
