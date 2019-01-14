@@ -1,9 +1,6 @@
 ﻿# NOTES
 
-- It seems that -fprint-explicit-foralls doesn't show the types in an order
-  that matches the order of type application, that's confusing.
-
-## relevant / related links
+## RELEVANT / RELATED LINKS
 
 [Persistent Red Black Trees in
 Haskell](https://abhiroop.github.io/Haskell-Red-Black-Tree/).
@@ -33,4 +30,8 @@ functor-generic programming.
 [Why doesn't TypeSynonymInstances allow partially applied type synonyms to be
 used in instance
 heads?](https://stackoverflow.com/questions/4922560/why-doesnt-typesynonyminstances-allow-partially-applied-type-synonyms-to-be-use)
+
+[A Touch of Topological Quantum Computation in Haskell Pt.
+II](https://www.reddit.com/r/haskell/comments/afrn47/a_touch_of_topological_quantum_computation_in/).
+Type-level tree tricks.
 

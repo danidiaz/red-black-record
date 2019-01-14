@@ -21,14 +21,14 @@
              EmptyCase 
 #-}
 {-#  OPTIONS_GHC -Wno-partial-type-signatures  #-}
--- UndecidableSuperClasses and RankNTypes seem to be required by KeysAllF.
+
 module Data.RBR.Internal where
 
 import           Data.Proxy
 import           Data.Kind
 import           Data.Monoid (Endo(..))
 import           Data.List (intersperse)
-import           Data.Foldable (toList)
+import           Data.Foldable (asum)
 import           GHC.TypeLits
 import           GHC.Generics (D1,C1,S1(..),M1(..),K1(..),Rec0(..))
 import qualified GHC.Generics as G
@@ -52,6 +52,8 @@ data RBT k v = E
 
 -- Why is this KeysValuesAllF type family needed at all? Why is not KeysValuesAll sufficient by itself?
 -- In fact, if I delete KeysValuesAllF and use eclusively KeysValuesAll, functions like demoteKeys seem to still work fine.
+--
+-- UndecidableSuperClasses and RankNTypes seem to be required by KeysValuesAllF.
 type family
   KeysValuesAllF (c :: k -> v -> Constraint) (t :: RBT k v) :: Constraint where
   KeysValuesAllF  _ E                        = ()
@@ -530,13 +532,13 @@ modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
 
 
 type SumlikeSubset (subset :: RBT Symbol Type) (whole :: RBT Symbol Type) (subflat :: [Type]) (wholeflat :: [Type]) = 
-                      (KeysValuesAll (PresentIn whole) subset,
-                       Productlike '[] whole  wholeflat,
-                       Sumlike '[] whole  wholeflat,
-                       SListI wholeflat,
-                       Productlike '[] subset subflat,
-                       Sumlike '[] subset subflat,
-                       SListI subflat)
+                   (KeysValuesAll (PresentIn whole) subset,
+                    Productlike '[] whole  wholeflat,
+                    Sumlike '[] whole  wholeflat,
+                    SListI wholeflat,
+                    Productlike '[] subset subflat,
+                    Sumlike '[] subset subflat,
+                    SListI subflat)
 
 branchSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
              => (Variant f whole -> Maybe (Variant f subset), Variant f subset -> Variant f whole)
@@ -675,16 +677,9 @@ fromNS ns = case breakNS ns of
     Left _ -> error "this never happens"
     Right x -> x
 
--- Interfacing with normal records
 --
-
--- Pending: give generic-based default implementations for these typeclasses.
-
--- newtype P (p :: (a, Type)) = P (Snd p)
--- 
--- type family Snd (p :: (a, b)) :: b where
---     Snd '(a, b) = b
-
+--
+-- Interfacing with normal records
 
 class ToRecord (r :: Type) where
     type RecordCode r :: RBT Symbol Type
@@ -697,25 +692,10 @@ class ToRecord (r :: Type) where
 class ToRecordHelper (start :: RBT Symbol Type) (g :: Type -> Type) where
     type RecordCode' start g :: RBT Symbol Type
     toRecord' :: Record I start -> g x -> Record I (RecordCode' start g)
-    --breakNamedNP :: NP P result -> (t x, NP P start)
-    --
+
 instance ToRecordHelper E fields => ToRecordHelper E (D1 meta (C1 metacons fields)) where
     type RecordCode' E (D1 meta (C1 metacons fields)) = RecordCode' E fields
     toRecord' r (M1 (M1 g)) = toRecord' @E @fields r g
-
--- instance NamedFieldsProduct start E start where
---     toRecord' _ start = start  
---     breakNamedNP start = (Empty, start) 
--- 
--- instance (NamedFieldsProduct start right middle, 
---           NamedFieldsProduct ('(k,v) ': middle) left result)
---           => NamedFieldsProduct start (N color left k v right) result where
---     toRecord' (Node left (I v) right) start = 
---         toRecord' @_ @left @result left (P v :* toRecord' @start @right @middle right start)
---     breakNamedNP result =
---         let (left, (P v) :* middle) = breakNamedNP @_ @left @result result
---             (right, start) = breakNamedNP @start @right middle
---          in (Node left (I v) right, start)
 
 instance (Insertable k v start) =>
          ToRecordHelper start
@@ -742,7 +722,6 @@ instance ( ToRecordHelper start  t2,
     type RecordCode'    start (t1 G.:*: t2) = RecordCode' (RecordCode' start t2) t1 
     toRecord'           start (t1 G.:*: t2) = toRecord' @middle (toRecord' @start start t2) t1 
 
---
 --
 --
 class ToRecord r => FromRecord (r :: Type) where
@@ -789,8 +768,34 @@ type family VariantCode' (acc :: RBT Symbol Type) (g :: Type -> Type) :: RBT Sym
      
 class FromVariant (s :: Type) where
     fromVariant :: Variant I (VariantCode s) -> s
+    default fromVariant :: (G.Generic s, FromVariantHelper (VariantCode s) (G.Rep s)) => Variant I (VariantCode s) -> s
+    fromVariant v = case fromVariant' @(VariantCode s) v of
+        Just x -> G.to x
+        Nothing -> error "fromVariant match fail. Should not happen."
 
--- TODO -- finish this
+class FromVariantHelper (t :: RBT Symbol Type) (g :: Type -> Type) where
+    fromVariant' :: Variant I t -> Maybe (g x)
+
+instance FromVariantHelper t fields => FromVariantHelper t (D1 meta fields) where
+    fromVariant' v = M1 <$> fromVariant' @t v
+
+instance (Key k t, Value k t ~ v) 
+         => FromVariantHelper t (C1 (G.MetaCons k x y) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v)))
+  where
+    fromVariant' v = case matchI @k @t v of
+        Just x -> Just (M1 (M1 (K1 x)) )
+        Nothing -> Nothing
+
+instance ( FromVariantHelper t t1,
+           FromVariantHelper t t2 
+         ) =>
+         FromVariantHelper t (t1 G.:+: t2)
+  where
+    fromVariant' v = case fromVariant' @t @t1 v of
+        Just x1 -> Just (G.L1 x1)
+        Nothing -> case fromVariant' @t @t2 v of
+            Just x2 -> Just (G.R1 x2)
+            Nothing -> Nothing
 
 --
 --
@@ -819,19 +824,3 @@ instance ( ToVariantHelper t t1,
         G.L1 l -> toVariant' @t l
         G.R1 r -> toVariant' @t r
 
--- 
---     fromVariant :: Variant I (SumCode s) -> s
--- 
--- class NominalSum (s :: Type) where
---     type SumCode s :: RBT Symbol Type
---     toVariant :: s -> Variant I (SumCode s)
---     fromVariant :: Variant I (SumCode s) -> s
-
-
--- class ToVariant (r :: Type) where
---     type RecordCode r :: RBT Symbol Type
---     -- https://stackoverflow.com/questions/22087549/defaultsignatures-and-associated-type-families/22088808
---     type RecordCode r = RecordCode' E (G.Rep r)
---     toRecord :: r -> Record I (RecordCode r)
---     default toRecord :: (G.Generic r,ToRecordHelper E (G.Rep r),RecordCode r ~ RecordCode' E (G.Rep r)) => r -> Record I (RecordCode r)
---     toRecord r = toRecord' unit (G.from r)
