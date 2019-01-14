@@ -23,3 +23,4 @@
 
 - Perhaps use the example of building a validator.
 
+- Finish FromVariant.

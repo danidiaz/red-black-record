@@ -745,16 +745,16 @@ instance ( ToRecordHelper start  t2,
 --
 --
 --
-class FromRecord (r :: Type) where
-    fromRecord :: forall r t. Record I t -> r
-    default fromRecord :: forall r t . (G.Generic r, FromRecordHelper t (G.Rep r)) => Record I t -> r
-    fromRecord r = G.to (fromRecord' @t @(G.Rep r) r)
+class ToRecord r => FromRecord (r :: Type) where
+    fromRecord :: Record I (RecordCode r) -> r
+    default fromRecord :: (G.Generic r, FromRecordHelper (RecordCode r) (G.Rep r)) => Record I (RecordCode r) -> r
+    fromRecord r = G.to (fromRecord' @(RecordCode r) @(G.Rep r) r)
 
 class FromRecordHelper (t :: RBT Symbol Type) (g :: Type -> Type) where
     fromRecord' :: Record I t -> g x
 
-instance FromRecordHelper E fields => FromRecordHelper E (D1 meta (C1 metacons fields)) where
-    fromRecord' r = M1 (M1 (fromRecord' @E @fields r))
+instance FromRecordHelper t fields => FromRecordHelper t (D1 meta (C1 metacons fields)) where
+    fromRecord' r = M1 (M1 (fromRecord' @t @fields r))
 
 instance (Key k t, Value k t ~ v) =>
          FromRecordHelper t
