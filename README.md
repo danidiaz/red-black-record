@@ -32,21 +32,21 @@ provides conversion typeclasses with default implementations by way of
 
 ### What extensions do I need to use this library?
 
-- `-XDataKinds`
+- `DataKinds`
 
-- `-XTypeApplications`
+- `TypeApplications`
 
   To be able to specify field and branch names.
 
-- `-XFlexibleContexts`
+- `FlexibleContexts`
 
-- `-XTypeFamilies`
+- `TypeFamilies`
 
-- `-XDeriveGeneric `
+- `DeriveGeneric `
 
   For interfacing with normal records.
 
-- `-XPartialTypeSignatures`
+- `PartialTypeSignatures`
 
 ### My type signatures are getting big and scary because of those type-level trees. What to do?
 
