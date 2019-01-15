@@ -74,6 +74,9 @@ Because here the types of each field can be inferred, we can use a wildcard
 
 {- $variant1
  
+   Here the full type of the 'Variant' is inferred from the type of its
+   'Record' of eliminators.
+
 >>> :{
     let b = injectI @"left" 'c'
         e = addCaseI @"left" putChar
