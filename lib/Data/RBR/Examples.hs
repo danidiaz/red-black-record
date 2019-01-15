@@ -8,6 +8,8 @@ module Data.RBR.Examples (
     -- * Creating a Record out of a conventional Haskell record
     -- $record3
     
+    -- * Injecting into a Variant and eliminating it.
+    -- $variant1
     ) where
 
 import Data.RBR
@@ -15,7 +17,7 @@ import Data.SOP
 
 {- $setup
  
->>> :set -XDataKinds -XTypeApplications -XPartialTypeSignatures -XDeriveGeneric
+>>> :set -XDataKinds -XTypeApplications -XPartialTypeSignatures -XFlexibleContexts -XTypeFamilies -XDeriveGeneric 
 >>> :set -Wno-partial-type-signatures  
 >>> import Data.RBR
 >>> import Data.SOP
@@ -67,5 +69,18 @@ Because here the types of each field can be inferred, we can use a wildcard
      in putStrLn (prettyShowRecordI r)
 :}
 {age = 50, name = "Foo", whatever = 'x'} 
+
+-} 
+
+{- $variant1
+ 
+>>> :{
+    let b = injectI @"left" 'c'
+        e = addCaseI @"left" putChar
+          . addCaseI @"right" @Bool print
+          $ unit
+     in eliminate e b
+:}
+c
 
 -} 
