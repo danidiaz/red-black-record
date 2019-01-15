@@ -27,6 +27,7 @@ tests = testGroup "Tests" [ testCase "testRecordGetSet01" testRecordGetSet01,
                             testCase "testFromVariant01" testFromVariant01
                           ]
 
+
 testRecordGetSet01 :: Assertion
 testRecordGetSet01 = do
     let r = insertI @"bfoo" 'c'
@@ -174,4 +175,4 @@ testFromVariant01 = do
     assertEqual "Variant01B" val2 (Variant01B 'z')
     assertEqual "Variant01C" val3 (Variant01C True)
     assertEqual "Variant01D" val4 (Variant01D False)
-
+ 

@@ -2,14 +2,17 @@ module Data.RBR.Examples (
     -- * Constructing a record and viewing its fields.
     -- $record1
     
-    -- * Getting a subset of fields out of a record.
+    -- * Getting a subset of fields out of a record
     -- $record2
     
     -- * Creating a Record out of a conventional Haskell record
     -- $record3
     
-    -- * Injecting into a Variant and eliminating it.
+    -- * Injecting into a Variant and eliminating it
     -- $variant1
+    
+    -- * Creating a Variant out of a sum type and matching on it
+    -- $variant2
     ) where
 
 import Data.RBR
@@ -87,3 +90,18 @@ Because here the types of each field can be inferred, we can use a wildcard
 c
 
 -} 
+
+
+{- $variant2
+ 
+>>> data Summy = Lefty Int | Righty Bool deriving (Generic,Show)
+>>> instance ToVariant Summy 
+>>> :{
+    let v = toVariant (Lefty 5)
+     in matchI @"Lefty" v
+:}
+Just 5
+
+-} 
+
+
