@@ -53,6 +53,7 @@ module Data.RBR (
         matchSubset,
         eliminateSubset,
         -- * Interfacing with normal records
+        -- $nominal
         ToRecord (..),
         FromRecord (..),
         VariantCode,
@@ -75,6 +76,16 @@ module Data.RBR (
 import Data.RBR.Internal
 import Data.SOP (I(..),K(..),NP(..),NS(..))
 
+{- $setup
+ 
+>>> :set -XDataKinds -XTypeApplications -XPartialTypeSignatures -XFlexibleContexts -XTypeFamilies -XDeriveGeneric 
+>>> :set -Wno-partial-type-signatures  
+>>> import Data.RBR
+>>> import Data.SOP
+>>> import GHC.Generics
+
+-}
+
 {- $typelevel
  
    A Red-Black tree that is used at the type level, with @DataKinds@. The tree
@@ -82,3 +93,25 @@ import Data.SOP (I(..),K(..),NP(..),NS(..))
  
 
 -} 
+
+{- $nominal
+  
+  Typeclasses for converting to and from normal Haskell records and sum types.
+
+  They have default implementations based in "GHC.Generics":
+
+>>> data Person = Person { name :: String, age :: Int } deriving (Generic, Show)
+>>> instance ToRecord Person 
+>>> instance FromRecord Person 
+
+>>> data Summy = Lefty Int | Righty Bool deriving (Generic,Show)
+>>> instance ToVariant Summy 
+>>> instance FromVariant Summy 
+
+    Only single-constructor records with named fields can have 'ToRecord' and
+    'FromRecord' instances.
+
+    Only sum types with exactly one anonymous argument on each branch can have
+    'ToVariant' and 'FromVariant' instances.
+
+-}

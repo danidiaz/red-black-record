@@ -4,16 +4,21 @@
 
 A library that provides extensible records and variants, both indexed by a
 type-level [red-black](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
-tree that maps `Symbol` keys to value `Type`s. The keys correspond to fields
-names in records, and to branch names in variants. Many record functions have
-their variant mirror-images and viceversa.
+tree that maps `Symbol` keys to `Type`s. The keys correspond to fields names in
+records, and to branch names in variants. Many record functions have their
+variant mirror-images and viceversa.
 
 Each value type in a field or branch comes wrapped in a type constructor of
-kind `Type -> Type`. Typically, it will be an identity functor, but it can also
-be `Maybe` or some other `Applicative` for parsing, validation and so on.
+kind `Type -> Type`. Typically, it will be an [identity
+functor](http://hackage.haskell.org/package/sop-core-0.4.0.0/docs/Data-SOP.html#t:I),
+but it can also be `Maybe` or some other `Applicative` for parsing, validation
+and so on.
 
 If we forget about the keys and only keep the values, records are isomorphic to
-n-ary unlabeled products, and variants are isomorphic to n-ary unlabeled sums.
+[n-ary unlabeled
+products](http://hackage.haskell.org/package/sop-core-0.4.0.0/docs/Data-SOP.html#t:NP),
+and variants are isomorphic to [n-ary unlabeled
+sums](http://hackage.haskell.org/package/sop-core-0.4.0.0/docs/Data-SOP.html#t:NS).
 The [sop-core](http://hackage.haskell.org/package/sop-core) library provides
 such unlabeled types, along with a rich API for manipulating them. Instead of
 reinventing the wheel, red-black-record defines conversion functions to
