@@ -63,7 +63,7 @@ type family
 
 {- | Require a constraint for every key-value pair in a tree. This is a generalization of 'Data.SOP.All' from "Data.SOP".
  
-     'cpara_RBT' constructs a 'Record' by using a using a constraint to produce
+     'cpara_RBT' constructs a 'Record' by means of a constraint for producing
      the nodes of the tree. The constraint is passed as a 'Data.Proxy.Proxy'.
      This function seldom needs to be called directly.
 -}
@@ -85,8 +85,8 @@ instance (c k v, KeysValuesAll c left, KeysValuesAll c right) => KeysValuesAll c
 {- | Create a 'Record' containing the names of each field. 
     
      The names are represented by a constant functor 'K' carrying an annotation
-     of type 'String'. This means that there are no values of the type
-     corresponding to each field, only the 'String's.
+     of type 'String'. This means that there aren't actually any of the type
+     that corresponds to each field, only the 'String' annotations.
 -} 
 demoteKeys :: forall t. KeysValuesAll KnownKey t => Record (K String) t
 demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
@@ -110,7 +110,7 @@ instance KnownSymbol k => KnownKey k v
 {- | An extensible product-like type with named fields.
  
      The values in the 'Record' come wrapped in a type constructor @f@, which
-     por pure records will be the indentity functor 'I'.
+     por pure records will be the identity functor 'I'.
 -}
 data Record (f :: Type -> Type) (t :: RBT Symbol Type)  where
     Empty :: Record f E 
@@ -149,7 +149,7 @@ unit = Empty
 {- | An extensible sum-like type with named branches.
  
      The values in the 'Variant' come wrapped in a type constructor @f@, which
-     por pure variants will be the indentity functor 'I'.
+     por pure variants will be the identity functor 'I'.
 -}
 data Variant (f :: Type -> Type) (t :: RBT Symbol Type)  where
     Here       :: f v -> Variant f (N color left k v right)
@@ -234,7 +234,7 @@ addFieldI = insertI @k @v @t
 -- balance B a x (T R b y (T R c z d)) = T R (T B a x b) y (T B c z d)
 -- balance color a x b = T color a x b
 
-{- | Class that determines if the pair of a 'Symbol' key and a value 'Type' can
+{- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
      be inserted into a type-level tree.
  
      The associated type family 'Insert' produces the resulting tree.
