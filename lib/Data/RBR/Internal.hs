@@ -522,7 +522,7 @@ modifyField f r = uncurry ($) (fmap f (field @k @t @f r))
 inject :: forall k t f. Key k t => f (Value k t) -> Variant f t
 inject = snd (branch @k @t)
 
-{- | Check if a 'Variant' value is of the given branch.
+{- | Check if a 'Variant' value is the given branch.
 -}
 match :: forall k t f. Key k t => Variant f t -> Maybe (f (Value k t))
 match = fst (branch @k @t)
@@ -589,7 +589,7 @@ newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
 class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
 
-{- | Constraint for trees that can represent subsets of fields of 'Record'-like types.
+{- | Constraint for trees that represent subsets of fields of 'Record'-like types.
 -}
 type ProductlikeSubset (subset :: RBT Symbol Type) (whole :: RBT Symbol Type) (flat :: [Type]) = 
                        (KeysValuesAll (PresentIn whole) subset,
@@ -655,7 +655,7 @@ modifyFieldSubset :: forall subset whole flat f.  (ProductlikeSubset subset whol
 modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
 
 
-{- | Constraint for trees that can represent subsets of branches of 'Variant'-like types.
+{- | Constraint for trees that represent subsets of branches of 'Variant'-like types.
 -}
 type SumlikeSubset (subset :: RBT Symbol Type) (whole :: RBT Symbol Type) (subflat :: [Type]) (wholeflat :: [Type]) = 
                    (KeysValuesAll (PresentIn whole) subset,
@@ -718,6 +718,10 @@ eliminateSubset cases =
 
 {- | Class from converting 'Record's to and from the n-ary product type 'NP' from "Data.SOP".
     
+     'prefixNP' flattens a 'Record' and adds it to the initial part of the product.
+
+     'breakNP' reconstructs a 'Record' from the initial part of the product and returns the unconsumed part.
+
      The functions 'toNP' and 'fromNP' are usually easier to use. 
 -}
 class Productlike (start :: [Type])
@@ -740,16 +744,24 @@ instance (Productlike start right middle,
             (right, start) = breakNP @start @right middle
          in (Node left fv right, start)
 
-{- | Convert a 'Record' to an n-ary product type 'NP'. 
+{- | Convert a 'Record' into a n-ary product. 
 -}
 toNP :: forall t result f. Productlike '[] t result => Record f t -> NP f result
 toNP r = prefixNP r Nil
 
-{- | Convert a n-ary product type 'NP' into a compatible 'Record'. 
+{- | Convert a n-ary product into a compatible 'Record'. 
 -}
 fromNP :: forall t result f. Productlike '[] t result => NP f result -> Record f t
 fromNP np = let (r,Nil) = breakNP np in r
 
+{- | Class from converting 'Variant's to and from the n-ary sum type 'NS' from "Data.SOP".
+    
+     'prefixNS' flattens a 'Variant' and adds it to the initial part of the sum.
+
+     'breakNS' reconstructs a 'Variant' from the initial part of the sum and returns the unconsumed part.
+
+     The functions 'toNS' and 'fromNS' are usually easier to use. 
+-}
 class Sumlike (start :: [Type]) 
               (t :: RBT Symbol Type) 
               (result :: [Type]) | start t -> result, result t -> start where
@@ -813,9 +825,13 @@ instance Sumlike start (N colorR leftR kR vR rightR) middle
             Left  ns     -> Left ns
             Right v      -> Right (LookRight v)
 
+{- | Convert a 'Variant' into a n-ary sum. 
+-}
 toNS :: forall t result f. Sumlike '[] t result => Variant f t -> NS f result
 toNS = prefixNS . Right
 
+{- | Convert a n-ary sum into a compatible 'Variant'. 
+-}
 fromNS :: forall t result f. Sumlike '[] t result => NS f result -> Variant f t
 fromNS ns = case breakNS ns of 
     Left _ -> error "this never happens"
