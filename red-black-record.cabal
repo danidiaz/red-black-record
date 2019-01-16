@@ -20,7 +20,7 @@ description:         A library that provides extensible records and variants,
 license:             BSD3
 license-file:        LICENSE
 author:              Daniel Diaz
-maintainer:          diaz.carrete@facebook.com
+maintainer:          diaz_carrete@yahoo.com
 category:            Data
 extra-source-files:  CHANGELOG.md
 build-type:          Simple
