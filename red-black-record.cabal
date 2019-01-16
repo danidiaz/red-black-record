@@ -5,10 +5,17 @@ synopsis:            Extensible records and variants indexed by a type-level Red
 
 description:         A library that provides extensible records and variants,
                      both indexed by a type-level red-black tree that maps
-                     Symbol keys to value Types. The keys correspond to fields
-                     names in records, and to branch names in variants. Each
-                     value type in a field or branch comes wrapped in a type
-                     constructor of kind Type -> Type. 
+                     Symbol keys to value Types. 
+                     .
+                     The keys correspond to fields
+                     names in records, and to branch names in variants.
+                     . 
+                     Each value type in a field or branch comes wrapped in a
+                     type constructor of kind @Type -> Type@. 
+                     .
+                     The records and variants can be converted to and from
+                     regular Haskell datatypes; also to and from the unlabelled
+                     n-ary products and sums of the @sop-core@ package.
 
 license:             BSD3
 license-file:        LICENSE
