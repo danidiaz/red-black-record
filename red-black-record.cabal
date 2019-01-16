@@ -1,6 +1,6 @@
-cabal-version:       >=2.0
+cabal-version:       2.0
 name:                red-black-record
-version:             1.0.0.0
+version:             1.0.0.1
 synopsis:            Extensible records and variants indexed by a type-level Red-Black tree.
 
 description:         A library that provides extensible records and variants,
@@ -22,8 +22,13 @@ license-file:        LICENSE
 author:              Daniel Diaz
 maintainer:          diaz_carrete@yahoo.com
 category:            Data
-extra-source-files:  CHANGELOG.md
+extra-source-files:  CHANGELOG.md,
+                     README.md
 build-type:          Simple
+
+source-repository head
+    type: git
+    location: https://github.com/danidiaz/red-black-record.git
 
 library
   exposed-modules:     Data.RBR
