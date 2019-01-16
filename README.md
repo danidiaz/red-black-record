@@ -33,6 +33,9 @@ thereby avoiding intrusive changes to the original types. red-black-record
 provides conversion typeclasses with default implementations by way of
 [`GHC.Generic`](http://hackage.haskell.org/package/base-4.12.0.0/docs/GHC-Generics.html).
 
+For examples on how to use the library, check the haddocks for the
+`Data.RBR.Examples` module.
+
 ## FAQ
 
 ### What extensions do I need to use this library?
