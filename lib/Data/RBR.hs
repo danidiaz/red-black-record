@@ -42,6 +42,7 @@ module Data.RBR (
         addCase,
         addCaseI,
         -- ** Subsets of fields and branches
+        PresentIn,
         ProductlikeSubset,
         fieldSubset,
         projectSubset,
