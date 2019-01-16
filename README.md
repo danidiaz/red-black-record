@@ -138,6 +138,10 @@ tree.
   particular the `KeysValuessAll` typeclass is a version of the `All` typeclass
   from sop-core. 
 
+- [Surgery for data
+  types](https://blog.poisson.chat/posts/2018-11-26-type-surgery.html).
+  [reddit](https://www.reddit.com/r/haskell/comments/a0gi4z/surgery_for_data_types/).
+
 ## Alternatives
 
 - [generics-sop](http://hackage.haskell.org/package/generics-sop) and
@@ -174,4 +178,8 @@ tree.
   proof-of-concept for a future [row polymorphism
   extension](https://github.com/ghc-proposals/ghc-proposals/pull/180) for
   Haskell.
+
+- [generic-data-surgery](https://hackage.haskell.org/package/generic-data-surgery)
+
+- [Coxswain](https://ghc.haskell.org/trac/ghc/wiki/Plugins/TypeChecker/RowTypes/Coxswain)
 
