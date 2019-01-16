@@ -23,7 +23,7 @@ import Data.SOP
 
 {- $setup
  
->>> :set -XDataKinds -XTypeApplications -XPartialTypeSignatures -XFlexibleContexts -XTypeFamilies -XDeriveGeneric -XAllowAmbiguousTypes
+>>> :set -XDataKinds -XTypeApplications -XPartialTypeSignatures -XFlexibleContexts -XTypeFamilies -XDeriveGeneric -XAllowAmbiguousTypes -XScopedTypeVariables
 >>> :set -Wno-partial-type-signatures  
 >>> import Data.RBR
 >>> import Data.SOP
@@ -34,7 +34,7 @@ import Data.SOP
 >>> import GHC.Generics
 >>> import Data.Functor.Compose
 >>> import Data.Aeson
->>> import Data.Aeson.Types (explicitParseField)
+>>> import Data.Aeson.Types (explicitParseField,Parser)
 >>> import Data.Proxy
 
 -}
@@ -117,17 +117,26 @@ Just 5
 
 {- $json1
  
+>>> :{
+    let parseDifferently 
+              :: forall k r c flat. (Generic r, FromRecord r, RecordCode r ~ c, KeysValuesAll KnownKey c, Key k c, Productlike '[] c flat, All FromJSON flat) 
+              => (Data.Aeson.Value -> Parser (Data.RBR.Value k c))
+              -> Data.Aeson.Value 
+              -> Parser r
+        parseDifferently p = withObject "someobj" $ \o ->
+            let pr = setField @k (Compose p) 
+                   $ fromNP @c (cpure_NP (Proxy @FromJSON) (Compose parseJSON))
+                kcc (K name) (Compose pf) = Compose (\o -> explicitParseField pf o (Data.Text.pack name))
+                Compose parser = sequence_NP (cliftA2_NP (Proxy @FromJSON) kcc (toNP @c demoteKeys) (toNP pr))  
+             in fromRecord . fromNP <$> parser o
+    :}
+
 >>> data Person = Person { name :: String, age :: Int } deriving (Generic, Show)
 >>> instance ToRecord Person 
 >>> instance FromRecord Person 
 >>> :{ 
     instance FromJSON Person where 
-        parseJSON = withObject "foo" $ \o ->
-            let pr = setField @"name" (Compose (\_ -> pure "foo")) 
-                   $ fromNP @(RecordCode Person) (cpure_NP (Proxy @FromJSON) (Compose parseJSON))
-                kcc (K name) (Compose pf) = Compose (\o -> explicitParseField pf o (Data.Text.pack name))
-                Compose parser = sequence_NP (cliftA2_NP (Proxy @FromJSON) kcc (toNP @(RecordCode Person) demoteKeys) (toNP pr))  
-             in fromRecord . fromNP <$> parser o
+        parseJSON = parseDifferently @"name" (\_ -> pure "foo")
     :}
 
 >>> Data.Aeson.eitherDecode @Person (fromString "{ \"name\" : null, \"age\" : 50 }")

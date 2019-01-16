@@ -4,6 +4,7 @@ module Data.RBR (
         Color (..),
         RBT (..),
         KeysValuesAll,
+        KnownKey,
         demoteKeys,
         -- * Records and Variants
         Record,
