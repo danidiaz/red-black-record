@@ -119,15 +119,20 @@ Just 5
  
 >>> :{
     let parseDifferently 
-              :: forall k r c flat. (Generic r, FromRecord r, RecordCode r ~ c, KeysValuesAll KnownKey c, Key k c, Productlike '[] c flat, All FromJSON flat) 
+              :: forall k r c flat. (Generic r, 
+                                     FromRecord r, 
+                                     RecordCode r ~ c, 
+                                     KeysValuesAll KnownKey c, 
+                                     Key k c,
+                                     Productlike '[] c flat, All FromJSON flat) 
               => (Data.Aeson.Value -> Parser (Data.RBR.Value k c))
               -> Data.Aeson.Value 
               -> Parser r
         parseDifferently p = withObject "someobj" $ \o ->
             let pr = setField @k (Compose p) 
                    $ fromNP @c (cpure_NP (Proxy @FromJSON) (Compose parseJSON))
-                kcc (K name) (Compose pf) = Compose (\o -> explicitParseField pf o (Data.Text.pack name))
-                Compose parser = sequence_NP (cliftA2_NP (Proxy @FromJSON) kcc (toNP @c demoteKeys) (toNP pr))  
+                mapKCC (K name) (Compose pf) = Compose (\o -> explicitParseField pf o (Data.Text.pack name))
+                Compose parser = sequence_NP (cliftA2_NP (Proxy @FromJSON) mapKCC (toNP @c demoteKeys) (toNP pr))  
              in fromRecord . fromNP <$> parser o
     :}
 
