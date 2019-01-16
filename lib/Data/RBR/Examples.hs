@@ -128,12 +128,12 @@ Just 5
               => (Data.Aeson.Value -> Parser (Data.RBR.Value k c))
               -> Data.Aeson.Value 
               -> Parser r
-        parseDifferently p = withObject "someobj" $ \o ->
+        parseDifferently p = 
             let pr = setField @k (Compose p) 
                    $ fromNP @c (cpure_NP (Proxy @FromJSON) (Compose parseJSON))
                 mapKCC (K name) (Compose pf) = Compose (\o -> explicitParseField pf o (Data.Text.pack name))
-                Compose parser = sequence_NP (cliftA2_NP (Proxy @FromJSON) mapKCC (toNP @c demoteKeys) (toNP pr))  
-             in fromRecord . fromNP <$> parser o
+                Compose parser = fromNP <$> sequence_NP (cliftA2_NP (Proxy @FromJSON) mapKCC (toNP @c demoteKeys) (toNP pr))
+             in withObject "someobj" $ \o -> fromRecord <$> parser o
     :}
 
 >>> data Person = Person { name :: String, age :: Int } deriving (Generic, Show)
