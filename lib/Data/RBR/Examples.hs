@@ -16,6 +16,12 @@ module Data.RBR.Examples (
       
     -- * Changing the way a specific record field is parsed from JSON
     -- $json1
+    
+    -- * Parsing a record from JSON using aliased fields
+    -- $json2
+   
+    -- * Parsing a subset of a record's fields from JSON and inserting them in an existing record value
+    -- $json3
     ) where
 
 import Data.RBR
@@ -23,19 +29,21 @@ import Data.SOP
 
 {- $setup
  
->>> :set -XDataKinds -XTypeApplications -XPartialTypeSignatures -XFlexibleContexts -XTypeFamilies -XDeriveGeneric -XAllowAmbiguousTypes -XScopedTypeVariables
+>>> :set -XDataKinds -XTypeApplications 
+>>> :set -XFlexibleContexts -XTypeFamilies -XAllowAmbiguousTypes -XScopedTypeVariables
+>>> :set -XDeriveGeneric 
+>>> :set -XPartialTypeSignatures 
 >>> :set -Wno-partial-type-signatures  
 >>> import Data.RBR
 >>> import Data.SOP
->>> import Data.SOP.NP (cpure_NP,sequence_NP,cliftA2_NP)
->>> import qualified Data.ByteString.Lazy as BL
->>> import qualified Data.Text
+>>> import Data.SOP.NP (cpure_NP,sequence_NP,liftA2_NP)
 >>> import Data.String
->>> import GHC.Generics
->>> import Data.Functor.Compose
->>> import Data.Aeson
->>> import Data.Aeson.Types (explicitParseField,Parser)
 >>> import Data.Proxy
+>>> import Data.Profunctor (Star(..))
+>>> import GHC.Generics
+>>> import qualified Data.Text
+>>> import Data.Aeson
+>>> import Data.Aeson.Types (explicitParseField,Parser,parseMaybe)
 
 -}
 
@@ -117,22 +125,33 @@ Just 5
 
 {- $json1
  
+    We start in the @sop-core@ world, creating a product of parsing functions
+    (one for each field) using 'cpure_NP'. 
+
+    Then we convert that product to a 'Record', apply to it a transformation
+    that uses field selectors, and convert it back to a product.
+
+    Then we demote the field names and combine them with the product of
+    'Data.Aeson.Value' parsers using 'liftA2_NP', getting a product of
+    'Data.Aeson.Object' parsers.
+
+    Then we use 'sequence_NP' to convert the product of parsers into a parser
+    of 'Record'.
+
 >>> :{
-    let parseDifferently 
-              :: forall k r c flat. (Generic r, 
-                                     FromRecord r, 
-                                     RecordCode r ~ c, 
-                                     KeysValuesAll KnownKey c, 
-                                     Key k c,
-                                     Productlike '[] c flat, All FromJSON flat) 
-              => (Data.Aeson.Value -> Parser (Data.RBR.Value k c))
+    let parseSpecial
+              :: forall r c flat. (Generic r, 
+                                   FromRecord r, 
+                                   RecordCode r ~ c, 
+                                   KeysValuesAll KnownKey c, 
+                                   Productlike '[] c flat, All FromJSON flat) 
+              => (Record (Star Parser Data.Aeson.Value) c -> Record (Star Parser Data.Aeson.Value) c)
               -> Data.Aeson.Value 
               -> Parser r
-        parseDifferently p = 
-            let pr = setField @k (Compose p) 
-                   $ fromNP @c (cpure_NP (Proxy @FromJSON) (Compose parseJSON))
-                mapKCC (K name) (Compose pf) = Compose (\o -> explicitParseField pf o (Data.Text.pack name))
-                Compose parser = fromNP <$> sequence_NP (cliftA2_NP (Proxy @FromJSON) mapKCC (toNP @c demoteKeys) (toNP pr))
+        parseSpecial transform = 
+            let pr = transform $ fromNP @c (cpure_NP (Proxy @FromJSON) (Star parseJSON))
+                mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
+                Star parser = fromNP <$> sequence_NP (liftA2_NP mapKSS (toNP @c demoteKeys) (toNP pr))
              in withObject "someobj" $ \o -> fromRecord <$> parser o
     :}
 
@@ -141,10 +160,85 @@ Just 5
 >>> instance FromRecord Person 
 >>> :{ 
     instance FromJSON Person where 
-        parseJSON = parseDifferently @"name" (\_ -> pure "foo")
+        parseJSON = parseSpecial (setField @"name" (Star (\_ -> pure "foo")))
     :}
 
 >>> Data.Aeson.eitherDecode @Person (fromString "{ \"name\" : null, \"age\" : 50 }")
 Right (Person {name = "foo", age = 50})
+
+-}
+
+
+{- $json2
+ 
+   We have to use 'getFieldSubset' because the aliases are listed in a
+   different order than the record fields, and that might result in different
+   type-level trees. If the orders were the same, we wouldn't need it. 
+
+>>> :{
+    let parseWithAliases
+              :: forall r c flat. (Generic r, 
+                                   FromRecord r, 
+                                   RecordCode r ~ c, 
+                                   KeysValuesAll KnownKey c, 
+                                   Productlike '[] c flat, All FromJSON flat) 
+              => Record (K String) c
+              -> Data.Aeson.Value 
+              -> Parser r
+        parseWithAliases aliases = 
+            let pr = fromNP @c (cpure_NP (Proxy @FromJSON) (Star parseJSON))
+                mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
+                Star parser = fromNP <$> sequence_NP (liftA2_NP mapKSS (toNP @c aliases) (toNP pr))
+             in withObject "someobj" $ \o -> fromRecord <$> parser o
+    :}
+
+>>> data Person = Person { name :: String, age :: Int } deriving (Generic, Show)
+>>> instance ToRecord Person 
+>>> instance FromRecord Person 
+>>> :{ 
+    instance FromJSON Person where 
+        parseJSON = let aliases = addField @"age"  (K "bar")
+                                . addField @"name" (K "foo")
+                                $ unit
+                     in parseWithAliases (getFieldSubset @(RecordCode Person) aliases)
+    :}
+
+>>> Data.Aeson.eitherDecode @Person (fromString "{ \"foo\" : \"John\", \"bar\" : 50 }")
+Right (Person {name = "John", age = 50})
+
+-}
+
+
+
+{- $json3
+ 
+>>> :{
+    let parseFieldSubset
+              :: forall subset whole flat wholeflat. (KeysValuesAll KnownKey whole, 
+                                                      Productlike '[] whole wholeflat,
+                                                      ProductlikeSubset subset whole flat,
+                                                      All FromJSON wholeflat) 
+              => Data.Aeson.Value 
+              -> Parser (Record I subset)
+        parseFieldSubset = 
+            let pNP = cpure_NP (Proxy @FromJSON) (Star parseJSON)
+                mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
+                objpNP = liftA2_NP mapKSS (toNP @whole demoteKeys) pNP
+                subNP = toNP @subset $ getFieldSubset @subset $ fromNP @whole objpNP
+                Star subparser = fromNP @subset <$> sequence_NP subNP
+             in withObject "someobj" subparser
+    :}
+
+>>> data Person = Person { name :: String, age :: Int, whatever :: Bool } deriving (Generic, Show)
+>>> instance ToRecord Person 
+>>> instance FromRecord Person 
+>>> :{ 
+    let original = Person "John" 50 True
+        Just v = Data.Aeson.decode @Data.Aeson.Value (fromString "{ \"name\" : \"Mark\", \"age\" : 70 }")
+        subsetParser = parseFieldSubset @(FromList [ '("name",_), '("age",_) ]) @(RecordCode Person)
+        Just s = parseMaybe subsetParser v
+     in fromRecord @Person . setFieldSubset s $ toRecord original
+    :}
+Person {name = "Mark", age = 70, whatever = True}
 
 -}
