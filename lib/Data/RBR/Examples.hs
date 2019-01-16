@@ -13,6 +13,9 @@ module Data.RBR.Examples (
     
     -- * Creating a Variant out of a sum type and matching on it
     -- $variant2
+      
+    -- * Changing the way a specific record field is parsed from JSON
+    -- $json1
     ) where
 
 import Data.RBR
@@ -20,11 +23,19 @@ import Data.SOP
 
 {- $setup
  
->>> :set -XDataKinds -XTypeApplications -XPartialTypeSignatures -XFlexibleContexts -XTypeFamilies -XDeriveGeneric 
+>>> :set -XDataKinds -XTypeApplications -XPartialTypeSignatures -XFlexibleContexts -XTypeFamilies -XDeriveGeneric -XAllowAmbiguousTypes
 >>> :set -Wno-partial-type-signatures  
 >>> import Data.RBR
 >>> import Data.SOP
+>>> import Data.SOP.NP (cpure_NP,sequence_NP,cliftA2_NP)
+>>> import qualified Data.ByteString.Lazy as BL
+>>> import qualified Data.Text
+>>> import Data.String
 >>> import GHC.Generics
+>>> import Data.Functor.Compose
+>>> import Data.Aeson
+>>> import Data.Aeson.Types (explicitParseField)
+>>> import Data.Proxy
 
 -}
 
@@ -104,4 +115,22 @@ Just 5
 
 -} 
 
+{- $json1
+ 
+>>> data Person = Person { name :: String, age :: Int } deriving (Generic, Show)
+>>> instance ToRecord Person 
+>>> instance FromRecord Person 
+>>> :{ 
+    instance FromJSON Person where 
+        parseJSON = withObject "foo" $ \o ->
+            let pr = setField @"name" (Compose (\_ -> pure "foo")) 
+                   $ fromNP @(RecordCode Person) (cpure_NP (Proxy @FromJSON) (Compose parseJSON))
+                kcc (K name) (Compose pf) = Compose (\o -> explicitParseField pf o (Data.Text.pack name))
+                Compose parser = sequence_NP (cliftA2_NP (Proxy @FromJSON) kcc (toNP @(RecordCode Person) demoteKeys) (toNP pr))  
+             in fromRecord . fromNP <$> parser o
+    :}
 
+>>> Data.Aeson.eitherDecode @Person (fromString "{ \"name\" : null, \"age\" : 50 }")
+Right (Person {name = "foo", age = 50})
+
+-}
