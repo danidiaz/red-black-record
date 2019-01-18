@@ -182,7 +182,8 @@ Alternatives
 
 - [generic-data-surgery](https://hackage.haskell.org/package/generic-data-surgery).
   Lots of useful machinery for manipulating generic representations of
-  dataytpes.
+  dataytpes, without requiring intrusive changes to the original
+  representation.
 
 - [Coxswain](https://ghc.haskell.org/trac/ghc/wiki/Plugins/TypeChecker/RowTypes/Coxswain).
 
