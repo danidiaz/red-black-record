@@ -171,9 +171,9 @@ Right (Person {name = "foo", age = 50})
 
 {- $json2
  
-   We have to use 'getFieldSubset' because the aliases are listed in a
-   different order than the record fields, and that might result in different
-   type-level trees. If the orders were the same, we wouldn't need it. 
+    The aliases are passed as a 'Record' with values wrapped in the 'K'
+    functor. This means that there aren't really any values of the type that
+    corresponds to each field, only the `String` annotations.
 
 >>> :{
     let parseWithAliases
@@ -191,6 +191,10 @@ Right (Person {name = "foo", age = 50})
                 Star parser = fromNP <$> sequence_NP (liftA2_NP mapKSS (toNP @c aliases) (toNP pr))
              in withObject "someobj" $ \o -> fromRecord <$> parser o
     :}
+
+   We have to use 'getFieldSubset' because the aliases are listed in a
+   different order than the record fields, and that might result in different
+   type-level trees. If the orders were the same, we wouldn't need it. 
 
 >>> data Person = Person { name :: String, age :: Int } deriving (Generic, Show)
 >>> instance ToRecord Person 
