@@ -1,6 +1,8 @@
-# red-black-record
+red-black-record
+================
 
-## What's this?
+What's this?
+------------
 
 A library that provides extensible records and variants, both indexed by a
 type-level [red-black](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
@@ -36,25 +38,22 @@ provides conversion typeclasses with default implementations by way of
 For examples on how to use the library, check the haddocks for the
 `Data.RBR.Examples` module.
 
-## FAQ
+FAQ
+---
 
 ### What extensions do I need to use this library?
 
-- `DataKinds`
+- `DataKinds`.
 
-- `TypeApplications`
+- `TypeApplications` to be able to specify field and branch names.
 
-  To be able to specify field and branch names.
+- `TypeFamilies`.
 
-- `FlexibleContexts`
+- `FlexibleContexts`.
 
-- `TypeFamilies`
+- `DeriveGeneric` for interfacing with normal records.
 
-- `DeriveGeneric `
-
-  For interfacing with normal records.
-
-- `PartialTypeSignatures`
+- `PartialTypeSignatures` for hiding complex tree types.
 
 ### My type signatures are getting big and scary because of those type-level trees. What to do?
 
@@ -129,7 +128,8 @@ entries but different structure.
 That isn't implemented (yet). It would require key deletion on the type-level
 tree.
 
-## Inspirations
+Inspirations
+------------
 
 - The code for the red-black tree has been lifted from ["Persistent Red Black
   Trees in Haskell"](https://abhiroop.github.io/Haskell-Red-Black-Tree/).
@@ -142,7 +142,8 @@ tree.
   types](https://blog.poisson.chat/posts/2018-11-26-type-surgery.html).
   [reddit](https://www.reddit.com/r/haskell/comments/a0gi4z/surgery_for_data_types/).
 
-## Alternatives
+Alternatives
+------------
 
 - [generics-sop](http://hackage.haskell.org/package/generics-sop) and
   [records-sop](http://hackage.haskell.org/package/records-sop). Like
@@ -179,7 +180,9 @@ tree.
   extension](https://github.com/ghc-proposals/ghc-proposals/pull/180) for
   Haskell.
 
-- [generic-data-surgery](https://hackage.haskell.org/package/generic-data-surgery)
+- [generic-data-surgery](https://hackage.haskell.org/package/generic-data-surgery).
+  Lots of useful machinery for manipulating generic representations of
+  dataytpes.
 
-- [Coxswain](https://ghc.haskell.org/trac/ghc/wiki/Plugins/TypeChecker/RowTypes/Coxswain)
+- [Coxswain](https://ghc.haskell.org/trac/ghc/wiki/Plugins/TypeChecker/RowTypes/Coxswain).
 
