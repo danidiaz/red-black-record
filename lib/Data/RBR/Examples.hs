@@ -22,6 +22,9 @@ module Data.RBR.Examples (
    
     -- * Parsing a subset of a record's fields from JSON and inserting them in an existing record value
     -- $json3
+    
+    -- * Ensuring all branches of a sum type are parsed from JSON
+    -- $json4sum
     ) where
 
 import Data.RBR
@@ -36,9 +39,10 @@ import Data.SOP
 >>> :set -Wno-partial-type-signatures  
 >>> import Data.RBR
 >>> import Data.SOP
->>> import Data.SOP.NP (cpure_NP,sequence_NP,liftA2_NP)
+>>> import Data.SOP.NP (cpure_NP,sequence_NP,liftA2_NP,collapse_NP)
 >>> import Data.String
 >>> import Data.Proxy
+>>> import Data.Foldable
 >>> import Data.Profunctor (Star(..))
 >>> import GHC.Generics
 >>> import qualified Data.Text
@@ -149,8 +153,8 @@ Just 5
               -> Data.Aeson.Value 
               -> Parser r
         parseSpecial transform = 
-            let pr = transform $ fromNP @c (cpure_NP (Proxy @FromJSON) (Star parseJSON))
-                mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
+            let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
+                pr = transform $ fromNP @c (cpure_NP (Proxy @FromJSON) (Star parseJSON))
                 Star parser = fromNP <$> sequence_NP (liftA2_NP mapKSS (toNP @c demoteKeys) (toNP pr))
              in withObject "someobj" $ \o -> fromRecord <$> parser o
     :}
@@ -186,8 +190,8 @@ Right (Person {name = "foo", age = 50})
               -> Data.Aeson.Value 
               -> Parser r
         parseWithAliases aliases = 
-            let pr = fromNP @c (cpure_NP (Proxy @FromJSON) (Star parseJSON))
-                mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
+            let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
+                pr = fromNP @c (cpure_NP (Proxy @FromJSON) (Star parseJSON))
                 Star parser = fromNP <$> sequence_NP (liftA2_NP mapKSS (toNP @c aliases) (toNP pr))
              in withObject "someobj" $ \o -> fromRecord <$> parser o
     :}
@@ -225,8 +229,8 @@ Right (Person {name = "John", age = 50})
               => Data.Aeson.Value 
               -> Parser (Record I subset)
         parseFieldSubset = 
-            let pNP = cpure_NP (Proxy @FromJSON) (Star parseJSON)
-                mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
+            let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
+                pNP = cpure_NP (Proxy @FromJSON) (Star parseJSON)
                 objpNP = liftA2_NP mapKSS (toNP @whole demoteKeys) pNP
                 subNP = toNP @subset $ getFieldSubset @subset $ fromNP @whole objpNP
                 Star subparser = fromNP @subset <$> sequence_NP subNP
@@ -246,3 +250,50 @@ Right (Person {name = "John", age = 50})
 Person {name = "Mark", age = 70, whatever = True}
 
 -}
+
+
+{- $json3
+ 
+    To ensure that we don't forget any branch when parsing a sum type from JSON, 
+    we can create a n-ary product of parsers, one for each branch.
+
+    Then we create a n-ary product of injections. Each component of the
+    product creates a n-ary sum out of the value of the corresponding branch.
+
+    We combine the n-ary product of parsers with the n-ary product of
+    injections, and collapse all the resulting parsers with
+    'Control.Applicative.asum'.
+
+    Then we convert the n-ary sum value that "wins" into a 'Variant' and
+    finally back into the original type.
+
+>>> :{
+    let parseAll
+              :: forall r c flat. (Generic r, 
+                                   FromVariant r, 
+                                   VariantCode r ~ c, 
+                                   KeysValuesAll KnownKey c, 
+                                   Productlike '[] c flat, 
+                                   Sumlike '[] c flat, 
+                                   All FromJSON flat) 
+              => Data.Aeson.Value 
+              -> Parser r
+        parseAll = 
+            let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
+                pnp = liftA2_NP mapKSS (toNP @c demoteKeys) (cpure_NP (Proxy @FromJSON) (Star parseJSON))
+                injected = liftA2_NP (\f star -> K (unK . apFn f . I <$> star)) (injections @flat) pnp 
+                Star parser = asum $ collapse_NP injected
+             in withObject "someobj" (\o -> fromVariant @r . fromNS <$> parser o)
+    :}
+
+>>> data ThisOrThat = This String | That Int deriving (Generic, Show)
+>>> instance FromVariant ThisOrThat
+>>> :{ 
+    let Just v = Data.Aeson.decode @Data.Aeson.Value (fromString "{ \"That\" : 70 }")
+        Just s = parseMaybe (parseAll @ThisOrThat) v
+     in s
+    :}
+That 70
+
+-}
+
