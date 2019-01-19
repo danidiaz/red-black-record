@@ -37,3 +37,7 @@ Type-level tree tricks.
 
 [Declarative record migration](https://twitter.com/am_i_tom/status/1084942686975610881).
 
+[Laziness at type
+level](https://www.reddit.com/r/haskell/comments/ahbvge/laziness_at_type_level/).
+"The type level evaluation order is unspecified, so it’s best avoid defining
+your own control structure functions"
