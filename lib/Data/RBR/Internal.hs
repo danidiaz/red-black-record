@@ -180,7 +180,8 @@ prettyShowVariant showf v =
 
 {- | Like 'prettyShowVariant' but specialized to pure variants.
 -}
-prettyShowVariantI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) => Variant I t -> String
+prettyShowVariantI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) 
+                   => Variant I t -> String
 prettyShowVariantI v = prettyShowVariant (show . unI) v 
 
 --
