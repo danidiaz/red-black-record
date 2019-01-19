@@ -457,57 +457,44 @@ class Key (k :: Symbol) (t :: RBT Symbol Type) where
     field :: Record f t -> (f (Value k t) -> Record f t, f (Value k t))
     branch :: (Variant f t -> Maybe (f (Value k t)), f (Value k t) -> Variant f t)
 
-class KeyHelper (ordering :: Ordering) (k :: Symbol) (t :: RBT Symbol Type) where 
-    type Value' ordering k t :: Type
-    field' :: Record f t -> (f (Value' ordering k t) -> Record f t, f (Value' ordering k t))
-    branch' :: (Variant f t -> Maybe (f (Value' ordering k t)), f (Value' ordering k t) -> Variant f t)
+class KeyHelper (ordering :: Ordering) (k :: Symbol) (left :: RBT Symbol Type) (v :: Type) (right :: RBT Symbol Type) where 
+    type Value' ordering k left v right :: Type
+    field' :: Record f (N colorx left kx v right) -> (f (Value' ordering k left v right) -> Record f (N colorx left kx v right), 
+                                                      f (Value' ordering k left v right))
+    branch' :: (Variant f (N colorx left kx v right) -> Maybe (f (Value' ordering k left v right)), 
+                f (Value' ordering k left v right) -> Variant f (N colorx left kx v right))
 
-instance (CmpSymbol k' k ~ ordering, KeyHelper ordering k (N color left k' v' right)) 
-         => Key k (N color left k' v' right) where
-    type Value k (N color left k' v' right) = Value' (CmpSymbol k' k) k (N color left k' v' right)
-    field = field' @ordering @k
-    branch = branch' @ordering @k
+instance (CmpSymbol k' k ~ ordering, KeyHelper ordering k left v' right) => Key k (N color left k' v' right) where
+    type Value k (N color left k' v' right) = Value' (CmpSymbol k' k) k left v' right
+    field = field' @ordering @k @left @v' @right
+    branch = branch' @ordering @k @left @v' @right
 
--- instance KeyHelper LT k (N color left k' v' (N color2 E k v E)) where
---     type Value' LT k (N color left k' v' (N color2 E k v E)) = v
---     field' (Node left fv right) = undefined
---     branch' = undefined
-
-instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k (N color2 left2 k2 v2 right2)) => KeyHelper LT k (N color left k' v' (N color2 left2 k2 v2 right2)) where
-    type Value' LT k (N color left k' v' (N color2 left2 k2 v2 right2)) = Value' (CmpSymbol k2 k) k (N color2 left2 k2 v2 right2)
+instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2) 
+      => KeyHelper LT k left v (N color2 left2 k2 v2 right2) where
+    type Value' LT k left v (N color2 left2 k2 v2 right2) = Value' (CmpSymbol k2 k) k left2 v2 right2
     field' (Node left fv right) = 
-        let (setter,x) = field @k right
+        let (setter,x) = field' @ordering @k @left2 @v2 @right2 right
          in (\z -> Node left fv (setter z),x)
     branch' = 
-        let (match,inj) = branch @k -- @(N color2 left2 k2 v2 right2)
+        let (match,inj) = branch' @ordering @k @left2 @v2 @right2 
          in (\case LookRight x -> match x
                    _ -> Nothing,
              \fv -> LookRight (inj fv))
 
---instance Key k right => KeyHelper LT k (N color left k' v' right) where
---    type Value' LT k (N color left k' v' right) = Value k right
---    field' (Node left fv right) = 
---        let (setter,x) = field @k right
---         in (\z -> Node left fv (setter z),x)
---    branch' = 
---        let (match,inj) = branch @k @right
---         in (\case LookRight x -> match x
---                   _ -> Nothing,
---             \fv -> LookRight (inj fv))
-
-instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k (N color2 left2 k2 v2 right2)) => KeyHelper GT k (N color (N color2 left2 k2 v2 right2) k' v' right) where
-    type Value' GT k (N color (N color2 left2 k2 v2 right2) k' v' right) = Value' (CmpSymbol k2 k) k (N color2 left2 k2 v2 right2)
+instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2) 
+      => KeyHelper GT k (N color2 left2 k2 v2 right2) v' right where
+    type Value' GT k (N color2 left2 k2 v2 right2) v' right = Value' (CmpSymbol k2 k) k left2 v2 right2
     field' (Node left fv right) = 
-        let (setter,x) = field @k left
+        let (setter,x) = field' @ordering @k @left2 @v2 @right2 left
          in (\z -> Node (setter z) fv right,x)
     branch' =
-        let (match,inj) = branch @k 
+        let (match,inj) = branch' @ordering @k @left2 @v2 @right2 
          in (\case LookLeft x -> match x
                    _ -> Nothing,
              \fv -> LookLeft (inj fv))
 
-instance KeyHelper EQ k (N color left k v right) where
-    type Value' EQ k (N color left k v right) = v
+instance KeyHelper EQ k left v right where
+    type Value' EQ k left v right = v
     field' (Node left fv right) = (\x -> Node left x right, fv)
     branch' = (\case Here x -> Just x
                      _ -> Nothing,
