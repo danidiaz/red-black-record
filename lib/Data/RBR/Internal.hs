@@ -468,24 +468,40 @@ instance (CmpSymbol k' k ~ ordering, KeyHelper ordering k (N color left k' v' ri
     field = field' @ordering @k
     branch = branch' @ordering @k
 
-instance Key k right => KeyHelper LT k (N color left k' v' right) where
-    type Value' LT k (N color left k' v' right) = Value k right
+-- instance KeyHelper LT k (N color left k' v' (N color2 E k v E)) where
+--     type Value' LT k (N color left k' v' (N color2 E k v E)) = v
+--     field' (Node left fv right) = undefined
+--     branch' = undefined
+
+instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k (N color2 left2 k2 v2 right2)) => KeyHelper LT k (N color left k' v' (N color2 left2 k2 v2 right2)) where
+    type Value' LT k (N color left k' v' (N color2 left2 k2 v2 right2)) = Value' (CmpSymbol k2 k) k (N color2 left2 k2 v2 right2)
     field' (Node left fv right) = 
         let (setter,x) = field @k right
          in (\z -> Node left fv (setter z),x)
     branch' = 
-        let (match,inj) = branch @k @right
+        let (match,inj) = branch @k -- @(N color2 left2 k2 v2 right2)
          in (\case LookRight x -> match x
                    _ -> Nothing,
              \fv -> LookRight (inj fv))
 
-instance Key k left => KeyHelper GT k (N color left k' v' right) where
-    type Value' GT k (N color left k' v' right) = Value k left
+--instance Key k right => KeyHelper LT k (N color left k' v' right) where
+--    type Value' LT k (N color left k' v' right) = Value k right
+--    field' (Node left fv right) = 
+--        let (setter,x) = field @k right
+--         in (\z -> Node left fv (setter z),x)
+--    branch' = 
+--        let (match,inj) = branch @k @right
+--         in (\case LookRight x -> match x
+--                   _ -> Nothing,
+--             \fv -> LookRight (inj fv))
+
+instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k (N color2 left2 k2 v2 right2)) => KeyHelper GT k (N color (N color2 left2 k2 v2 right2) k' v' right) where
+    type Value' GT k (N color (N color2 left2 k2 v2 right2) k' v' right) = Value' (CmpSymbol k2 k) k (N color2 left2 k2 v2 right2)
     field' (Node left fv right) = 
         let (setter,x) = field @k left
          in (\z -> Node (setter z) fv right,x)
     branch' =
-        let (match,inj) = branch @k @left
+        let (match,inj) = branch @k 
          in (\case LookLeft x -> match x
                    _ -> Nothing,
              \fv -> LookLeft (inj fv))
