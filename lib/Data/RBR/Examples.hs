@@ -252,7 +252,7 @@ Person {name = "Mark", age = 70, whatever = True}
 -}
 
 
-{- $json3
+{- $json4sum
  
     To ensure that we don't forget any branch when parsing a sum type from JSON, 
     we can create a n-ary product of parsers, one for each branch.
