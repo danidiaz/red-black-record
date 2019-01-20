@@ -234,7 +234,7 @@ Right (Person {name = "John", age = 50})
         parseFieldSubset r = 
             let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
                 objNP = liftA2_NP mapKSS (toNP @subset demoteKeys) (cpure_NP (Proxy @FromJSON) (Star parseJSON)) 
-                intoOriginal subr = fromRecord (setFieldSubset @subset subr (toRecord r))
+                intoOriginal sub = fromRecord (setFieldSubset @subset subnp (toRecord r))
                 Star subparser = intoOriginal . fromNP @subset <$> sequence_NP objNP
              in withObject "someobj" subparser
     :}
