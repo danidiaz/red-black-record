@@ -439,6 +439,20 @@ instance BalanceableHelper DoNotBalance color a k v b where
 --
 -- Accessing fields
 
+--
+-- These two type families exist to avoid duplicating expensive type-level
+-- computations, in particular the Value' computations.
+--
+-- Record accessors are compiled WAY slower without them!
+--
+-- TODO: Whould sharing be preserved if I made them type synonyms? Benchmark that.
+type family Field (f :: Type -> Type) (t :: RBT Symbol Type) (v :: Type) where
+    Field f t v = Record f t -> (f v -> Record f t, f v)
+
+type family Branch (f :: Type -> Type) (t :: RBT Symbol Type) (v :: Type) where
+    Branch f t v = (Variant f t -> Maybe (f v), f v -> Variant f t)
+
+--
 {- | 
      Class that determines if a given 'Symbol' key is present in a type-level
      tree.
@@ -452,18 +466,17 @@ instance BalanceableHelper DoNotBalance color a k v b where
      'branch' takes a branch name (given through @TypeApplications@) and
      returns a pair of a match function and a constructor.
 -} 
-
 class Key (k :: Symbol) (t :: RBT Symbol Type) where
     type Value k t :: Type
-    field :: Record f t -> (f (Value k t) -> Record f t, f (Value k t))
-    branch :: (Variant f t -> Maybe (f (Value k t)), f (Value k t) -> Variant f t)
+    field :: Field f t (Value k t)
+    branch :: Branch f t (Value k t)
+    -- field :: Record f t -> (f (Value k t) -> Record f t, f (Value k t))
+    -- branch :: (Variant f t -> Maybe (f (Value k t)), f (Value k t) -> Variant f t)
 
 class KeyHelper (ordering :: Ordering) (k :: Symbol) (left :: RBT Symbol Type) (v :: Type) (right :: RBT Symbol Type) where 
     type Value' ordering k left v right :: Type
-    field' :: Record f (N colorx left kx v right) -> (f (Value' ordering k left v right) -> Record f (N colorx left kx v right), 
-                                                      f (Value' ordering k left v right))
-    branch' :: (Variant f (N colorx left kx v right) -> Maybe (f (Value' ordering k left v right)), 
-                f (Value' ordering k left v right) -> Variant f (N colorx left kx v right))
+    field' :: Field f (N colorx left kx v right) (Value' ordering k left v right)
+    branch' :: Branch f (N colorx left kx v right) (Value' ordering k left v right)
 
 instance (CmpSymbol k' k ~ ordering, KeyHelper ordering k left v' right) => Key k (N color left k' v' right) where
     type Value k (N color left k' v' right) = Value' (CmpSymbol k' k) k left v' right
