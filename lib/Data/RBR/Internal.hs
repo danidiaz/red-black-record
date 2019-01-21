@@ -468,14 +468,12 @@ type family Branch (f :: Type -> Type) (t :: RBT Symbol Type) (v :: Type) where
 -} 
 class Key (k :: Symbol) (t :: RBT Symbol Type) where
     type Value k t :: Type
-    field :: Field f t (Value k t)
+    field  :: Field  f t (Value k t)
     branch :: Branch f t (Value k t)
-    -- field :: Record f t -> (f (Value k t) -> Record f t, f (Value k t))
-    -- branch :: (Variant f t -> Maybe (f (Value k t)), f (Value k t) -> Variant f t)
 
 class KeyHelper (ordering :: Ordering) (k :: Symbol) (left :: RBT Symbol Type) (v :: Type) (right :: RBT Symbol Type) where 
     type Value' ordering k left v right :: Type
-    field' :: Field f (N colorx left kx v right) (Value' ordering k left v right)
+    field'  :: Field  f (N colorx left kx v right) (Value' ordering k left v right)
     branch' :: Branch f (N colorx left kx v right) (Value' ordering k left v right)
 
 instance (CmpSymbol k' k ~ ordering, KeyHelper ordering k left v' right) => Key k (N color left k' v' right) where
@@ -485,7 +483,7 @@ instance (CmpSymbol k' k ~ ordering, KeyHelper ordering k left v' right) => Key 
 
 instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2) 
       => KeyHelper LT k left v (N color2 left2 k2 v2 right2) where
-    type Value' LT k left v (N color2 left2 k2 v2 right2) = Value' (CmpSymbol k2 k) k left2 v2 right2
+    type Value'    LT k left v (N color2 left2 k2 v2 right2) = Value' (CmpSymbol k2 k) k left2 v2 right2
     field' (Node left fv right) = 
         let (setter,x) = field' @ordering @k @left2 @v2 @right2 right
          in (\z -> Node left fv (setter z),x)
@@ -497,7 +495,7 @@ instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2)
 
 instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2) 
       => KeyHelper GT k (N color2 left2 k2 v2 right2) v' right where
-    type Value' GT k (N color2 left2 k2 v2 right2) v' right = Value' (CmpSymbol k2 k) k left2 v2 right2
+    type    Value' GT k (N color2 left2 k2 v2 right2) v' right = Value' (CmpSymbol k2 k) k left2 v2 right2
     field' (Node left fv right) = 
         let (setter,x) = field' @ordering @k @left2 @v2 @right2 left
          in (\z -> Node (setter z) fv right,x)
