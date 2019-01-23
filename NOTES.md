@@ -70,4 +70,5 @@ Some confusing (?) results:
     - `unI $ snd $ field @"bfoo" s` doesn't seem to be faster than "getFieldI".
     - Aumenting the number of getters over 50 doesn't seem to ralentize
       compilation time (!?)
-
+    - for 50 fields & 50 ops, modifyFieldI does seem to add a second or two vs.
+      getFieldI.
