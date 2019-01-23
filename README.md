@@ -132,13 +132,8 @@ tree.
 
 Sadly, compilation times balloon for large records. In the tests folder there's
 an example (not run by default in the tests) of the construction of a 50-field
-record whose fields are afterwards accessed one by one. It takes on the order
-of one minute to compile in my machine. 
-
-Surprisingly perhaps, most of the compilation time is *not* spent in the
-construction of the record itself, but in checking the applicability of the
-getters. If one removes the getter accesses, the program compiles more than
-twice faster. 
+record whose fields are afterwards accessed one by one. It takes about 22
+seconds to compile in my machine. 
 
 The default generics-based implementations of `FromRecord` and `FromVariant`
 use the same type-level machinery as the getters and its use will likely slow
