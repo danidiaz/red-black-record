@@ -42,6 +42,8 @@ level](https://www.reddit.com/r/haskell/comments/ahbvge/laziness_at_type_level/)
 "The type level evaluation order is unspecified, so it’s best avoid defining
 your own control structure functions"
 
+[Hide one of the type params of a multi-param typeclass in a function signature](https://stackoverflow.com/questions/54331107/hide-one-of-the-type-params-of-a-multi-param-typeclass-in-a-function-signature)
+
 Improving compilation times for type family-heavy code
 ======================================================
 
@@ -74,3 +76,4 @@ Some confusing (?) results:
       getFieldI.
         - using the "constraint trick" to unify the two Value invocations
           doesn't seem to change anything either way.
+
