@@ -1,4 +1,7 @@
 module Data.RBR.Examples (
+    -- * Setup code
+    -- $setup
+
     -- * Constructing a record and viewing its fields.
     -- $record1
     
