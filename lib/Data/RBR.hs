@@ -24,6 +24,8 @@ module Data.RBR (
         FromList,
         -- ** Projecting and injecting
         Key (..),
+        Field,
+        Branch,
         project,
         projectI,
         getField,

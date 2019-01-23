@@ -446,9 +446,14 @@ instance BalanceableHelper DoNotBalance color a k v b where
 -- Record accessors are compiled WAY slower without them!
 --
 -- TODO: Whould sharing be preserved if I made them type synonyms? Benchmark that.
+
+{- | Auxiliary type family to avoid repetition and help improve compilation times.
+ -}
 type family Field (f :: Type -> Type) (t :: RBT Symbol Type) (v :: Type) where
     Field f t v = Record f t -> (f v -> Record f t, f v)
 
+{- | Auxiliary type family to avoid repetition and help improve compilation times.
+ -}
 type family Branch (f :: Type -> Type) (t :: RBT Symbol Type) (v :: Type) where
     Branch f t v = (Variant f t -> Maybe (f v), f v -> Variant f t)
 
