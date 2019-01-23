@@ -64,3 +64,10 @@ I still have questions. What about functions whose implementations use these
 invocations in their signatures? Is the work doubled?
 
 SO question about this: https://stackoverflow.com/questions/54298813/when-does-type-level-computation-happen-with-type-families
+
+Some confusing (?) results:
+
+    - `unI $ snd $ field @"bfoo" s` doesn't seem to be faster than "getFieldI".
+    - Aumenting the number of getters over 50 doesn't seem to ralentize
+      compilation time (!?)
+
