@@ -72,3 +72,5 @@ Some confusing (?) results:
       compilation time (!?)
     - for 50 fields & 50 ops, modifyFieldI does seem to add a second or two vs.
       getFieldI.
+        - using the "constraint trick" to unify the two Value invocations
+          doesn't seem to change anything either way.
