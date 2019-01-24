@@ -90,8 +90,8 @@ testRecordGetSet01 = do
     assertEqual "dbar" (getFieldI  @"dbar" s) True
     assertEqual "dbaz" (getFieldI  @"dbaz" s) (5::Int)
     assertEqual "fbaz" (getFieldI  @"fbaz" s) (6::Int)
-    assertEqual "fbax" (getFieldI  @"fbaz" s) (6::Int)
-    assertEqual "fbay" (getFieldI  @"fbaz" s) (6::Int)
+    assertEqual "fbax" (getFieldI  @"fbax" s) (6::Int)
+    assertEqual "fbay" (getFieldI  @"fbay" s) (6::Int)
     assertEqual "bfoo" (getFieldI  @"hbfoo" s) 'c'
     assertEqual "bbar" (getFieldI  @"hbbar" s) True
     assertEqual "bbaz" (getFieldI  @"hbbaz" s) (1::Int)
@@ -105,8 +105,8 @@ testRecordGetSet01 = do
     assertEqual "dbar" (getFieldI  @"hdbar" s) True
     assertEqual "dbaz" (getFieldI  @"hdbaz" s) (5::Int)
     assertEqual "fbaz" (getFieldI  @"hfbaz" s) (6::Int)
-    assertEqual "fbax" (getFieldI  @"hfbaz" s) (6::Int)
-    assertEqual "fbay" (getFieldI  @"hfbaz" s) (6::Int)
+    assertEqual "fbax" (getFieldI  @"hfbax" s) (6::Int)
+    assertEqual "fbay" (getFieldI  @"hfbay" s) (6::Int)
     assertEqual "bfoo" (getFieldI  @"xbfoo" s) 'c'
     assertEqual "bbar" (getFieldI  @"xbbar" s) True
     assertEqual "bbaz" (getFieldI  @"xbbaz" s) (1::Int)
@@ -120,12 +120,12 @@ testRecordGetSet01 = do
     assertEqual "dbar" (getFieldI  @"xdbar" s) True
     assertEqual "dbaz" (getFieldI  @"xdbaz" s) (5::Int)
     assertEqual "fbaz" (getFieldI  @"xfbaz" s) (6::Int)
-    assertEqual "fbax" (getFieldI  @"xfbaz" s) (6::Int)
-    assertEqual "fbay" (getFieldI  @"xfbaz" s) (6::Int)
-    assertEqual "kbar" (getFieldI  @"xdbar" s) True
-    assertEqual "kbaz" (getFieldI  @"xdbaz" s) (5::Int)
-    assertEqual "kbaz" (getFieldI  @"xfbaz" s) (6::Int)
-    assertEqual "kbax" (getFieldI  @"xfbaz" s) (6::Int)
-    assertEqual "kbay" (getFieldI  @"xfbaz" s) (6::Int)
+    assertEqual "fbax" (getFieldI  @"xfbax" s) (6::Int)
+    assertEqual "fbay" (getFieldI  @"xfbay" s) (6::Int)
+    assertEqual "kbar" (getFieldI  @"kdbar" s) True
+    assertEqual "kbaz" (getFieldI  @"kdbaz" s) (5::Int)
+    assertEqual "kbaz" (getFieldI  @"kfbaz" s) (6::Int)
+    assertEqual "kbax" (getFieldI  @"kfbax" s) (6::Int)
+    assertEqual "kbay" (getFieldI  @"kfbay" s) (6::Int)
     return ()
 

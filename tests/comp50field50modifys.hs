@@ -27,7 +27,7 @@ testRecordGetSet01 :: Assertion
 testRecordGetSet01 = do
     let r = 
             insertI @"bfoo" 'c'
-          . insertI @"bbar" True
+          . insertI @"bbar" False
           . insertI @"bbaz" (1::Int)
           . insertI @"afoo" 'd'
           . insertI @"abar" False
@@ -36,13 +36,13 @@ testRecordGetSet01 = do
           . insertI @"zbar" False
           . insertI @"zbaz" (4::Int)
           . insertI @"dfoo" 'z'
-          . insertI @"dbar" True
+          . insertI @"dbar" False
           . insertI @"dbaz" (5::Int)
           . insertI @"fbaz" (6::Int)
           . insertI @"fbax" (6::Int)
           . insertI @"fbay" (6::Int)
           . insertI @"hbfoo" 'c'
-          . insertI @"hbbar" True
+          . insertI @"hbbar" False
           . insertI @"hbbaz" (1::Int)
           . insertI @"hafoo" 'd'
           . insertI @"habar" False
@@ -51,13 +51,13 @@ testRecordGetSet01 = do
           . insertI @"hzbar" False
           . insertI @"hzbaz" (4::Int)
           . insertI @"hdfoo" 'z'
-          . insertI @"hdbar" True
+          . insertI @"hdbar" False
           . insertI @"hdbaz" (5::Int)
           . insertI @"hfbaz" (6::Int)
           . insertI @"hfbax" (6::Int)
           . insertI @"hfbay" (6::Int)
           . insertI @"xbfoo" 'c'
-          . insertI @"xbbar" True
+          . insertI @"xbbar" False
           . insertI @"xbbaz" (1::Int)
           . insertI @"xafoo" 'd'
           . insertI @"xabar" False
@@ -66,12 +66,12 @@ testRecordGetSet01 = do
           . insertI @"xzbar" False
           . insertI @"xzbaz" (4::Int)
           . insertI @"xdfoo" 'z'
-          . insertI @"xdbar" True
+          . insertI @"xdbar" False
           . insertI @"xdbaz" (5::Int)
           . insertI @"xfbaz" (6::Int)
           . insertI @"xfbax" (6::Int)
           . insertI @"xfbay" (6::Int)
-          . insertI @"kdbar" True
+          . insertI @"kdbar" False
           . insertI @"kdbaz" (5::Int)
           . insertI @"kfbaz" (6::Int)
           . insertI @"kfbax" (6::Int)
@@ -91,8 +91,8 @@ testRecordGetSet01 = do
            . modifyFieldI @"dbar"  succ
            . modifyFieldI @"dbaz"  succ
            . modifyFieldI @"fbaz"  succ
-           . modifyFieldI @"fbaz"  succ
-           . modifyFieldI @"fbaz"  succ
+           . modifyFieldI @"fbax"  succ
+           . modifyFieldI @"fbay"  succ
            . modifyFieldI @"hbfoo" succ
            . modifyFieldI @"hbbar" succ
            . modifyFieldI @"hbbaz" succ
@@ -106,8 +106,8 @@ testRecordGetSet01 = do
            . modifyFieldI @"hdbar" succ
            . modifyFieldI @"hdbaz" succ
            . modifyFieldI @"hfbaz" succ
-           . modifyFieldI @"hfbaz" succ
-           . modifyFieldI @"hfbaz" succ
+           . modifyFieldI @"hfbax" succ
+           . modifyFieldI @"hfbay" succ
            . modifyFieldI @"xbfoo" succ
            . modifyFieldI @"xbbar" succ
            . modifyFieldI @"xbbaz" succ
@@ -121,13 +121,13 @@ testRecordGetSet01 = do
            . modifyFieldI @"xdbar" succ
            . modifyFieldI @"xdbaz" succ
            . modifyFieldI @"xfbaz" succ
-           . modifyFieldI @"xfbaz" succ
-           . modifyFieldI @"xfbaz" succ
-           . modifyFieldI @"xdbar" succ
-           . modifyFieldI @"xdbaz" succ
-           . modifyFieldI @"xfbaz" succ
-           . modifyFieldI @"xfbaz" succ
-           . modifyFieldI @"xfbaz" succ
+           . modifyFieldI @"xfbax" succ
+           . modifyFieldI @"xfbay" succ
+           . modifyFieldI @"kdbar" succ
+           . modifyFieldI @"kdbaz" succ
+           . modifyFieldI @"kfbaz" succ
+           . modifyFieldI @"kfbax" succ
+           . modifyFieldI @"kfbay" succ
            $ s
     print s'
     return ()
