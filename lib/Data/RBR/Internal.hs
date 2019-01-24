@@ -381,7 +381,8 @@ class BalanceableHelper (action :: BalanceAction)
 instance BalanceableHelper BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d where
     type Balance'          BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = 
                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d)
-    balanceR' (Node (Node (Node a fv1 b) fv2 c) fv3 d) = Node (Node a fv1 b) fv2 (Node c fv3 d)
+    balanceR' (Node (Node (Node a fv1 b) fv2 c) fv3 d) = 
+               Node (Node a fv1 b) fv2 (Node c fv3 d)
     balanceV' v = case v of
         LookLeft (LookLeft x)  -> LookLeft (case x of LookLeft y  -> LookLeft y
                                                       Here y      -> Here y
@@ -394,7 +395,8 @@ instance BalanceableHelper BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d whe
 instance BalanceableHelper BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d where
     type Balance'          BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d = 
                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
-    balanceR' (Node (Node a fv1 (Node b fv2 c)) fv3 d) = Node (Node a fv1 b) fv2 (Node c fv3 d)
+    balanceR' (Node (Node a fv1 (Node b fv2 c)) fv3 d) = 
+               Node (Node a fv1 b) fv2 (Node c fv3 d)
     balanceV' v = case v of
         LookLeft (LookLeft x)   -> LookLeft (LookLeft x)
         LookLeft (Here x)       -> LookLeft (Here x) 
@@ -407,7 +409,8 @@ instance BalanceableHelper BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d whe
 instance BalanceableHelper BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) where
     type Balance'          BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = 
                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
-    balanceR' (Node a fv1 (Node (Node b fv2 c) fv3 d)) = Node (Node a fv1 b) fv2 (Node c fv3 d)
+    balanceR' (Node a fv1 (Node (Node b fv2 c) fv3 d)) = 
+               Node (Node a fv1 b) fv2 (Node c fv3 d)
     balanceV' v = case v of
         LookLeft x              -> LookLeft (LookLeft x)
         Here x                  -> LookLeft (Here x)
@@ -420,7 +423,8 @@ instance BalanceableHelper BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) whe
 instance BalanceableHelper BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) where
     type Balance'          BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = 
                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
-    balanceR' (Node a fv1 (Node b fv2 (Node c fv3 d))) = Node (Node a fv1 b) fv2 (Node c fv3 d)
+    balanceR' (Node a fv1 (Node b fv2 (Node c fv3 d))) = 
+               Node (Node a fv1 b) fv2 (Node c fv3 d)
     balanceV' v = case v of
         LookLeft x              -> LookLeft (LookLeft x)
         Here x                  -> LookLeft (Here x)
