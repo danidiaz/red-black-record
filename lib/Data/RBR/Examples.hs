@@ -151,7 +151,8 @@ Just 5
                                    FromRecord r, 
                                    RecordCode r ~ c, 
                                    KeysValuesAll KnownKey c, 
-                                   Productlike '[] c flat, All FromJSON flat) 
+                                   Productlike '[] c flat, 
+                                   All FromJSON flat) 
               => (Record (Star Parser Data.Aeson.Value) c -> Record (Star Parser Data.Aeson.Value) c)
               -> Data.Aeson.Value 
               -> Parser r
@@ -188,7 +189,8 @@ Right (Person {name = "foo", age = 50})
                                    FromRecord r, 
                                    RecordCode r ~ c, 
                                    KeysValuesAll KnownKey c, 
-                                   Productlike '[] c flat, All FromJSON flat) 
+                                   Productlike '[] c flat, 
+                                   All FromJSON flat) 
               => Record (K String) c
               -> Data.Aeson.Value 
               -> Parser r
