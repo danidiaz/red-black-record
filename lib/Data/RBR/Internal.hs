@@ -85,8 +85,8 @@ instance (c k v, KeysValuesAll c left, KeysValuesAll c right) => KeysValuesAll c
 {- | Create a 'Record' containing the names of each field. 
     
      The names are represented by a constant functor 'K' carrying an annotation
-     of type 'String'. This means that there aren't actually any of the type
-     that corresponds to each field, only the 'String' annotations.
+     of type 'String'. This means that there aren't actually any values of the
+     type that corresponds to each field, only the 'String' annotations.
 -} 
 demoteKeys :: forall t. KeysValuesAll KnownKey t => Record (K String) t
 demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
