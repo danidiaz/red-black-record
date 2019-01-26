@@ -1008,3 +1008,57 @@ instance ( ToVariantHelper t t1,
         G.L1 l -> toVariant' @t l
         G.R1 r -> toVariant' @t r
 
+--
+--
+-- deletion
+--
+--
+--
+-- delete :: (Ord a) => a -> Tree a -> Tree a
+-- delete x t = makeBlack $ del x t
+--   where makeBlack (T _ a y b) = T B a y b
+--         makeBlack E           = E
+-- 
+-- del :: (Ord a) => a -> Tree a -> Tree a
+-- del x t@(T _ l y r)
+--   | x < y = delL x t
+--   | x > y = delR x t
+--   | otherwise = fuse l r
+-- 
+-- delL :: (Ord a) => a -> Tree a -> Tree a
+-- delL x t@(T B t1 y t2) = balL $ T B (del x t1) y t2
+-- delL x t@(T R t1 y t2) = T R (del x t1) y t2
+-- 
+-- balL :: Tree a -> Tree a
+-- balL (T B (T R t1 x t2) y t3) = T R (T B t1 x t2) y t3
+-- balL (T B t1 y (T B t2 z t3)) = balance' (T B t1 y (T R t2 z t3))
+-- balL (T B t1 y (T R (T B t2 u t3) z t4@(T B l value r))) =
+--   T R (T B t1 y t2) u (balance' (T B t3 z (T R l value r)))
+-- 
+-- delR :: (Ord a) => a -> Tree a -> Tree a
+-- delR x t@(T B t1 y t2) = balR $ T B t1 y (del x t2)
+-- delR x t@(T R t1 y t2) = T R t1 y (del x t2)
+-- 
+-- balR :: Tree a -> Tree a
+-- balR (T B t1 y (T R t2 x t3)) = T R t1 y (T B t2 x t3)
+-- balR (T B (T B t1 z t2) y t3) = balance' (T B (T R t1 z t2) y t3)
+-- balR (T B (T R t1@(T B l value r) z (T B t2 u t3)) y t4) =
+--   T R (balance' (T B (T R l value r) z t2)) u (T B t3 y t4)
+-- 
+-- fuse :: Tree a -> Tree a -> Tree a
+-- fuse E t = t
+-- fuse t E = t
+-- fuse t1@(T B _ _ _) (T R t3 y t4) = T R (fuse t1 t3) y t4
+-- fuse (T R t1 x t2) t3@(T B _ _ _) = T R t1 x (fuse t2 t3)
+-- fuse (T R t1 x t2) (T R t3 y t4)  =
+--   let s = fuse t2 t3
+--   in case s of
+--        (T R s1 z s2) -> (T R (T R t1 x s1) z (T R s2 y t4))
+--        (T B _ _ _)   -> (T R t1 x (T R s y t4))
+-- fuse (T B t1 x t2) (T B t3 y t4)  =
+--   let s = fuse t2 t3
+--   in case s of
+--        (T R s1 z s2) -> (T R (T B t1 x s1) z (T B s2 y t4))
+--        (T B s1 z s2) -> balL (T B t1 x (T B s y t4))
+
+
