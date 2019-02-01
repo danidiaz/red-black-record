@@ -44,6 +44,10 @@ your own control structure functions"
 
 [Hide one of the type params of a multi-param typeclass in a function signature](https://stackoverflow.com/questions/54331107/hide-one-of-the-type-params-of-a-multi-param-typeclass-in-a-function-signature)
 
+[How to work with variations of sum types](https://www.reddit.com/r/haskell/comments/alywku/how_do_you_work_with_variations_of_sum_types/)
+
+[stuff about Vinyl](https://www.reddit.com/r/haskell/comments/al0g7n/proposal_accepted_to_add_setfield_to_hasfield/efdrx5e)
+
 Improving compilation times for type family-heavy code
 ======================================================
 
