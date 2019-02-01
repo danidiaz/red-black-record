@@ -1062,3 +1062,13 @@ instance ( ToVariantHelper t t1,
 --        (T B s1 z s2) -> balL (T B t1 x (T B s y t4))
 
 
+class BalanceableTree (t :: RBT Symbol Type) where
+    type BalanceTree t:: RBT Symbol Type
+    balanceTreeR :: Record f t -> Record f (BalanceTree t)
+    balanceTreeV :: Variant f t -> Variant f (BalanceTree t)
+
+instance Balanceable color left k v right => BalanceableTree (N color left k v right) where
+    type BalanceTree (N color left k v right) = Balance color left k v right
+    balanceTreeR = balanceR @color @left @k @v @right
+    balanceTreeV = balanceV @color @left @k @v @right
+
