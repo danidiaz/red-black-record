@@ -1091,4 +1091,17 @@ instance (DiscriminateBalL t ~ b, BalanceableHelperL b t) => BalanceableL t wher
     balLR = balLR' @b @t
     balLV = balLV' @b @t
 
+-- balL (T B (T R t1 x t2) y t3) = T R (T B t1 x t2) y t3
+instance BalanceableHelperL False (N B (N R left1 k1 v1 right1) k2 v2 right2) where
+    type BalL'              False (N B (N R left1 k1 v1 right1) k2 v2 right2) =
+                                  (N R (N B left1 k1 v1 right1) k2 v2 right2)
+    balLR' (Node (Node left' v' right') v right) = Node (Node left' v' right') v right
+    balLV' v = case v of LookLeft x  -> LookLeft (case x of LookLeft y  -> LookLeft y
+                                                            Here y      -> Here y
+                                                            LookRight y -> LookRight y)
+                         Here x      -> Here x
+                         LookRight x -> LookRight x
+
+-- missing: two more cases for BalL'
+
 
