@@ -1072,3 +1072,23 @@ instance Balanceable color left k v right => BalanceableTree (N color left k v r
     balanceTreeR = balanceR @color @left @k @v @right
     balanceTreeV = balanceV @color @left @k @v @right
 
+type family DiscriminateBalL (t :: RBT k v) :: Bool where
+    DiscriminateBalL (N B (N R _ _ _ _) _ _ _) = False
+    DiscriminateBalL _ = True
+
+class BalanceableL (t :: RBT Symbol Type) where
+    type BalL t :: RBT Symbol Type
+    balLR :: Record f t -> Record f (BalL t)
+    balLV :: Variant f t -> Variant f (BalL t)
+
+class BalanceableHelperL (b :: Bool) (t :: RBT Symbol Type) where
+    type BalL' b t :: RBT Symbol Type
+    balLR' :: Record f t -> Record f (BalL' b t)
+    balLV' :: Variant f t -> Variant f (BalL' b t)
+
+instance (DiscriminateBalL t ~ b, BalanceableHelperL b t) => BalanceableL t where
+    type BalL t = BalL' (DiscriminateBalL t) t
+    balLR = balLR' @b @t
+    balLV = balLV' @b @t
+
+
