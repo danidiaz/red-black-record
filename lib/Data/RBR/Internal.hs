@@ -1063,7 +1063,7 @@ instance ( ToVariantHelper t t1,
 
 
 class BalanceableTree (t :: RBT Symbol Type) where
-    type BalanceTree t:: RBT Symbol Type
+    type BalanceTree t :: RBT Symbol Type
     balanceTreeR :: Record f t -> Record f (BalanceTree t)
     balanceTreeV :: Variant f t -> Variant f (BalanceTree t)
 
@@ -1103,5 +1103,16 @@ instance BalanceableHelperL False (N B (N R left1 k1 v1 right1) k2 v2 right2) wh
                          LookRight x -> LookRight x
 
 -- missing: two more cases for BalL'
+
+-- balL (T B t1 y (T B t2 z t3)) = balance' (T B t1 y (T R t2 z t3))
+
+instance (BalanceableHelper    (ShouldBalance 
+                               B t1 (N B t2 z zv t3)) 
+                               B t1 y yv (N B t2 z zv t3)) => 
+    BalanceableHelperL True (N B t1 y yv (N B t2 z zv t3)) where
+    type BalL'         True (N B t1 y yv (N B t2 z zv t3))     
+             =  BalanceTree (N B t1 y yv (N B t2 z zv t3))
+    balLR' = balanceTreeR  @(N B t1 y yv (N B t2 z zv t3))
+    balLV' = balanceTreeV  @(N B t1 y yv (N B t2 z zv t3))
 
 
