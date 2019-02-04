@@ -1116,3 +1116,14 @@ instance (BalanceableHelper    (ShouldBalance
     balLV' = balanceTreeV  @(N B t1 y yv (N B t2 z zv t3))
 
 
+-- balL (T B t1 y (T R (T B t2 u t3) z (T B l value r))) =
+--   T R (T B t1 y t2) u (balance' (T B t3 z (T R l value r)))
+
+instance (BalanceableHelper    (ShouldBalance 
+                               B t3 (N R l k kv r)) 
+                               B t3 z zv  (N R l k kv r)) => 
+    BalanceableHelperL True (N B t1 y yv (N R (N B t2 u uv t3) z zv (N B l k kv r))) where
+    type BalL'         True (N B t1 y yv (N R (N B t2 u uv t3) z zv (N B l k kv r))) =
+                             N R (N B t1 y yv t2) u uv (BalanceTree (N B t3 z zv (N R l k kv r)))          
+    balLR' = undefined
+    balLV' = undefined
