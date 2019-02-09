@@ -1138,3 +1138,49 @@ instance (BalanceableHelper    (ShouldBalance
                                                                         Here v3 -> Here v3
                                                                         LookRight right3 -> LookRight right3)))
 
+-- balR :: Tree a -> Tree a
+-- balR (T B t1 y (T R t2 x t3)) = T R t1 y (T B t2 x t3)
+-- balR (T B (T B t1 z t2) y t3) = balance' (T B (T R t1 z t2) y t3)
+-- balR (T B (T R t1@(T B l value r) z (T B t2 u t3)) y t4) =
+--   T R (balance' (T B (T R l value r) z t2)) u (T B t3 y t4)
+
+type family DiscriminateBalR (t :: RBT k v) :: Bool where
+    DiscriminateBalR (N B _ _ _ (N R _ _ _ _)) = False
+    DiscriminateBalR _ = True
+
+class BalanceableR (t :: RBT Symbol Type) where
+    type BalR t :: RBT Symbol Type
+    balRR :: Record f t -> Record f (BalR t)
+    balRV :: Variant f t -> Variant f (BalR t)
+
+class BalanceableHelperR (b :: Bool) (t :: RBT Symbol Type) where
+    type BalR' b t :: RBT Symbol Type
+    balRR' :: Record f t -> Record f (BalR' b t)
+    balRV' :: Variant f t -> Variant f (BalR' b t)
+
+instance (DiscriminateBalR t ~ b, BalanceableHelperR b t) => BalanceableR t where
+    type BalR t = BalR' (DiscriminateBalR t) t
+    balRR = balRR' @b @t
+    balRV = balRV' @b @t
+
+-- balR (T B t1 y (T R t2 x t3)) = T R t1 y (T B t2 x t3)
+instance BalanceableHelperR False (N B right2 k2 v2 (N R left1 k1 v1 right1)) where
+    type BalR'              False (N B right2 k2 v2 (N R left1 k1 v1 right1)) =
+                                  (N R right2 k2 v2 (N B left1 k1 v1 right1))
+    balRR' (Node right v (Node left' v' right')) = Node  right v (Node left' v' right')
+    balRV' v = case v of LookLeft x   -> LookLeft x
+                         Here x       -> Here x
+                         LookRight x  -> LookRight (case x of LookLeft y  -> LookLeft y
+                                                              Here y      -> Here y
+                                                              LookRight y -> LookRight y)
+
+-- balR (T B (T B t1 z t2) y t3) = balance' (T B (T R t1 z t2) y t3)
+instance (BalanceableHelper    (ShouldBalance 
+                               B (N B t2 z zv t3) t1) 
+                               B (N B t2 z zv t3) y yv t1) => 
+    BalanceableHelperR True (N B (N B t2 z zv t3) y yv t1) where
+    type BalR'         True (N B (N B t2 z zv t3) y yv t1)     
+             =  BalanceTree (N B (N B t2 z zv t3) y yv t1)
+    balRR' = balanceTreeR  @(N B (N B t2 z zv t3) y yv t1)
+    balRV' = balanceTreeV  @(N B (N B t2 z zv t3) y yv t1)
+
