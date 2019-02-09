@@ -1126,7 +1126,15 @@ instance (BalanceableHelper    (ShouldBalance
     type BalL'         True (N B t1 y yv (N R (N B t2 u uv t3) z zv (N B l k kv r))) =
                              N R (N B t1 y yv t2) u uv (BalanceTree (N B t3 z zv (N R l k kv r)))          
     balLR' (Node left1 v1 (Node (Node left2 v2 right2) vx (Node left3 v3 right3))) = 
-        Node (Node left1 v1 left2) v2 (balanceTreeR @(N B t3 z zv (N R l k kv r)) (Node right2 vx (Node left3 v3 right3)))
-    balLV' = undefined
-
+            Node (Node left1 v1 left2) v2 (balanceTreeR @(N B t3 z zv (N R l k kv r)) (Node right2 vx (Node left3 v3 right3)))
+    balLV' v = case v of LookLeft left1                          -> LookLeft (LookLeft left1)
+                         Here v1                                 -> LookLeft (Here v1)
+                         LookRight (LookLeft (LookLeft left2))   -> LookLeft (LookRight left2)
+                         LookRight (LookLeft (Here v2))          -> Here v2
+                         LookRight (LookLeft (LookRight right2)) -> LookRight (balanceTreeV @(N B t3 z zv (N R l k kv r)) (LookLeft right2))
+                         LookRight (Here vx)                     -> LookRight (balanceTreeV @(N B t3 z zv (N R l k kv r)) (Here vx))
+                         LookRight (LookRight rr)                -> LookRight (balanceTreeV @(N B t3 z zv (N R l k kv r)) (LookRight (case rr of
+                                                                        LookLeft left3 -> LookLeft left3
+                                                                        Here v3 -> Here v3
+                                                                        LookRight right3 -> LookRight right3)))
 
