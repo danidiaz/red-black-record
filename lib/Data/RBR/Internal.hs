@@ -1184,3 +1184,26 @@ instance (BalanceableHelper    (ShouldBalance
     balRR' = balanceTreeR  @(N B (N B t2 z zv t3) y yv t1)
     balRV' = balanceTreeV  @(N B (N B t2 z zv t3) y yv t1)
 
+-- balR (T B (T R t1@(T B l value r) z (T B t2 u t3)) y t4) =
+--   T R (balance' (T B (T R l value r) z t2)) u (T B t3 y t4)
+instance (BalanceableHelper    (ShouldBalance 
+                               B (N R t2 u uv t3) l) 
+                               B (N R t2 u uv t3) z zv l) => 
+    BalanceableHelperR True (N B (N R (N B t2 u uv t3) z zv (N B l k kv r)) y yv t1) where
+    type BalR'         True (N B (N R (N B t2 u uv t3) z zv (N B l k kv r)) y yv t1) =
+                             N R (BalanceTree (N B (N R t2 u uv t3) z zv l)) k kv (N B r y yv t1) 
+    balRR' (Node (Node (Node left2 v2 right2) vx (Node left3 v3 right3)) v1 left1) = 
+            Node (balanceTreeR @(N B (N R t2 u uv t3) z zv l) (Node (Node left2 v2 right2) vx left3)) v3 (Node right3 v1 left1)
+    balRV' v = undefined
+--               case v of LookLeft left1                          -> LookLeft (LookLeft left1)
+--                         Here v1                                 -> LookLeft (Here v1)
+--                         LookRight (LookLeft (LookLeft left2))   -> LookLeft (LookRight left2)
+--                         LookRight (LookLeft (Here v2))          -> Here v2
+--                         LookRight (LookLeft (LookRight right2)) -> LookRight (balanceTreeV @(N B t3 z zv (N R l k kv r)) (LookLeft right2))
+--                         LookRight (Here vx)                     -> LookRight (balanceTreeV @(N B t3 z zv (N R l k kv r)) (Here vx))
+--                         LookRight (LookRight rr)                -> LookRight (balanceTreeV @(N B t3 z zv (N R l k kv r)) (LookRight (case rr of
+--                                                                        LookLeft left3 -> LookLeft left3
+--                                                                        Here v3 -> Here v3
+--                                                                        LookRight right3 -> LookRight right3)))
+
+
