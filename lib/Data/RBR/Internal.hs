@@ -1242,3 +1242,18 @@ instance Fuseable (N color left k v right) E where
     type Fuse (N color left k v right) E = N color left k v right
     fuseRecord r _ = r
     fuseVariant v _ = v
+
+-- fuse t1@(T B _ _ _) (T R t3 y t4) = T R (fuse t1 t3) y t4
+
+instance Fuseable (N B left1 k1 v1 right1) left2 => Fuseable (N B left1 k1 v1 right1) (N R left2 k2 v2 right2) where
+    type Fuse (N B left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R (Fuse (N B left1 k1 v1 right1) left2) k2 v2 right2
+    fuseRecord = undefined
+    fuseVariant = undefined
+
+-- fuse (T R t1 x t2) t3@(T B _ _ _) = T R t1 x (fuse t2 t3)
+instance Fuseable right1 (N B left2 k2 v2 right2) => Fuseable (N R left1 k1 v1 right1) (N B left2 k2 v2 right2) where
+    type Fuse (N R left1 k1 v1 right1) (N B left2 k2 v2 right2) = N R left1 k1 v1 (Fuse right1 (N B left2 k2 v2 right2))
+    fuseRecord = undefined
+    fuseVariant = undefined
+
+
