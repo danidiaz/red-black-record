@@ -1194,16 +1194,15 @@ instance (BalanceableHelper    (ShouldBalance
                              N R (BalanceTree (N B (N R t2 u uv t3) z zv l)) k kv (N B r y yv t1) 
     balRR' (Node (Node (Node left2 v2 right2) vx (Node left3 v3 right3)) v1 left1) = 
             Node (balanceTreeR @(N B (N R t2 u uv t3) z zv l) (Node (Node left2 v2 right2) vx left3)) v3 (Node right3 v1 left1)
-    balRV' v = undefined
---               case v of LookLeft left1                          -> LookLeft (LookLeft left1)
---                         Here v1                                 -> LookLeft (Here v1)
---                         LookRight (LookLeft (LookLeft left2))   -> LookLeft (LookRight left2)
---                         LookRight (LookLeft (Here v2))          -> Here v2
---                         LookRight (LookLeft (LookRight right2)) -> LookRight (balanceTreeV @(N B t3 z zv (N R l k kv r)) (LookLeft right2))
---                         LookRight (Here vx)                     -> LookRight (balanceTreeV @(N B t3 z zv (N R l k kv r)) (Here vx))
---                         LookRight (LookRight rr)                -> LookRight (balanceTreeV @(N B t3 z zv (N R l k kv r)) (LookRight (case rr of
---                                                                        LookLeft left3 -> LookLeft left3
---                                                                        Here v3 -> Here v3
---                                                                        LookRight right3 -> LookRight right3)))
-
+    balRV' v = case v of
+        LookLeft  (LookLeft rr)                 -> LookLeft (balanceTreeV @(N B (N R t2 u uv t3) z zv l) (LookLeft (case rr of
+                                                        LookLeft t2 -> LookLeft t2
+                                                        Here uv -> Here uv
+                                                        LookRight t3 -> LookRight t3)))
+        LookLeft  (Here zv)                     -> LookLeft (balanceTreeV @(N B (N R t2 u uv t3) z zv l) (Here zv))
+        LookLeft  (LookRight (LookLeft l))      -> LookLeft (balanceTreeV @(N B (N R t2 u uv t3) z zv l) (LookRight l))
+        LookLeft  (LookRight (Here kv))         -> Here kv
+        LookLeft  (LookRight (LookRight r))     -> LookRight (LookLeft r)
+        Here      yv                            -> LookRight (Here yv) 
+        LookRight t1                            -> LookRight (LookRight t1)
 
