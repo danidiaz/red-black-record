@@ -1228,4 +1228,17 @@ class Fuseable (l :: RBT Symbol Type) (r :: RBT Symbol Type) where
     fuseRecord :: Record f l -> Record f r -> Record f (Fuse l r)
     fuseVariant :: Variant f l -> Variant f r -> Variant f (Fuse l r)
 
+instance Fuseable E E where
+    type Fuse E E = E
+    fuseRecord _ _ = unit
+    fuseVariant _ = impossible
 
+instance Fuseable E (N color left k v right) where
+    type Fuse E (N color left k v right) = N color left k v right
+    fuseRecord _ r = r
+    fuseVariant _ v = v
+
+instance Fuseable (N color left k v right) E where
+    type Fuse (N color left k v right) E = N color left k v right
+    fuseRecord r _ = r
+    fuseVariant v _ = v
