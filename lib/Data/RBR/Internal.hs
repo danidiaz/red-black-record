@@ -1206,3 +1206,26 @@ instance (BalanceableHelper    (ShouldBalance
         Here      yv                            -> LookRight (Here yv) 
         LookRight t1                            -> LookRight (LookRight t1)
 
+-- fuse :: Tree a -> Tree a -> Tree a
+-- fuse E t = t
+-- fuse t E = t
+-- fuse t1@(T B _ _ _) (T R t3 y t4) = T R (fuse t1 t3) y t4
+-- fuse (T R t1 x t2) t3@(T B _ _ _) = T R t1 x (fuse t2 t3)
+-- fuse (T R t1 x t2) (T R t3 y t4)  =
+--   let s = fuse t2 t3
+--   in case s of
+--        (T R s1 z s2) -> (T R (T R t1 x s1) z (T R s2 y t4))
+--        (T B _ _ _)   -> (T R t1 x (T R s y t4))
+-- fuse (T B t1 x t2) (T B t3 y t4)  =
+--   let s = fuse t2 t3
+--   in case s of
+--        (T R s1 z s2) -> (T R (T B t1 x s1) z (T B s2 y t4))
+--        (T B s1 z s2) -> balL (T B t1 x (T B s y t4))
+
+
+class Fuseable (l :: RBT Symbol Type) (r :: RBT Symbol Type) where
+    type Fuse l r :: RBT Symbol Type
+    fuseRecord :: Record f l -> Record f r -> Record f (Fuse l r)
+    fuseVariant :: Variant f l -> Variant f r -> Variant f (Fuse l r)
+
+
