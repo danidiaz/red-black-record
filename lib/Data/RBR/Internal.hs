@@ -1226,34 +1226,36 @@ instance (BalanceableHelper    (ShouldBalance
 class Fuseable (l :: RBT Symbol Type) (r :: RBT Symbol Type) where
     type Fuse l r :: RBT Symbol Type
     fuseRecord :: Record f l -> Record f r -> Record f (Fuse l r)
-    fuseVariant :: Variant f l -> Variant f r -> Variant f (Fuse l r)
+    fuseVariant :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
 
 instance Fuseable E E where
     type Fuse E E = E
     fuseRecord _ _ = unit
-    fuseVariant _ = impossible
+    fuseVariant v = case v of
 
 instance Fuseable E (N color left k v right) where
     type Fuse E (N color left k v right) = N color left k v right
     fuseRecord _ r = r
-    fuseVariant _ v = v
+    fuseVariant e = case e of
+        Right v -> v
 
 instance Fuseable (N color left k v right) E where
     type Fuse (N color left k v right) E = N color left k v right
     fuseRecord r _ = r
-    fuseVariant v _ = v
+    fuseVariant e = case e of
+        Left v -> v
 
 -- fuse t1@(T B _ _ _) (T R t3 y t4) = T R (fuse t1 t3) y t4
 
 instance Fuseable (N B left1 k1 v1 right1) left2 => Fuseable (N B left1 k1 v1 right1) (N R left2 k2 v2 right2) where
     type Fuse (N B left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R (Fuse (N B left1 k1 v1 right1) left2) k2 v2 right2
-    fuseRecord = undefined
+    fuseRecord (Node left1 v1 right1) (Node left2 v2 right2) = Node (fuseRecord @(N B left1 k1 v1 right1) (Node left1 v1 right1) left2) v2 right2 
     fuseVariant = undefined
 
 -- fuse (T R t1 x t2) t3@(T B _ _ _) = T R t1 x (fuse t2 t3)
 instance Fuseable right1 (N B left2 k2 v2 right2) => Fuseable (N R left1 k1 v1 right1) (N B left2 k2 v2 right2) where
     type Fuse (N R left1 k1 v1 right1) (N B left2 k2 v2 right2) = N R left1 k1 v1 (Fuse right1 (N B left2 k2 v2 right2))
-    fuseRecord = undefined
+    fuseRecord (Node left1 v1 right1) (Node left2 v2 right2) = Node left1 v1 (fuseRecord @_ @(N B left2 k2 v2 right2) right1 (Node left2 v2 right2))
     fuseVariant = undefined
 
 
