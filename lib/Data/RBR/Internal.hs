@@ -1250,12 +1250,34 @@ instance Fuseable (N color left k v right) E where
 instance Fuseable (N B left1 k1 v1 right1) left2 => Fuseable (N B left1 k1 v1 right1) (N R left2 k2 v2 right2) where
     type Fuse (N B left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R (Fuse (N B left1 k1 v1 right1) left2) k2 v2 right2
     fuseRecord (Node left1 v1 right1) (Node left2 v2 right2) = Node (fuseRecord @(N B left1 k1 v1 right1) (Node left1 v1 right1) left2) v2 right2 
-    fuseVariant = undefined
+    fuseVariant e = case e of 
+        Left l  -> case l of
+            LookLeft left1   -> LookLeft  (fuseVariant @(N B left1 k1 v1 right1) @left2 (Left (LookLeft left1)))
+            Here v1          -> LookLeft  (fuseVariant @(N B left1 k1 v1 right1) @left2 (Left (Here v1)))
+            LookRight right1 -> LookLeft  (fuseVariant @(N B left1 k1 v1 right1) @left2 (Left (LookRight right1)))
+        Right r -> case r of
+            LookLeft left2   -> LookLeft  (fuseVariant @(N B left1 k1 v1 right1) @left2 (Right left2))
+            Here v2          -> Here      v2
+            LookRight right2 -> LookRight right2
 
 -- fuse (T R t1 x t2) t3@(T B _ _ _) = T R t1 x (fuse t2 t3)
 instance Fuseable right1 (N B left2 k2 v2 right2) => Fuseable (N R left1 k1 v1 right1) (N B left2 k2 v2 right2) where
     type Fuse (N R left1 k1 v1 right1) (N B left2 k2 v2 right2) = N R left1 k1 v1 (Fuse right1 (N B left2 k2 v2 right2))
     fuseRecord (Node left1 v1 right1) (Node left2 v2 right2) = Node left1 v1 (fuseRecord @_ @(N B left2 k2 v2 right2) right1 (Node left2 v2 right2))
-    fuseVariant = undefined
+    fuseVariant e = case e of
+        Left l  -> case l of
+            LookLeft left1   -> LookLeft left1
+            Here v1          -> Here v1
+            LookRight right1 -> LookRight (fuseVariant @right1 @(N B left2 k2 v2 right2) (Left right1))
+        Right r -> case r of
+            LookLeft left2   -> LookRight (fuseVariant @right1 @(N B left2 k2 v2 right2) (Right (LookLeft left2)))
+            Here v2          -> LookRight (fuseVariant @right1 @(N B left2 k2 v2 right2) (Right (Here v2)))
+            LookRight right2 -> LookRight (fuseVariant @right1 @(N B left2 k2 v2 right2) (Right (LookRight right2)))
+
+-- fuse (T R t1 x t2) (T R t3 y t4)  =
+--   let s = fuse t2 t3
+--   in case s of
+--        (T R s1 z s2) -> (T R (T R t1 x s1) z (T R s2 y t4))
+--        (T B _ _ _)   -> (T R t1 x (T R s y t4))
 
 
