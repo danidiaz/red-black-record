@@ -48,6 +48,8 @@ your own control structure functions"
 
 [stuff about Vinyl](https://www.reddit.com/r/haskell/comments/al0g7n/proposal_accepted_to_add_setfield_to_hasfield/efdrx5e)
 
+[Explicit forall on a type class function](https://stackoverflow.com/questions/54700136/explicit-forall-on-a-type-class-function)
+
 Improving compilation times for type family-heavy code
 ======================================================
 
