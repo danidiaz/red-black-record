@@ -217,8 +217,12 @@ addFieldI = insertI @k @v @t
 --
 -- The original term-level code, from the post "Persistent Red Black Trees in Haskell"
 -- 
+-- It has a bug though!
 -- https://abhiroop.github.io/Haskell-Red-Black-Tree/
 -- https://github.com/Abhiroop/okasaki/blob/master/src/RedBlackTree.hs
+--
+-- This code is bug-free:
+-- https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html
 -- 
 -- insert :: (Ord a) => a -> Tree a -> Tree a
 -- insert x s = makeBlack $ ins s

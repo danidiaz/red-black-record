@@ -50,6 +50,8 @@ your own control structure functions"
 
 [Explicit forall on a type class function](https://stackoverflow.com/questions/54700136/explicit-forall-on-a-type-class-function)
 
+[Red-black trees](https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html).
+
 Improving compilation times for type family-heavy code
 ======================================================
 
