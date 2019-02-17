@@ -1358,12 +1358,41 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z zv s2) => Fuseable
     fuseRecord2 (Node left1 v1 right1) (Node left2 v2 right2) = 
         case fuseRecord right1 left2 of
             Node s1 zv s2 -> Node (Node left1 v1 s1) zv (Node s2 v2 right2) 
-    fuseVariant2 e = undefined
+    fuseVariant2 e =
+        case e of
+            Left l  -> case l of
+                            LookLeft  left1  -> LookLeft (LookLeft left1)
+                            Here      v1     -> LookLeft (Here v1)
+                            LookRight right1 -> case fuseVariant @right1 @left2 (Left right1) of
+                                                    LookLeft s1  -> LookLeft (LookRight s1)
+                                                    Here zv      -> Here zv
+                                                    LookRight s2 -> LookRight (LookLeft s2)
+            Right r -> case r of 
+                            LookLeft  left2  -> case fuseVariant @right1 @left2 (Right left2) of
+                                                    LookLeft s1  -> LookLeft (LookRight s1)
+                                                    Here zv      -> Here zv
+                                                    LookRight s2 -> LookRight (LookLeft s2)
+                            Here      v2     -> LookRight (Here v2)
+                            LookRight right2 -> LookRight (LookRight right2)
 
 instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2, BalanceableL (N B left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2))) => FuseableHelper2 (N B s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) where
     type Fuse2 (N B s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) = BalL (N B left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2))
     fuseRecord2 (Node left1 v1 right1) (Node left2 v2 right2) = 
         case fuseRecord @right1 @left2 right1 left2 of
             Node s1 zv s2 -> balLR @(N B left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2)) (Node left1 v1 (Node (Node s1 zv s2) v2 right2))
-    fuseVariant2 e = undefined
+    fuseVariant2 e = balLV @(N B left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2)) (case e of
+            Left l  -> case l of
+                            LookLeft  left1  -> LookLeft left1
+                            Here      v1     -> Here v1
+                            LookRight right1 -> case fuseVariant @right1 @left2 (Left right1) of
+                                                    LookLeft s1  -> LookRight (LookLeft (LookLeft s1))
+                                                    Here zv      -> LookRight (LookLeft (Here zv))
+                                                    LookRight s2 -> LookRight (LookLeft (LookRight s2))
+            Right r -> case r of 
+                            LookLeft  left2  -> case fuseVariant @right1 @left2 (Right left2) of
+                                                    LookLeft s1  -> LookRight (LookLeft (LookLeft s1))
+                                                    Here zv      -> LookRight (LookLeft (Here zv))
+                                                    LookRight s2 -> LookRight (LookLeft (LookRight s2))
+                            Here      v2     -> LookRight (Here v2)
+                            LookRight right2 -> LookRight (LookRight right2))
 
