@@ -18,13 +18,19 @@ main :: IO ()
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Tests" [ testCase "testRecordGetSet01" testRecordGetSet01,
-                            testCase "testVariantInjectMatch01" testVariantInjectMatch01,
-                            testCase "testProjectSubset01" testProjectSubset01,
-                            testCase "testToRecord01" testToRecord01,
-                            testCase "testFromRecord01" testFromRecord01,
-                            testCase "testToVariant01" testToVariant01,
-                            testCase "testFromVariant01" testFromVariant01
+tests = testGroup "Tests" [ testCase "recordGetSet01" testRecordGetSet01,
+                            testCase "variantInjectMatch01" testVariantInjectMatch01,
+                            testCase "projectSubset01" testProjectSubset01,
+                            testCase "toRecord01" testToRecord01,
+                            testCase "fromRecord01" testFromRecord01,
+                            testCase "toVariant01" testToVariant01,
+                            testCase "fromVariant01" testFromVariant01,
+                            testGroup "deletion" [
+                                testCase "deletionSingleElem" testDeletionSingleElem,
+                                testCase "deletionLeftElem" testDeletionLeftElem,
+                                testCase "deletionRightElem" testDeletionRightElem
+
+                            ]
                           ]
 
 
@@ -176,3 +182,30 @@ testFromVariant01 = do
     assertEqual "Variant01C" val3 (Variant01C True)
     assertEqual "Variant01D" val4 (Variant01D False)
  
+testDeletionSingleElem :: IO ()
+testDeletionSingleElem = do
+    let r = insertI @"bar" False
+          . insertI @"foo" 'c'
+          . delete @"foo" @Bool 
+          . insertI @"foo" True
+          $ unit
+    assertEqual "foo" (getFieldI  @"foo" r) 'c'
+    assertEqual "bar" (getFieldI  @"bar" r) False
+
+testDeletionRightElem :: IO ()
+testDeletionRightElem = do
+    let r = delete @"foo" @Char
+          . insertI @"foo" 'f'
+          . insertI @"bar" 'b'
+          $ unit
+    assertEqual "bar" (getFieldI  @"bar" r) 'b'
+
+testDeletionLeftElem :: IO ()
+testDeletionLeftElem = do
+    let r = delete @"bar" @Char
+          . insertI @"foo" 'f'
+          . insertI @"bar" 'b'
+          $ unit
+    assertEqual "foo" (getFieldI  @"foo" r) 'f'
+
+
