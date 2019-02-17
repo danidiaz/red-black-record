@@ -1347,6 +1347,18 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2) => Fuseable
                             Here      v2     -> LookRight (Here v2)
                             LookRight right2 -> LookRight (LookRight right2)
 
+instance FuseableHelper1 E (N R left1 k1 v1 E) (N R E k2 v2 right2) where
+    type Fuse1 E (N R left1 k1 v1 E) (N R E k2 v2 right2) = N R left1 k1 v1 (N R E k2 v2 right2)
+    fuseRecord1 (Node left1 v1 right1) (Node left2 v2 right2) = Node left1 v1 (Node Empty v2 right2)
+    fuseVariant1 e = 
+        case e of
+            Left l  -> case l of
+                            LookLeft  left1  -> LookLeft left1
+                            Here      v1     -> Here v1
+            Right r -> case r of 
+                            Here      v2     -> LookRight (Here v2)
+                            LookRight right2 -> LookRight (LookRight right2)
+
 -- fuse (T B t1 x t2) (T B t3 y t4)  =
 --   let s = fuse t2 t3
 --   in case s of
@@ -1404,6 +1416,18 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2, Balanceable
                                                     LookLeft s1  -> LookRight (LookLeft (LookLeft s1))
                                                     Here zv      -> LookRight (LookLeft (Here zv))
                                                     LookRight s2 -> LookRight (LookLeft (LookRight s2))
+                            Here      v2     -> LookRight (Here v2)
+                            LookRight right2 -> LookRight (LookRight right2))
+
+instance (BalanceableL (N B left1 k1 v1 (N B E k2 v2 right2))) => FuseableHelper2 E (N B left1 k1 v1 E) (N B E k2 v2 right2) where
+    type Fuse2  E (N B left1 k1 v1 E) (N B E k2 v2 right2) = BalL (N B left1 k1 v1 (N B E k2 v2 right2))
+    fuseRecord2 (Node left1 v1 right1) (Node left2 v2 right2) = 
+            balLR @(N B left1 k1 v1 (N B E k2 v2 right2)) (Node left1 v1 (Node Empty v2 right2))
+    fuseVariant2 e = balLV @(N B left1 k1 v1 (N B E k2 v2 right2)) (case e of
+            Left l  -> case l of
+                            LookLeft  left1  -> LookLeft left1
+                            Here      v1     -> Here v1
+            Right r -> case r of 
                             Here      v2     -> LookRight (Here v2)
                             LookRight right2 -> LookRight (LookRight right2))
 
