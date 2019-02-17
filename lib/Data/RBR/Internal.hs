@@ -1291,15 +1291,65 @@ class FuseableHelper1 (fused :: RBT Symbol Type) (l :: RBT Symbol Type) (r :: RB
     fuseVariant1 :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
 
 -- FIXME: The Fuseable constraint is repeated from avobe :(
-instance Fuseable right1 left2 => FuseableHelper1 (N R s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
+instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z zv s2) => FuseableHelper1 (N R s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
     type Fuse1 (N R s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R (N R left1 k1 v1 s1) z zv (N R s2 k2 v2 right2)
     fuseRecord1 (Node left1 v1 right1) (Node left2 v2 right2) = 
         case fuseRecord right1 left2 of
-            Node s1 zv s2 -> _ -- Node (Node left1 v1 s1) zv (Node s2 v2 right2)
-    fuseVariant1 = undefined
+            Node s1 zv s2 -> Node (Node left1 v1 s1) zv (Node s2 v2 right2)
+    fuseVariant1 e = 
+        case e of
+            Left l  -> case l of
+                            LookLeft  left1  -> LookLeft (LookLeft left1)
+                            Here      v1     -> LookLeft (Here v1)
+                            LookRight right1 -> case fuseVariant @right1 @left2 (Left right1) of
+                                                    LookLeft s1  -> LookLeft (LookRight s1)
+                                                    Here zv      -> Here zv
+                                                    LookRight s2 -> LookRight (LookLeft s2)
+            Right r -> case r of 
+                            LookLeft  left2  -> case fuseVariant @right1 @left2 (Right left2) of
+                                                    LookLeft s1  -> LookLeft (LookRight s1)
+                                                    Here zv      -> Here zv
+                                                    LookRight s2 -> LookRight (LookLeft s2)
+                            Here      v2     -> LookRight (Here v2)
+                            LookRight right2 -> LookRight (LookRight right2)
 
-instance Fuseable right1 left2 => FuseableHelper1 (N B s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
+-- FIXME: The Fuseable constraint is repeated from avobe :(
+instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2) => FuseableHelper1 (N B s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
     type Fuse1 (N B s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R left1 k1 v1 (N R (N B s1 z zv s2) k2 v2 right2)
-    fuseRecord1  = undefined
-    fuseVariant1 = undefined
+    fuseRecord1 (Node left1 v1 right1) (Node left2 v2 right2) = 
+        case fuseRecord right1 left2 of
+            Node s1 zv s2 -> Node left1 v1 (Node (Node s1 zv s2) v2 right2)
+    fuseVariant1 e = 
+        case e of
+            Left l  -> case l of
+                            LookLeft  left1  -> LookLeft left1
+                            Here      v1     -> Here v1
+                            LookRight right1 -> case fuseVariant @right1 @left2 (Left right1) of
+                                                    LookLeft s1  -> LookRight (LookLeft (LookLeft s1))
+                                                    Here zv      -> LookRight (LookLeft (Here zv))
+                                                    LookRight s2 -> LookRight (LookLeft (LookRight s2))
+            Right r -> case r of 
+                            LookLeft  left2  -> case fuseVariant @right1 @left2 (Right left2) of
+                                                    LookLeft s1  -> LookRight (LookLeft (LookLeft s1))
+                                                    Here zv      -> LookRight (LookLeft (Here zv))
+                                                    LookRight s2 -> LookRight (LookLeft (LookRight s2))
+                            Here      v2     -> LookRight (Here v2)
+                            LookRight right2 -> LookRight (LookRight right2)
+
+-- fuse (T B t1 x t2) (T B t3 y t4)  =
+--   let s = fuse t2 t3
+--   in case s of
+--        (T R s1 z s2) -> (T R (T B t1 x s1) z (T B s2 y t4))
+--        (T B s1 z s2) -> balL (T B t1 x (T B s y t4))
+
+instance (Fuseable right1 left2, Fuse right1 left2 ~ fused, FuseableHelper2 fused (N B left1 k1 v1 right1) (N B left2 k2 v2 right2)) => Fuseable (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) where
+    type Fuse (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) = Fuse2 (Fuse right1 left2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) 
+    fuseRecord = fuseRecord2 @(Fuse right1 left2) 
+    fuseVariant = fuseVariant2 @(Fuse right1 left2)
+
+-- could FuseableHelper1 and FuseableHelper2 be, well... fused?
+class FuseableHelper2 (fused :: RBT Symbol Type) (l :: RBT Symbol Type) (r :: RBT Symbol Type) where
+    type Fuse2 fused l r :: RBT Symbol Type
+    fuseRecord2 :: Record f l -> Record f r -> Record f (Fuse l r)
+    fuseVariant2 :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
 
