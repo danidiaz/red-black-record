@@ -1429,7 +1429,10 @@ instance (Delable k v (N B leftz kz vz rightz), BalanceableL (N B (Del k v (N B 
 instance (Delable k v (N R leftz kz vz rightz)) => DelableL k v (N R (N R leftz kz vz rightz) kx vx right) where
     type DelL k v (N R (N R leftz kz vz rightz) kx vx right) = N R (Del k v (N R leftz kz vz rightz)) kx vx right
     delL (Node left vx right) = Node (del @k @v left) vx right
-    winL = undefined
+    winL v = case v of
+        LookLeft l -> first LookLeft (win @k @v l)
+        Here vx -> Left (Here vx)
+        LookRight r -> Left (LookRight r)
 
 instance DelableL k v E where
     type DelL k v E = E
@@ -1453,7 +1456,10 @@ instance (Delable k v (N B leftz kz vz rightz), BalanceableR (N B left kx vx (De
 instance (Delable k v (N R leftz kz vz rightz)) => DelableR k v (N color left kx vx (N R leftz kz vz rightz)) where
     type DelR k v (N color left kx vx (N R leftz kz vz rightz)) = N R left kx vx (Del k v (N R leftz kz vz rightz))
     delR (Node left vx right) = Node left vx (del @k @v right)
-    winR = undefined
+    winR v = case v of
+        LookLeft l -> Left (LookLeft l)
+        Here vx -> Left (Here vx)
+        LookRight r -> first LookRight (win @k @v r)
 
 instance DelableR k v E where
     type DelR k v E = E
