@@ -22,6 +22,8 @@ module Data.RBR (
         addFieldI,
         InsertAll,
         FromList,
+        -- ** Deleting and winnowing
+        Deletable (..),
         -- ** Projecting and injecting
         Key (..),
         Field,

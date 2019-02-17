@@ -268,6 +268,11 @@ instance CanMakeBlack (N color left k v right) where
     makeBlackR (Node left fv right) = Node left fv right
     makeBlackV (Here fv) = Here fv
 
+instance CanMakeBlack E where
+    type MakeBlack E = E
+    makeBlackR Empty = Empty
+    makeBlackV = impossible
+
 class InsertableHelper1 (k :: Symbol) 
                         (v :: Type) 
                         (t :: RBT Symbol Type) where
@@ -1396,3 +1401,92 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2, Balanceable
                             Here      v2     -> LookRight (Here v2)
                             LookRight right2 -> LookRight (LookRight right2))
 
+-- delL :: (Ord a) => a -> Tree a -> Tree a
+-- delL x t@(T B t1 y t2) = balL $ T B (del x t1) y t2
+-- delL x t@(T R t1 y t2) = T R (del x t1) y t2
+
+class Delable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
+    type Del k v t :: RBT Symbol Type
+    del :: Record f t -> Record f (Del k v t)
+
+class DelableL (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
+    type DelL k v t :: RBT Symbol Type
+    delL :: Record f t -> Record f (DelL k v t)
+
+instance (Delable k v left, BalanceableL (N B (Del k v left) kx vx right)) => DelableL k v (N B left kx vx right) where
+    type DelL k v (N B left kx vx right) = BalL (N B (Del k v left) kx vx right)
+    delL (Node left vx right) = balLR @(N B (Del k v left) kx vx right) (Node (del @k @v left) vx right)
+
+instance (Delable k v left) => DelableL k v (N R left kx vx right) where
+    type DelL k v (N R left kx vx right) = N R (Del k v left) kx vx right
+    delL (Node left vx right) = Node (del @k @v left) vx right
+
+-- delR :: (Ord a) => a -> Tree a -> Tree a
+-- delR x t@(T B t1 y t2) = balR $ T B t1 y (del x t2)
+-- delR x t@(T R t1 y t2) = T R t1 y (del x t2)
+ 
+class DelableR (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
+    type DelR k v t :: RBT Symbol Type
+    delR :: Record f t -> Record f (DelR k v t)
+
+instance (Delable k v right, BalanceableR (N B left kx vx (Del k v right))) => DelableR k v (N B left kx vx right) where
+    type DelR k v (N B left kx vx right) = BalR (N B left kx vx (Del k v right))
+    delR (Node left vx right) = balRR @(N B left kx vx (Del k v right)) (Node left vx (del @k @v right))
+
+instance (Delable k v right) => DelableR k v (N R left kx vx right) where
+    type DelR k v (N R left kx vx right) = N R left kx vx (Del k v right)
+    delR (Node left vx right) = Node left vx (del @k @v right)
+
+-- del :: (Ord a) => a -> Tree a -> Tree a
+-- del x t@(T _ l y r)
+--   | x < y = delL x t
+--   | x > y = delR x t
+--   | otherwise = fuse l r
+
+instance (CmpSymbol kx k ~ ordering, DelableHelper ordering k v (N color left kx vx right)) => Delable k v (N color left kx vx right) where
+    type Del k v (N color left kx vx right) = Del' (CmpSymbol kx k) k v (N color left kx vx right)
+    del = del' @(CmpSymbol kx k) @k @v @(N color left kx vx right)
+
+class DelableHelper (ordering :: Ordering) (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
+    type Del' (ordering :: Ordering) (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) :: RBT Symbol Type
+    del' :: Record f t -> Record f (Del' ordering k v t)
+
+instance DelableL k v (N color left kx vx right) => DelableHelper GT k v (N color left kx vx right) where
+    type Del' GT k v (N color left kx vx right) = DelL k v (N color left kx vx right)
+    del' = delL @k @v @(N color left kx vx right)  
+
+instance Fuseable left right => DelableHelper EQ k v (N color left k v right) where
+    type Del' EQ k v (N color left k v right) = Fuse left right
+    del' (Node left _ right) = fuseRecord @left @right left right 
+
+instance DelableR k v (N color left kx vx right) => DelableHelper LT k v (N color left kx vx right) where
+    type Del' LT k v (N color left kx vx right) = DelR k v (N color left kx vx right)
+    del' = delR @k @v @(N color left kx vx right)  
+
+class Deletable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
+    type Delete k v t :: RBT Symbol Type
+    delete :: Record f t -> Record f (Delete k v t)
+
+instance (Delable k v t, CanMakeBlack (Del k v t)) => Deletable k v t where
+    type Delete k v t = MakeBlack (Del k v t)
+    delete r = makeBlackR (del @k @v r) 
+
+-- FIXME
+-- This causes problems.
+-- let foo = insertI @"foo" True (insertI @"bar" False unit)
+-- :t delete @"foo" @Bool foo
+-- :t delR @"foo" @Bool foo
+-- Del "foo" Bool ('N 'B 'E "bar" Bool ('N 'R 'E "foo" Bool 'E)) :: RBT
+-- = BalR' 'True ('N 'B 'E "bar" Bool 'E)
+-- ╬ø :kind! DelR "foo" Bool ('N 'B 'E "bar" Bool ('N 'R 'E "foo" Bool 'E))
+-- DelR "foo" Bool ('N 'B 'E "bar" Bool ('N 'R 'E "foo" Bool 'E)) :: RBT
+--                                                                     Symbol *
+-- = BalR' 'True ('N 'B 'E "bar" Bool 'E)
+-- ╬ø :kind DelR "foo" Bool ('N 'B 'E "bar" Bool ('N 'R 'E "foo" Bool 'E))
+-- DelR "foo" Bool ('N 'B 'E "bar" Bool ('N 'R 'E "foo" Bool 'E)) :: RBT
+--                                                                     Symbol *
+-- ╬ø :kind! DelR "foo" Bool ('N 'B 'E "bar" Bool ('N 'R 'E "foo" Bool 'E))
+-- DelR "foo" Bool ('N 'B 'E "bar" Bool ('N 'R 'E "foo" Bool 'E)) :: RBT
+--                                                                     Symbol *
+-- = BalR' 'True ('N 'B 'E "bar" Bool 'E)
+-- ╬ø--                                                                    Symbol *
