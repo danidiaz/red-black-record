@@ -26,6 +26,7 @@ module Data.RBR.Internal where
 
 import           Data.Proxy
 import           Data.Kind
+import           Data.Bifunctor (first)
 import           Data.Monoid (Endo(..))
 import           Data.List (intersperse)
 import           Data.Foldable (asum)
@@ -1413,12 +1414,12 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2, Balanceable
 class Delable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     type Del k v t :: RBT Symbol Type
     del :: Record f t -> Record f (Del k v t)
-    win :: Variant f t -> Either (Variant f (Del k v t)) v 
+    win :: Variant f t -> Either (Variant f (Del k v t)) (f v) 
 
 class DelableL (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     type DelL k v t :: RBT Symbol Type
     delL :: Record f t -> Record f (DelL k v t)
-    winL :: Variant f t -> Either (Variant f (DelL k v t)) v 
+    winL :: Variant f t -> Either (Variant f (DelL k v t)) (f v) 
 
 instance (Delable k v (N B leftz kz vz rightz), BalanceableL (N B (Del k v (N B leftz kz vz rightz)) kx vx right)) => DelableL k v (N color (N B leftz kz vz rightz) kx vx right) where
     type DelL k v (N color (N B leftz kz vz rightz) kx vx right) = BalL (N B (Del k v (N B leftz kz vz rightz)) kx vx right)
@@ -1442,7 +1443,7 @@ instance DelableL k v E where
 class DelableR (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     type DelR k v t :: RBT Symbol Type
     delR :: Record f t -> Record f (DelR k v t)
-    winR :: Variant f t -> Either (Variant f (DelR k v t)) v 
+    winR :: Variant f t -> Either (Variant f (DelR k v t)) (f v) 
 
 instance (Delable k v (N B leftz kz vz rightz), BalanceableR (N B left kx vx (Del k v (N B leftz kz vz rightz)))) => DelableR k v (N color left kx vx (N B leftz kz vz rightz)) where
     type DelR k v (N color left kx vx (N B leftz kz vz rightz)) = BalR (N B left kx vx (Del k v (N B leftz kz vz rightz)))
@@ -1473,37 +1474,40 @@ instance Delable k v E where
 instance (CmpSymbol kx k ~ ordering, DelableHelper ordering k v (N color left kx vx right)) => Delable k v (N color left kx vx right) where
     type Del k v (N color left kx vx right) = Del' (CmpSymbol kx k) k v (N color left kx vx right)
     del = del' @(CmpSymbol kx k) @k @v @(N color left kx vx right)
-    win = undefined
+    win = win' @(CmpSymbol kx k) @k @v @(N color left kx vx right)
 
 class DelableHelper (ordering :: Ordering) (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     type Del' (ordering :: Ordering) (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) :: RBT Symbol Type
     del' :: Record f t -> Record f (Del' ordering k v t)
-    win' :: Variant f t -> Either (Variant f (Del' ordering k v t)) v 
+    win' :: Variant f t -> Either (Variant f (Del' ordering k v t)) (f v) 
 
 instance DelableL k v (N color left kx vx right) => DelableHelper GT k v (N color left kx vx right) where
     type Del' GT k v (N color left kx vx right) = DelL k v (N color left kx vx right)
     del' = delL @k @v @(N color left kx vx right)  
-    win' = undefined
+    win' = winL @k @v @(N color left kx vx right)  
 
 instance Fuseable left right => DelableHelper EQ k v (N color left k v right) where
     type Del' EQ k v (N color left k v right) = Fuse left right
     del' (Node left _ right) = fuseRecord @left @right left right 
-    win' = undefined
+    win' v = case v of
+        LookLeft l  ->  Left $ fuseVariant @left @right (Left l)
+        Here v      -> Right v 
+        LookRight r -> Left $ fuseVariant @left @right (Right r)
 
 instance DelableR k v (N color left kx vx right) => DelableHelper LT k v (N color left kx vx right) where
     type Del' LT k v (N color left kx vx right) = DelR k v (N color left kx vx right)
     del' = delR @k @v @(N color left kx vx right)  
-    win' = undefined
+    win' = winR @k @v @(N color left kx vx right)  
 
 class Deletable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     type Delete k v t :: RBT Symbol Type
     delete :: Record f t -> Record f (Delete k v t)
-    winnow :: Variant f t -> Either (Variant f (Delete k v t)) v 
+    winnow :: Variant f t -> Either (Variant f (Delete k v t)) (f v) 
 
 instance (Delable k v t, CanMakeBlack (Del k v t)) => Deletable k v t where
     type Delete k v t = MakeBlack (Del k v t)
     delete r = makeBlackR (del @k @v r) 
-    winnow v = undefined
+    winnow v = first makeBlackV (win @k @v v)
 
 -- {- Version 1, 'untyped' -}
 -- data Color = R | B deriving Show
