@@ -1424,7 +1424,10 @@ class DelableL (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
 instance (Delable k v (N B leftz kz vz rightz), BalanceableL (N B (Del k v (N B leftz kz vz rightz)) kx vx right)) => DelableL k v (N color (N B leftz kz vz rightz) kx vx right) where
     type DelL k v (N color (N B leftz kz vz rightz) kx vx right) = BalL (N B (Del k v (N B leftz kz vz rightz)) kx vx right)
     delL (Node left vx right) = balLR @(N B (Del k v (N B leftz kz vz rightz)) kx vx right) (Node (del @k @v left) vx right)
-    winL = undefined
+    winL v = first (balLV @(N B (Del k v (N B leftz kz vz rightz)) kx vx right)) (case v of
+        LookLeft l -> first LookLeft (win @k @v l)
+        Here vx -> Left $ Here vx
+        LookRight r -> Left $ LookRight r)
 
 instance (Delable k v (N R leftz kz vz rightz)) => DelableL k v (N R (N R leftz kz vz rightz) kx vx right) where
     type DelL k v (N R (N R leftz kz vz rightz) kx vx right) = N R (Del k v (N R leftz kz vz rightz)) kx vx right
@@ -1451,7 +1454,10 @@ class DelableR (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
 instance (Delable k v (N B leftz kz vz rightz), BalanceableR (N B left kx vx (Del k v (N B leftz kz vz rightz)))) => DelableR k v (N color left kx vx (N B leftz kz vz rightz)) where
     type DelR k v (N color left kx vx (N B leftz kz vz rightz)) = BalR (N B left kx vx (Del k v (N B leftz kz vz rightz)))
     delR (Node left vx right) = balRR @(N B left kx vx (Del k v (N B leftz kz vz rightz))) (Node left vx (del @k @v right))
-    winR = undefined
+    winR v = first (balRV @(N B left kx vx (Del k v (N B leftz kz vz rightz)))) (case v of
+        LookLeft l -> Left $ LookLeft l
+        Here vx -> Left $ Here vx
+        LookRight r -> first LookRight (win @k @v r))
 
 instance (Delable k v (N R leftz kz vz rightz)) => DelableR k v (N color left kx vx (N R leftz kz vz rightz)) where
     type DelR k v (N color left kx vx (N R leftz kz vz rightz)) = N R left kx vx (Del k v (N R leftz kz vz rightz))
