@@ -1280,22 +1280,25 @@ instance Fuseable right1 (N B left2 k2 v2 right2) => Fuseable (N R left1 k1 v1 r
 --        (T R s1 z s2) -> (T R (T R t1 x s1) z (T R s2 y t4))
 --        (T B _ _ _)   -> (T R t1 x (T R s y t4))
 
-class FuseableHelper1 (fused :: RBT Symbol Type) (l :: RBT Symbol Type) (r :: RBT Symbol Type) where
-    type Fuse1 fused l r :: RBT Symbol Type
-    fuseRecord1 :: Record f l -> Record f r -> Record f (Fuse l r)
-    fuseVariant1 :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
-
 instance (Fuseable right1 left2, Fuse right1 left2 ~ fused, FuseableHelper1 fused (N R left1 k1 v1 right1) (N R left2 k2 v2 right2)) => Fuseable (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
     type Fuse (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) = Fuse1 (Fuse right1 left2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) 
     fuseRecord = fuseRecord1 @(Fuse right1 left2) 
     fuseVariant = fuseVariant1 @(Fuse right1 left2)
 
-instance FuseableHelper1 (N R s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
-    type Fuse1 (N R s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R (N R left1 k1 v1 s1) z zv (N R s1 k2 v2 right2)
-    fuseRecord1  = undefined
+class FuseableHelper1 (fused :: RBT Symbol Type) (l :: RBT Symbol Type) (r :: RBT Symbol Type) where
+    type Fuse1 fused l r :: RBT Symbol Type
+    fuseRecord1 :: Record f l -> Record f r -> Record f (Fuse l r)
+    fuseVariant1 :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
+
+-- FIXME: The Fuseable constraint is repeated from avobe :(
+instance Fuseable right1 left2 => FuseableHelper1 (N R s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
+    type Fuse1 (N R s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R (N R left1 k1 v1 s1) z zv (N R s2 k2 v2 right2)
+    fuseRecord1 (Node left1 v1 right1) (Node left2 v2 right2) = 
+        case fuseRecord right1 left2 of
+            Node s1 zv s2 -> _ -- Node (Node left1 v1 s1) zv (Node s2 v2 right2)
     fuseVariant1 = undefined
 
-instance FuseableHelper1 (N B s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
+instance Fuseable right1 left2 => FuseableHelper1 (N B s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
     type Fuse1 (N B s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R left1 k1 v1 (N R (N B s1 z zv s2) k2 v2 right2)
     fuseRecord1  = undefined
     fuseVariant1 = undefined
