@@ -1353,3 +1353,17 @@ class FuseableHelper2 (fused :: RBT Symbol Type) (l :: RBT Symbol Type) (r :: RB
     fuseRecord2 :: Record f l -> Record f r -> Record f (Fuse l r)
     fuseVariant2 :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
 
+instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z zv s2) => FuseableHelper2 (N R s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) where
+    type Fuse2 (N R s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) = N R (N B left1 k1 v1 s1) z zv (N B s2 k2 v2 right2)
+    fuseRecord2 (Node left1 v1 right1) (Node left2 v2 right2) = 
+        case fuseRecord right1 left2 of
+            Node s1 zv s2 -> Node (Node left1 v1 s1) zv (Node s2 v2 right2) 
+    fuseVariant2 e = undefined
+
+instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2, BalanceableL (N B left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2))) => FuseableHelper2 (N B s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) where
+    type Fuse2 (N B s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) = BalL (N B left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2))
+    fuseRecord2 (Node left1 v1 right1) (Node left2 v2 right2) = 
+        case fuseRecord @right1 @left2 right1 left2 of
+            Node s1 zv s2 -> balLR @(N B left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2)) (Node left1 v1 (Node (Node s1 zv s2) v2 right2))
+    fuseVariant2 e = undefined
+
