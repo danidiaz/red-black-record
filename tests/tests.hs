@@ -26,10 +26,16 @@ tests = testGroup "Tests" [ testCase "recordGetSet01" testRecordGetSet01,
                             testCase "toVariant01" testToVariant01,
                             testCase "fromVariant01" testFromVariant01,
                             testGroup "deletion" [
-                                testCase "deletionSingleElem" testDeletionSingleElem,
-                                testCase "deletionLeftElem" testDeletionLeftElem,
-                                testCase "deletionRightElem" testDeletionRightElem
-
+                                testGroup "records" [
+                                    testCase "recordDeletionSingleElem" testRecordDeletionSingleElem,
+                                    testCase "recordDeletionLeftElem"   testRecordDeletionLeftElem,
+                                    testCase "recordDeletionRightElem"  testRecordDeletionRightElem
+                                ],
+                                testGroup "variants" [
+                                    testCase "variantDeletionSingleElem" testVariantDeletionSingleElem,
+                                    testCase "variantDeletionLeftElem" testVariantDeletionLeftElem,
+                                    testCase "variantDeletionRightElem" testVariantDeletionRightElem
+                                ]
                             ]
                           ]
 
@@ -182,8 +188,8 @@ testFromVariant01 = do
     assertEqual "Variant01C" val3 (Variant01C True)
     assertEqual "Variant01D" val4 (Variant01D False)
  
-testDeletionSingleElem :: IO ()
-testDeletionSingleElem = do
+testRecordDeletionSingleElem :: IO ()
+testRecordDeletionSingleElem = do
     let r = insertI @"bar" False
           . insertI @"foo" 'c'
           . delete @"foo" @Bool 
@@ -192,20 +198,38 @@ testDeletionSingleElem = do
     assertEqual "foo" (getFieldI  @"foo" r) 'c'
     assertEqual "bar" (getFieldI  @"bar" r) False
 
-testDeletionRightElem :: IO ()
-testDeletionRightElem = do
+testVariantDeletionSingleElem :: IO ()
+testVariantDeletionSingleElem = do
+    let v = injectI @"foo" @(FromList '[ '("foo",Bool) ]) False
+        Right r = winnowI @"foo" @Bool v
+    assertEqual "foo" False r
+
+testRecordDeletionRightElem :: IO ()
+testRecordDeletionRightElem = do
     let r = delete @"foo" @Char
           . insertI @"foo" 'f'
           . insertI @"bar" 'b'
           $ unit
     assertEqual "bar" (getFieldI  @"bar" r) 'b'
 
-testDeletionLeftElem :: IO ()
-testDeletionLeftElem = do
+testVariantDeletionRightElem :: IO ()
+testVariantDeletionRightElem = do
+    let v = injectI @"foo" @(FromList '[ '("foo",Bool), '("bar",Char) ]) False
+        Left v' = winnowI @"bar" @Char v
+        Right r = winnowI @"foo" @Bool v'
+    assertEqual "foo" False r
+
+testRecordDeletionLeftElem :: IO ()
+testRecordDeletionLeftElem = do
     let r = delete @"bar" @Char
           . insertI @"foo" 'f'
           . insertI @"bar" 'b'
           $ unit
     assertEqual "foo" (getFieldI  @"foo" r) 'f'
 
-
+testVariantDeletionLeftElem :: IO ()
+testVariantDeletionLeftElem = do
+    let v = injectI @"bar" @(FromList '[ '("foo",Bool), '("bar",Char) ]) 'b'
+        Left v' = winnowI @"foo" @Bool v
+        Right r = winnowI @"bar" @Char v'
+    assertEqual "bar" 'b' r

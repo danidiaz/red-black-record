@@ -1516,10 +1516,32 @@ class Deletable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     delete :: Record f t -> Record f (Delete k v t)
     winnow :: Variant f t -> Either (Variant f (Delete k v t)) (f v) 
 
+{- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
+     be deleted from a type-level tree.
+ 
+     The associated type family 'Delete' produces the resulting tree.
+
+     At the term level, this manifests in 'delete', which removes a field from
+     a record, and in 'winnow', which checks if a 'Variant' is of a given
+     branch and returns the value in the branch if there's a match, or a
+     reduced 'Variant' if there isn't.
+     
+     'winnow' tends to be more useful in
+     practice.
+
+     If the tree already has the key but with a /different/ type, the deletion
+     fails to compile.
+ -}
 instance (Delable k v t, CanMakeBlack (Del k v t)) => Deletable k v t where
     type Delete k v t = MakeBlack (Del k v t)
     delete r = makeBlackR (del @k @v r) 
     winnow v = first makeBlackV (win @k @v v)
+
+
+{- | Like 'winnow' but specialized to pure 'Variant's.
+-}
+winnowI :: forall k v t . Deletable k v t => Variant I t -> Either (Variant I (Delete k v t)) v
+winnowI = fmap unI . winnow @k @v @t
 
 -- {- Version 1, 'untyped' -}
 -- data Color = R | B deriving Show
