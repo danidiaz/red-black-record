@@ -35,6 +35,7 @@ tests = testGroup "Tests" [ testCase "recordGetSet01" testRecordGetSet01,
                                     testCase "variantDeletionSingleElem" testVariantDeletionSingleElem,
                                     testCase "variantDeletionLeftElem" testVariantDeletionLeftElem,
                                     testCase "variantDeletionRightElem" testVariantDeletionRightElem,
+                                    testCase "variantDeletion3Elem" testVariantDeletion3Elem,
                                     testCase "variantDeletionMany" testVariantDeletionMany 
                                 ]
                             ]
@@ -234,6 +235,17 @@ testVariantDeletionLeftElem = do
         Left v' = winnowI @"foo" @Bool v
         Right r = winnowI @"bar" @Char v'
     assertEqual "bar" 'b' r
+
+type TreeX3 = FromList [ '("bfoo",Char),
+                         '("bbar",Bool),
+                         '("bbaz",Int)  ]
+
+testVariantDeletion3Elem :: IO ()
+testVariantDeletion3Elem = do
+    let v = injectI @"bbaz" @TreeX3 1
+        Right r = winnowI @"bbaz" @Int v
+    assertEqual "bbaz" 1 r
+
 
 type Tree02 = FromList [ '("bfoo",Char),
                          '("bbar",Bool),
