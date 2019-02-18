@@ -247,7 +247,8 @@ testVariantDeletion3Elem = do
     assertEqual "bbaz" 1 r
 
 
-type Tree02 = FromList [ '("bfoo",Char),
+type Tree02 = FromList [ 
+                         '("bfoo",Char),
                          '("bbar",Bool),
                          '("bbaz",Int),
                          '("afoo",Char),
@@ -260,19 +261,33 @@ type Tree02 = FromList [ '("bfoo",Char),
                          '("dbar",Bool),
                          '("dbaz",Int),
                          '("fbaz",Int),
-                         '("kgoz",Int) ]
+                         '("kgoz",Int) 
+                         ]
 
+-- :kind! Insert "dfoo" Char (FromList [ '("dbar",Bool), '("dbaz",Int), '("fbaz",Int), '("kgoz",Int) ])
+
+-- type Tree0X =
+--        Delete "zbaz" Int
+--       (Delete "zbar" Bool
+--       (Delete "zfoo" Char
+--       (Delete "abaz" Int
+--       (Delete "abar" Bool
+--       (Delete "afoo" Char
+--       (Delete "bbaz" Int
+--       (Delete "bbar" Bool
+--         Tree02)))))))
+-- 
 testVariantDeletionMany :: IO ()
 testVariantDeletionMany = do
     let a00 = injectI @"bfoo" @Tree02 'z'
-        Left a02 = winnowI @"bbar" @Bool a00
-        Left a03 = winnowI @"bbaz" @Int a02
-        Left a04 = winnowI @"afoo" @Char a03
-        Left a05 = winnowI @"abar" @Bool a04
-        Left a06 = winnowI @"abaz" @Int a05
-        Left a07 = winnowI @"zfoo" @Char a06
-        Left a08 = winnowI @"zbar" @Bool a07
-        Left a09 = winnowI @"zbaz" @Int a08
+        -- Left a02 = winnowI @"bbar" @Bool a00
+        -- Left a03 = winnowI @"bbaz" @Int a02
+        -- Left a04 = winnowI @"afoo" @Char a03
+        -- Left a05 = winnowI @"abar" @Bool a04
+        -- Left a06 = winnowI @"abaz" @Int a05
+        -- Left a07 = winnowI @"zfoo" @Char a06
+        -- Left a08 = winnowI @"zbar" @Bool a07
+        -- Left a09 = winnowI @"zbaz" @Int a08
         -- Left a10 = winnowI @"dfoo" @Char a09
         -- Left a11 = winnowI @"dbar" @Bool a10
         -- Left a12 = winnowI @"dbaz" @Int a11
@@ -281,4 +296,3 @@ testVariantDeletionMany = do
         -- Right a  = winnowI @"bfoo" @Char a13
     --assertEqual "bfoo" a 'z'
     return ()
-    

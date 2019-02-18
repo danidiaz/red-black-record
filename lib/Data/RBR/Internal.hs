@@ -26,6 +26,7 @@ module Data.RBR.Internal where
 
 import           Data.Proxy
 import           Data.Kind
+import           Data.Typeable
 import           Data.Bifunctor (first)
 import           Data.Monoid (Endo(..))
 import           Data.List (intersperse)
@@ -101,6 +102,18 @@ demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
 -- the "class synonym" trick. https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/
 class KnownSymbol k => KnownKey (k :: Symbol) (v :: z)
 instance KnownSymbol k => KnownKey k v 
+
+-- demoteRBT :: forall t. KeysValuesAll KnownKeyTypeableVal t => K (RBT String TypeRep) t
+-- demoteRBT = cpara_RBT (Proxy @KnownKeyTypeableVal) (K E) go
+--     where
+--     go :: forall left k v right color. (KnownKeyTypeableVal k v, KeysValuesAll KnownKeyTypeableVal left, KeysValuesAll KnownKeyTypeableVal right) 
+--        => K (RBT String TypeRep) left 
+--        -> K (RBT String TypeRep) right 
+--        -> K (RBT String TypeRep) (N color left k v right)
+--     go (K left) (K right) = K ()
+-- 
+-- class (KnownSymbol k, Typeable v) => KnownKeyTypeableVal (k :: Symbol) (v :: z)
+-- instance (KnownSymbol k, Typeable v) => KnownKeyTypeableVal k v
 
 -- class KeyValueTop (k :: Symbol) (v :: z)
 -- instance KeyValueTop k v
@@ -344,7 +357,8 @@ instance (InsertableHelper1 k v right,
         LookLeft x -> LookLeft x
         LookRight x -> LookRight (widen1 @k @v x)
 
-data BalanceAction = BalanceLL
+data BalanceAction = BalanceSpecial
+                   | BalanceLL
                    | BalanceLR
                    | BalanceRL
                    | BalanceRR
@@ -354,6 +368,7 @@ data BalanceAction = BalanceLL
 type family ShouldBalance (color :: Color) 
                           (left :: RBT k' v') 
                           (right :: RBT k' v') :: BalanceAction where
+    ShouldBalance B (N R _ _ _ _) (N R _ _ _ _) = BalanceSpecial
     ShouldBalance B (N R (N R _ _ _ _) _ _ _) _ = BalanceLL
     ShouldBalance B (N R _ _ _ (N R _ _ _ _)) _ = BalanceLR
     ShouldBalance B _ (N R (N R _ _ _ _) _ _ _) = BalanceRL
@@ -388,6 +403,21 @@ class BalanceableHelper (action :: BalanceAction)
     type Balance' action color left k v right :: RBT Symbol Type
     balanceR' :: Record f (N color left k v right) -> Record f (Balance' action color left k v right)
     balanceV' :: Variant f (N color left k v right) -> Variant f (Balance' action color left k v right)
+
+instance BalanceableHelper BalanceSpecial B (N R left1 k1 v1 right1) kx vx (N R left2 k2 v2 right2) where
+    type Balance'          BalanceSpecial B (N R left1 k1 v1 right1) kx vx (N R left2 k2 v2 right2) = 
+                                        N R (N B left1 k1 v1 right1) kx vx (N B left2 k2 v2 right2)
+    balanceR' (Node (Node left1 v1 right1) vx (Node left2 v2 right2)) = 
+              (Node (Node left1 v1 right1) vx (Node left2 v2 right2))
+    balanceV' v = case v of
+        LookLeft (LookLeft x)   -> LookLeft (LookLeft x)
+        LookLeft (Here x)       -> LookLeft (Here x)
+        LookLeft (LookRight x)  -> LookLeft (LookRight x)
+        Here x -> Here x
+        LookRight (LookLeft x)  -> LookRight (LookLeft x)
+        LookRight (Here x)      -> LookRight (Here x)
+        LookRight (LookRight x) -> LookRight (LookRight x)
+
 
 instance BalanceableHelper BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d where
     type Balance'          BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = 
@@ -446,9 +476,12 @@ instance BalanceableHelper BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) whe
                                                         LookRight y -> LookRight y)
 
 instance BalanceableHelper DoNotBalance color a k v b where
-    type Balance' DoNotBalance color a k v b = N color a k v b 
-    balanceR' = id
-    balanceV' = id
+    type Balance' DoNotBalance color a k v b = N B a k v b 
+    balanceR' (Node left v right) = (Node left v right)
+    balanceV' v = case v of
+        LookLeft l -> LookLeft l
+        Here v -> Here v
+        LookRight r -> LookRight r
 
 --
 --
@@ -1601,12 +1634,6 @@ winnowI = fmap unI . winnow @k @v @t
 -- 		| x>y = T R a y (ins b)
 -- 		| otherwise = s
 -- 
--- member :: Ord a => a -> RB a -> Bool
--- member x E = False
--- member x (T _ a y b)
--- 	| x<y = member x a
--- 	| x>y = member x b
--- 	| otherwise = True
 -- 
 -- {- balance: first equation is new,
 --    to make it work with a weaker invariant -}
@@ -1617,6 +1644,13 @@ winnowI = fmap unI . winnow @k @v @t
 -- balance a x (T R b y (T R c z d)) = T R (T B a x b) y (T B c z d)
 -- balance a x (T R (T R b y c) z d) = T R (T B a x b) y (T B c z d)
 -- balance a x b = T B a x b
+--
+-- member :: Ord a => a -> RB a -> Bool
+-- member x E = False
+-- member x (T _ a y b)
+-- 	| x<y = member x a
+-- 	| x>y = member x b
+-- 	| otherwise = True
 -- 
 -- {- deletion a la SMK -}
 -- delete :: Ord a => a -> RB a -> RB a
