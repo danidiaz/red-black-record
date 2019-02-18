@@ -1650,3 +1650,13 @@ winnowI = fmap unI . winnow @k @v @t
 
 -- delete @"foo" @Bool (insertI @"foo" True (insertI @"bar" False unit))
 --
+
+-- ╬ø :kind! (Data.RBR.Internal.DelL "bbar" Bool ('N 'B ('N 'R 'E "bbar" Bool 'E) "bbaz" Int ('N 'R 'E "bfoo" Char 'E)))
+-- (Data.RBR.Internal.DelL "bbar" Bool ('N 'B ('N 'R 'E "bbar" Bool 'E) "bbaz" Int ('N 'R 'E "bfoo" Char 'E))) :: RBT
+--                                                                                                                  Symbol
+--                                                                                                                  *
+-- = DelL
+--     "bbar"
+--     Bool
+--     ('N
+--        'B ('N 'R 'E "bbar" Bool 'E) "bbaz" Int ('N 'R 'E "bfoo" Char 'E))
