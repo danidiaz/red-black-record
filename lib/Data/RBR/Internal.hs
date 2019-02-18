@@ -1453,11 +1453,18 @@ instance (Delable k v (N B leftz kz vz rightz), BalanceableL (N B (Del k v (N B 
         Here vx -> Left $ Here vx
         LookRight r -> Left $ LookRight r)
 
-instance (Delable k v (N R leftz kz vz rightz)) => DelableL k v (N R (N R leftz kz vz rightz) kx vx right) where
-    type DelL k v (N R (N R leftz kz vz rightz) kx vx right) = N R (Del k v (N R leftz kz vz rightz)) kx vx right
+instance (Delable k v (N R leftz kz vz rightz)) => DelableL k v (N color (N R leftz kz vz rightz) kx vx right) where
+    type DelL k v (N color (N R leftz kz vz rightz) kx vx right) = N R (Del k v (N R leftz kz vz rightz)) kx vx right
     delL (Node left vx right) = Node (del @k @v left) vx right
     winL v = case v of
         LookLeft l -> first LookLeft (win @k @v l)
+        Here vx -> Left (Here vx)
+        LookRight r -> Left (LookRight r)
+
+instance DelableL k v (N color E kx vx right) where
+    type DelL k v (N color E kx vx right) = N R E kx vx right
+    delL (Node left vx right) = Node Empty vx right
+    winL v = case v of
         Here vx -> Left (Here vx)
         LookRight r -> Left (LookRight r)
 
@@ -1490,6 +1497,13 @@ instance (Delable k v (N R leftz kz vz rightz)) => DelableR k v (N color left kx
         LookLeft l -> Left (LookLeft l)
         Here vx -> Left (Here vx)
         LookRight r -> first LookRight (win @k @v r)
+
+instance DelableR k v (N color left kx vx E) where
+    type DelR k v (N color left kx vx E) = N R left kx vx E
+    delR (Node left vx right) = Node left vx Empty
+    winR v = case v of
+        LookLeft l -> Left (LookLeft l)
+        Here vx -> Left (Here vx)
 
 instance DelableR k v E where
     type DelR k v E = E
@@ -1660,3 +1674,8 @@ winnowI = fmap unI . winnow @k @v @t
 --     Bool
 --     ('N
 --        'B ('N 'R 'E "bbar" Bool 'E) "bbaz" Int ('N 'R 'E "bfoo" Char 'E))
+--
+-- ╬ø :kind! (Data.RBR.Internal.BalR' 'True ('N 'B 'E "kgoz" Int 'E))
+-- (Data.RBR.Internal.BalR' 'True ('N 'B 'E "kgoz" Int 'E)) :: RBT
+--                                                               Symbol *
+-- = BalR' 'True ('N 'B 'E "kgoz" Int 'E)
