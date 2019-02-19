@@ -326,13 +326,28 @@ class InsertableHelper2 (ordering :: Ordering)
     insert2 :: f v -> Record f (N color left k' v' right) -> Record f (Insert2 ordering k v color left k' v' right)
     widen2 :: Variant f (N color left k' v' right) -> Variant f (Insert2 ordering k v color left k' v' right)
 
+-- 	ins s@(T B a y b)
+-- 		| x<y = balance (ins a) y b
 instance (InsertableHelper1 k v left,
-          Balanceable color (Insert1 k v left) k' v' right
+          Balanceable B (Insert1 k v left) k' v' right -- TODO remove B here
          )
-         => InsertableHelper2 LT k v color left k' v' right where
-    type Insert2 LT k v color left k' v' right = Balance color (Insert1 k v left) k' v' right
-    insert2 fv (Node left fv' right) = balanceR @color @_ @k' @v' @right (Node (insert1 @k @v fv left) fv' right) 
-    widen2 v = balanceV @color @(Insert1 k v left) @k' @v' @right $ case v of
+         => InsertableHelper2 LT k v B left k' v' right where
+    type Insert2 LT k v B left k' v' right = Balance B (Insert1 k v left) k' v' right
+    insert2 fv (Node left fv' right) = balanceR @B @_ @k' @v' @right (Node (insert1 @k @v fv left) fv' right) 
+    widen2 v = balanceV @B @(Insert1 k v left) @k' @v' @right $ case v of
+        Here x -> Here x
+        LookLeft x -> LookLeft (widen1 @k @v x)
+        LookRight x -> LookRight x
+
+-- 	ins s@(T B a y b)
+-- 		| x<y = balance (ins a) y b
+instance (InsertableHelper1 k v left,
+          Balanceable B (Insert1 k v left) k' v' right-- TODO remove B here
+         )
+         => InsertableHelper2 LT k v R left k' v' right where
+    type Insert2 LT k v R left k' v' right = N R (Insert1 k v left) k' v' right
+    insert2 fv (Node left fv' right) = Node (insert1 @k @v fv left) fv' right 
+    widen2 v = case v of
         Here x -> Here x
         LookLeft x -> LookLeft (widen1 @k @v x)
         LookRight x -> LookRight x
@@ -346,13 +361,30 @@ instance InsertableHelper2 EQ k v color left k v right where
     insert2 fv (Node left _ right) = Node left fv right
     widen2 = id
 
+-- 	ins s@(T B a y b)
+-- 		| ...
+-- 		| x>y = balance a y (ins b)
 instance (InsertableHelper1 k v right,
-          Balanceable color left  k' v' (Insert1 k v right)
+          Balanceable B left  k' v' (Insert1 k v right)
          )
-         => InsertableHelper2 GT k v color left k' v' right where
-    type Insert2 GT k v color left k' v' right = Balance color left  k' v' (Insert1 k v right)
-    insert2 fv (Node left fv' right) = balanceR @color @left @k' @v' @_ (Node left  fv' (insert1 @k @v fv right)) 
-    widen2 v = balanceV @color @left @k' @v' @(Insert1 k v right) $ case v of
+         => InsertableHelper2 GT k v B left k' v' right where
+    type Insert2 GT k v B left k' v' right = Balance B left  k' v' (Insert1 k v right)
+    insert2 fv (Node left fv' right) = balanceR @B @left @k' @v' @_ (Node left  fv' (insert1 @k @v fv right)) 
+    widen2 v = balanceV @B @left @k' @v' @(Insert1 k v right) $ case v of
+        Here x -> Here x
+        LookLeft x -> LookLeft x
+        LookRight x -> LookRight (widen1 @k @v x)
+
+-- 	ins s@(T R a y b)
+-- 		| ...
+-- 		| x>y = T R a y (ins b)
+instance (InsertableHelper1 k v right,
+          Balanceable B left  k' v' (Insert1 k v right)
+         )
+         => InsertableHelper2 GT k v R left k' v' right where
+    type Insert2 GT k v R left k' v' right = N R left k' v' (Insert1 k v right)
+    insert2 fv (Node left fv' right) = Node left fv' (insert1 @k @v fv right) 
+    widen2 v = case v of
         Here x -> Here x
         LookLeft x -> LookLeft x
         LookRight x -> LookRight (widen1 @k @v x)
