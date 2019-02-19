@@ -1182,6 +1182,7 @@ instance BalanceableHelperL False (N B (N R left1 k1 v1 right1) k2 v2 right2) wh
 
 -- balL (T B t1 y (T B t2 z t3)) = balance' (T B t1 y (T R t2 z t3))
 
+-- fixme posible error aqui
 instance (BalanceableHelper    (ShouldBalance 
                                B t1 (N B t2 z zv t3)) 
                                B t1 y yv (N B t2 z zv t3)) => 
@@ -1251,6 +1252,7 @@ instance BalanceableHelperR False (N B right2 k2 v2 (N R left1 k1 v1 right1)) wh
                                                               LookRight y -> LookRight y)
 
 -- balR (T B (T B t1 z t2) y t3) = balance' (T B (T R t1 z t2) y t3)
+-- FIXME: posible error aqui
 instance (BalanceableHelper    (ShouldBalance 
                                B (N B t2 z zv t3) t1) 
                                B (N B t2 z zv t3) y yv t1) => 
@@ -1745,3 +1747,6 @@ winnowI = fmap unI . winnow @k @v @t
 -- (Data.RBR.Internal.BalR' 'True ('N 'B 'E "kgoz" Int 'E)) :: RBT
 --                                                               Symbol *
 -- = BalR' 'True ('N 'B 'E "kgoz" Int 'E)
+--
+-- TODO: elimitate color argument from all balance functions.
+-- TODO: fix problem with 

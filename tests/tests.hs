@@ -266,23 +266,29 @@ type Tree02 = FromList [
 
 -- :kind! Insert "dfoo" Char (FromList [ '("dbar",Bool), '("dbaz",Int), '("fbaz",Int), '("kgoz",Int) ])
 
--- type Tree0X =
---        Delete "zbaz" Int
---       (Delete "zbar" Bool
---       (Delete "zfoo" Char
---       (Delete "abaz" Int
---       (Delete "abar" Bool
---       (Delete "afoo" Char
---       (Delete "bbaz" Int
---       (Delete "bbar" Bool
---         Tree02)))))))
--- 
+type Tree0X =
+--       Delete "zbaz" Int
+--      (Delete "zbar" Bool
+--      (Delete "zfoo" Char
+--      (Delete "abaz" Int
+--      (Delete "abar" Bool
+      (Delete "afoo" Char
+      (Delete "bbaz" Int
+      (Delete "bbar" Bool
+        Tree02)
+        )
+        )
+--        )
+--        )
+--        )
+--        )
+
 testVariantDeletionMany :: IO ()
 testVariantDeletionMany = do
     let a00 = injectI @"bfoo" @Tree02 'z'
---        Left a02 = winnowI @"bbar" @Bool a00
---        Left a03 = winnowI @"bbaz" @Int a02
---        Left a04 = winnowI @"afoo" @Char a03
+        Left a02 = winnowI @"bbar" @Bool a00
+        Left a03 = winnowI @"bbaz" @Int a02
+        Left a04 = winnowI @"afoo" @Char a03
 --        Left a05 = winnowI @"abar" @Bool a04
 --        Left a06 = winnowI @"abaz" @Int a05
 --        Left a07 = winnowI @"zfoo" @Char a06
