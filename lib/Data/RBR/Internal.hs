@@ -27,6 +27,7 @@ module Data.RBR.Internal where
 import           Data.Proxy
 import           Data.Kind
 import           Data.Typeable
+import           Data.Coerce
 import           Data.Bifunctor (first)
 import           Data.Monoid (Endo(..))
 import           Data.List (intersperse)
@@ -285,7 +286,10 @@ class CanMakeBlack (t :: RBT Symbol Type) where
 instance CanMakeBlack (N color left k v right) where
     type MakeBlack (N color left k v right) = N B left k v right
     makeBlackR (Node left fv right) = Node left fv right
-    makeBlackV (Here fv) = Here fv
+    makeBlackV v = case v of
+        LookLeft l -> LookLeft l
+        Here v -> Here v
+        LookRight r -> LookRight r
 
 instance CanMakeBlack E where
     type MakeBlack E = E
@@ -1184,13 +1188,20 @@ instance BalanceableHelperL False (N B (N R left1 k1 v1 right1) k2 v2 right2) wh
 
 -- fixme posible error aqui
 instance (BalanceableHelper    (ShouldBalance 
-                               B t1 (N B t2 z zv t3)) 
-                               B t1 y yv (N B t2 z zv t3)) => 
+                               B t1 (N R t2 z zv t3)) 
+                               B t1 y yv (N R t2 z zv t3)) => 
     BalanceableHelperL True (N B t1 y yv (N B t2 z zv t3)) where
     type BalL'         True (N B t1 y yv (N B t2 z zv t3))     
-             =  BalanceTree (N B t1 y yv (N B t2 z zv t3))
-    balLR' = balanceTreeR  @(N B t1 y yv (N B t2 z zv t3))
-    balLV' = balanceTreeV  @(N B t1 y yv (N B t2 z zv t3))
+             =  BalanceTree (N B t1 y yv (N R t2 z zv t3))
+    balLR' (Node left1 v1 (Node left2 v2 right2)) = 
+        balanceTreeR  @(N B t1 y yv (N R t2 z zv t3)) (Node left1 v1 (Node left2 v2 right2))
+    balLV' v = balanceTreeV  @(N B t1 y yv (N R t2 z zv t3)) (case v of
+        LookLeft l -> LookLeft l
+        Here x -> Here x
+        LookRight r -> LookRight (case r of
+                            LookLeft l' -> LookLeft l'
+                            Here x' -> Here x'
+                            LookRight r' -> LookRight r'))
 
 
 -- balL (T B t1 y (T R (T B t2 u t3) z (T B l value r))) =
@@ -1254,13 +1265,20 @@ instance BalanceableHelperR False (N B right2 k2 v2 (N R left1 k1 v1 right1)) wh
 -- balR (T B (T B t1 z t2) y t3) = balance' (T B (T R t1 z t2) y t3)
 -- FIXME: posible error aqui
 instance (BalanceableHelper    (ShouldBalance 
-                               B (N B t2 z zv t3) t1) 
-                               B (N B t2 z zv t3) y yv t1) => 
+                               B (N R t2 z zv t3) t1) 
+                               B (N R t2 z zv t3) y yv t1) => 
     BalanceableHelperR True (N B (N B t2 z zv t3) y yv t1) where
     type BalR'         True (N B (N B t2 z zv t3) y yv t1)     
-             =  BalanceTree (N B (N B t2 z zv t3) y yv t1)
-    balRR' = balanceTreeR  @(N B (N B t2 z zv t3) y yv t1)
-    balRV' = balanceTreeV  @(N B (N B t2 z zv t3) y yv t1)
+             =  BalanceTree (N B (N R t2 z zv t3) y yv t1)
+    balRR' (Node (Node left1 v1 right1) v2 right2) = balanceTreeR  @(N B (N R t2 z zv t3) y yv t1) 
+           (Node (Node left1 v1 right1) v2 right2)
+    balRV' v = balanceTreeV  @(N B (N R t2 z zv t3) y yv t1) (case v of
+        LookLeft l -> LookLeft (case l of 
+            LookLeft l' -> LookLeft l'
+            Here x' -> Here x'
+            LookRight r' -> LookRight r')
+        Here x -> Here x
+        LookRight r -> LookRight r)
 
 -- balR (T B (T R t1@(T B l value r) z (T B t2 u t3)) y t4) =
 --   T R (balance' (T B (T R l value r) z t2)) u (T B t3 y t4)
