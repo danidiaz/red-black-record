@@ -1139,24 +1139,24 @@ instance (BalanceableHelper    (ShouldBalance t3 (N R l k kv r)) t3 z zv  (N R l
 -- balright a x (T R b y c) = T R a x (T B b y c)
 -- balright (T B a x b) y bl = balance (T R a x b) y bl
 -- balright (T R a x (T B b y c)) z bl = T R (balance (sub1 a) x b) y (T B c z bl)
-type family DiscriminateBalR (t :: RBT k v) :: Bool where
-    DiscriminateBalR (N _ _ _ _ (N R _ _ _ _)) = False
-    DiscriminateBalR _ = True
+type family DiscriminateBalR (l :: RBT k v) (r :: RBT k v) :: Bool where
+    DiscriminateBalR _ (N R _ _ _ _) = False
+    DiscriminateBalR _ _             = True
 
-class BalanceableR (t :: RBT Symbol Type) where
-    type BalR t :: RBT Symbol Type
-    balRR :: Record f t -> Record f (BalR t)
-    balRV :: Variant f t -> Variant f (BalR t)
+class BalanceableR (l :: RBT Symbol Type) (k :: Symbol) (v :: Type) (r :: RBT Symbol Type) where
+    type BalR l k v r :: RBT Symbol Type
+    balRR :: Record f (N color l k v r) -> Record f (BalR l k v r)
+    balRV :: Variant f (N color l k v r) -> Variant f (BalR l k v r)
 
-class BalanceableHelperR (b :: Bool) (t :: RBT Symbol Type) where
-    type BalR' b t :: RBT Symbol Type
-    balRR' :: Record f t -> Record f (BalR' b t)
-    balRV' :: Variant f t -> Variant f (BalR' b t)
+class BalanceableHelperR (b :: Bool) (l :: RBT Symbol Type) (k :: Symbol) (v :: Type) (r :: RBT Symbol Type) where
+    type BalR' b l k v r :: RBT Symbol Type
+    balRR' :: Record f (N color l k v r) -> Record f (BalR' b l k v r)
+    balRV' :: Variant f (N color l k v r) -> Variant f (BalR' b l k v r)
 
-instance (DiscriminateBalR t ~ b, BalanceableHelperR b t) => BalanceableR t where
-    type BalR t = BalR' (DiscriminateBalR t) t
-    balRR = balRR' @b @t
-    balRV = balRV' @b @t
+instance (DiscriminateBalR l r ~ b, BalanceableHelperR b l k v r) => BalanceableR l k v r where
+    type BalR l k v r = BalR' (DiscriminateBalR l r) l k v r
+    balRR = balRR' @b @l @k @v @r
+    balRV = balRV' @b @l @k @v @r
 
 -- balright :: RB a -> a -> RB a -> RB a
 -- balright a x (T R b y c) = T R a x (T B b y c)
