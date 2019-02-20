@@ -1415,52 +1415,57 @@ instance (BalanceableL left1 k1 v1 (N B E k2 v2 right2)) => FuseableHelper2 E (N
                             Here      v2     -> LookRight (Here v2)
                             LookRight right2 -> LookRight (LookRight right2))
 
--- delL :: (Ord a) => a -> Tree a -> Tree a
--- delL x t@(T B t1 y t2) = balL $ T B (del x t1) y t2
--- delL x t@(T R t1 y t2) = T R (del x t1) y t2
 
+-- 	del E = E
+-- 	del (T _ a y b)
+-- 	    | x<y = delformLeft a y b
+-- 	    | x>y = delformRight a y b
+--             | otherwise = app a b
 class Delable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     type Del k v t :: RBT Symbol Type
     del :: Record f t -> Record f (Del k v t)
     win :: Variant f t -> Either (Variant f (Del k v t)) (f v) 
 
-class DelableL (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
-    type DelL k v t :: RBT Symbol Type
-    delL :: Record f t -> Record f (DelL k v t)
-    winL :: Variant f t -> Either (Variant f (DelL k v t)) (f v) 
+-- 	delformLeft a@(T B _ _ _) y b = balleft (del a) y b
+-- 	delformLeft a y b = T R (del a) y b
+-- 	In the term-level code, the k to delete is already on the environment.
+class DelableL (k :: Symbol) (v :: Type) (l :: RBT Symbol Type) (kx :: Symbol) (vx :: Type) (r :: RBT Symbol Type) where
+    type DelL k v l kx vx r :: RBT Symbol Type
+    delL :: Record f (N color l kx vx r) -> Record f (DelL k v l kx vx r)
+    winL :: Variant f (N color l kx vx r) -> Either (Variant f (DelL k v l kx vx r)) (f v) 
 
-instance (Delable k v (N B leftz kz vz rightz), BalanceableL (Del k v (N B leftz kz vz rightz)) kx vx right) => DelableL k v (N color (N B leftz kz vz rightz) kx vx right) where
-    type DelL k v (N color (N B leftz kz vz rightz) kx vx right) = BalL (Del k v (N B leftz kz vz rightz)) kx vx right
+instance (Delable k v (N B leftz kz vz rightz), BalanceableL (Del k v (N B leftz kz vz rightz)) kx vx right) 
+    => DelableL k v (N B leftz kz vz rightz) kx vx right where
+    type DelL k v (N B leftz kz vz rightz) kx vx right = BalL (Del k v (N B leftz kz vz rightz)) kx vx right
     delL (Node left vx right) = balLR @(Del k v (N B leftz kz vz rightz)) @kx @vx @right (Node (del @k @v left) vx right)
     winL v = first (balLV @(Del k v (N B leftz kz vz rightz)) @kx @vx @right) (case v of
         LookLeft l -> first LookLeft (win @k @v l)
         Here vx -> Left $ Here vx
         LookRight r -> Left $ LookRight r)
 
-instance (Delable k v (N R leftz kz vz rightz)) => DelableL k v (N color (N R leftz kz vz rightz) kx vx right) where
-    type DelL k v (N color (N R leftz kz vz rightz) kx vx right) = N R (Del k v (N R leftz kz vz rightz)) kx vx right
+instance (Delable k v (N R leftz kz vz rightz)) => DelableL k v (N R leftz kz vz rightz) kx vx right where
+    type DelL k v (N R leftz kz vz rightz) kx vx right = N R (Del k v (N R leftz kz vz rightz)) kx vx right
     delL (Node left vx right) = Node (del @k @v left) vx right
     winL v = case v of
         LookLeft l -> first LookLeft (win @k @v l)
         Here vx -> Left (Here vx)
         LookRight r -> Left (LookRight r)
 
-instance DelableL k v (N color E kx vx right) where
-    type DelL k v (N color E kx vx right) = N R E kx vx right
+instance DelableL k v E kx vx right where
+    type DelL k v E kx vx right = N R E kx vx right
     delL (Node left vx right) = Node Empty vx right
     winL v = case v of
         Here vx -> Left (Here vx)
         LookRight r -> Left (LookRight r)
 
-instance DelableL k v E where
-    type DelL k v E = E
-    delL _ = unit
-    winL = impossible
+-- unnecessary?
+-- instance DelableL k v E where
+--     type DelL k v E = E
+--     delL _ = unit
+--     winL = impossible
 
--- delR :: (Ord a) => a -> Tree a -> Tree a
--- delR x t@(T B t1 y t2) = balR $ T B t1 y (del x t2)
--- delR x t@(T R t1 y t2) = T R t1 y (del x t2)
- 
+-- 	delformRight a y b@(T B _ _ _) = balright a y (del b)
+-- 	delformRight a y b = T R a y (del b)
 class DelableR (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     type DelR k v t :: RBT Symbol Type
     delR :: Record f t -> Record f (DelR k v t)
@@ -1489,10 +1494,11 @@ instance DelableR k v (N color left kx vx E) where
         LookLeft l -> Left (LookLeft l)
         Here vx -> Left (Here vx)
 
-instance DelableR k v E where
-    type DelR k v E = E
-    delR _ = unit
-    winR = impossible
+-- unnecessary?
+-- instance DelableR k v E where
+--     type DelR k v E = E
+--     delR _ = unit
+--     winR = impossible
 
 -- del :: (Ord a) => a -> Tree a -> Tree a
 -- del x t@(T _ l y r)
@@ -1515,10 +1521,10 @@ class DelableHelper (ordering :: Ordering) (k :: Symbol) (v :: Type) (t :: RBT S
     del' :: Record f t -> Record f (Del' ordering k v t)
     win' :: Variant f t -> Either (Variant f (Del' ordering k v t)) (f v) 
 
-instance DelableL k v (N color left kx vx right) => DelableHelper GT k v (N color left kx vx right) where
-    type Del' GT k v (N color left kx vx right) = DelL k v (N color left kx vx right)
-    del' = delL @k @v @(N color left kx vx right)  
-    win' = winL @k @v @(N color left kx vx right)  
+instance DelableL k v left kx vx right => DelableHelper GT k v (N color left kx vx right) where
+    type Del' GT k v (N color left kx vx right) = DelL k v left kx vx right
+    del' = delL @k @v @left @kx @vx @right  
+    win' = winL @k @v @left @kx @vx @right  
 
 instance Fuseable left right => DelableHelper EQ k v (N color left k v right) where
     type Del' EQ k v (N color left k v right) = Fuse left right
