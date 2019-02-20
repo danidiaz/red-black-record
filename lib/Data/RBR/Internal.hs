@@ -1466,10 +1466,10 @@ class DelableR (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     delR :: Record f t -> Record f (DelR k v t)
     winR :: Variant f t -> Either (Variant f (DelR k v t)) (f v) 
 
-instance (Delable k v (N B leftz kz vz rightz), BalanceableR (N B left kx vx (Del k v (N B leftz kz vz rightz)))) => DelableR k v (N color left kx vx (N B leftz kz vz rightz)) where
-    type DelR k v (N color left kx vx (N B leftz kz vz rightz)) = BalR (N B left kx vx (Del k v (N B leftz kz vz rightz)))
-    delR (Node left vx right) = balRR @(N B left kx vx (Del k v (N B leftz kz vz rightz))) (Node left vx (del @k @v right))
-    winR v = first (balRV @(N B left kx vx (Del k v (N B leftz kz vz rightz)))) (case v of
+instance (Delable k v (N B leftz kz vz rightz), BalanceableR left kx vx (Del k v (N B leftz kz vz rightz))) => DelableR k v (N color left kx vx (N B leftz kz vz rightz)) where
+    type DelR k v (N color left kx vx (N B leftz kz vz rightz)) = BalR left kx vx (Del k v (N B leftz kz vz rightz))
+    delR (Node left vx right) = balRR @left @kx @vx @(Del k v (N B leftz kz vz rightz)) (Node left vx (del @k @v right))
+    winR v = first (balRV @left @kx @vx @(Del k v (N B leftz kz vz rightz))) (case v of
         LookLeft l -> Left $ LookLeft l
         Here vx -> Left $ Here vx
         LookRight r -> first LookRight (win @k @v r))
