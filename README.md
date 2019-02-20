@@ -142,8 +142,10 @@ down compilation as well :(
 Inspirations
 ------------
 
-- The code for the red-black tree has been lifted from ["Persistent Red Black
-  Trees in Haskell"](https://abhiroop.github.io/Haskell-Red-Black-Tree/).
+- The code for the red-black tree has been lifted from Stefan Kahrs's code
+  [available
+  here](https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html). See also
+  [this post](https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html).
 
 - Besides depending on sop-core, I have copied and adapted code from it. In
   particular the `KeysValuessAll` typeclass is a version of the `All` typeclass

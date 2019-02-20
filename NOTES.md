@@ -52,6 +52,8 @@ your own control structure functions"
 
 [Red-black trees](https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html).
 
+[vinyl-generics](http://hackage.haskell.org/package/vinyl-generics).
+
 Improving compilation times for type family-heavy code
 ======================================================
 
