@@ -228,33 +228,6 @@ insertI = insert @k @v @t . I
 addFieldI :: forall k v t . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
 addFieldI = insertI @k @v @t
 
---
---
--- The original term-level code, from the post "Persistent Red Black Trees in Haskell"
--- 
--- It has a bug though!
--- https://abhiroop.github.io/Haskell-Red-Black-Tree/
--- https://github.com/Abhiroop/okasaki/blob/master/src/RedBlackTree.hs
---
--- This code is bug-free:
--- https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html
--- 
--- insert :: (Ord a) => a -> Tree a -> Tree a
--- insert x s = makeBlack $ ins s
---   where ins E  = T R E x E
---         ins (T color a y b)
---           | x < y  = balance color (ins a) y b
---           | x == y = T color a y b
---           | x > y  = balance color a y (ins b)
---         makeBlack (T _ a y b) = T B a y b
--- 
--- balance :: Color -> Tree a -> a -> Tree a -> Tree a
--- balance B (T R (T R a x b) y c) z d = T R (T B a x b) y (T B c z d)
--- balance B (T R a x (T R b y c)) z d = T R (T B a x b) y (T B c z d)
--- balance B a x (T R (T R b y c) z d) = T R (T B a x b) y (T B c z d)
--- balance B a x (T R b y (T R c z d)) = T R (T B a x b) y (T B c z d)
--- balance color a x b = T color a x b
-
 {- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
      be inserted into a type-level tree.
  
@@ -333,12 +306,12 @@ class InsertableHelper2 (ordering :: Ordering)
 -- 	ins s@(T B a y b)
 -- 		| x<y = balance (ins a) y b
 instance (InsertableHelper1 k v left,
-          Balanceable B (Insert1 k v left) k' v' right -- TODO remove B here
+          Balanceable (Insert1 k v left) k' v' right -- TODO remove B here
          )
          => InsertableHelper2 LT k v B left k' v' right where
-    type Insert2 LT k v B left k' v' right = Balance B (Insert1 k v left) k' v' right
-    insert2 fv (Node left fv' right) = balanceR @B @_ @k' @v' @right (Node (insert1 @k @v fv left) fv' right) 
-    widen2 v = balanceV @B @(Insert1 k v left) @k' @v' @right $ case v of
+    type Insert2 LT k v B left k' v' right = Balance (Insert1 k v left) k' v' right
+    insert2 fv (Node left fv' right) = balanceR @_ @k' @v' @right (Node (insert1 @k @v fv left) fv' right) 
+    widen2 v = balanceV @(Insert1 k v left) @k' @v' @right $ case v of
         Here x -> Here x
         LookLeft x -> LookLeft (widen1 @k @v x)
         LookRight x -> LookRight x
@@ -346,7 +319,7 @@ instance (InsertableHelper1 k v left,
 -- 	ins s@(T B a y b)
 -- 		| x<y = balance (ins a) y b
 instance (InsertableHelper1 k v left,
-          Balanceable B (Insert1 k v left) k' v' right-- TODO remove B here
+          Balanceable (Insert1 k v left) k' v' right-- TODO remove B here
          )
          => InsertableHelper2 LT k v R left k' v' right where
     type Insert2 LT k v R left k' v' right = N R (Insert1 k v left) k' v' right
@@ -369,12 +342,12 @@ instance InsertableHelper2 EQ k v color left k v right where
 -- 		| ...
 -- 		| x>y = balance a y (ins b)
 instance (InsertableHelper1 k v right,
-          Balanceable B left  k' v' (Insert1 k v right)
+          Balanceable left  k' v' (Insert1 k v right)
          )
          => InsertableHelper2 GT k v B left k' v' right where
-    type Insert2 GT k v B left k' v' right = Balance B left  k' v' (Insert1 k v right)
-    insert2 fv (Node left fv' right) = balanceR @B @left @k' @v' @_ (Node left  fv' (insert1 @k @v fv right)) 
-    widen2 v = balanceV @B @left @k' @v' @(Insert1 k v right) $ case v of
+    type Insert2 GT k v B left k' v' right = Balance left  k' v' (Insert1 k v right)
+    insert2 fv (Node left fv' right) = balanceR @left @k' @v' @_ (Node left  fv' (insert1 @k @v fv right)) 
+    widen2 v = balanceV @left @k' @v' @(Insert1 k v right) $ case v of
         Here x -> Here x
         LookLeft x -> LookLeft x
         LookRight x -> LookRight (widen1 @k @v x)
@@ -383,7 +356,7 @@ instance (InsertableHelper1 k v right,
 -- 		| ...
 -- 		| x>y = T R a y (ins b)
 instance (InsertableHelper1 k v right,
-          Balanceable B left  k' v' (Insert1 k v right)
+          Balanceable left  k' v' (Insert1 k v right)
          )
          => InsertableHelper2 GT k v R left k' v' right where
     type Insert2 GT k v R left k' v' right = N R left k' v' (Insert1 k v right)
@@ -401,47 +374,40 @@ data BalanceAction = BalanceSpecial
                    | DoNotBalance
                    deriving Show
 
-type family ShouldBalance (color :: Color) 
-                          (left :: RBT k' v') 
-                          (right :: RBT k' v') :: BalanceAction where
-    ShouldBalance B (N R _ _ _ _) (N R _ _ _ _) = BalanceSpecial
-    ShouldBalance B (N R (N R _ _ _ _) _ _ _) _ = BalanceLL
-    ShouldBalance B (N R _ _ _ (N R _ _ _ _)) _ = BalanceLR
-    ShouldBalance B _ (N R (N R _ _ _ _) _ _ _) = BalanceRL
-    ShouldBalance B _ (N R _ _ _ (N R _ _ _ _)) = BalanceRR
-    ShouldBalance _ _ _                         = DoNotBalance
+type family ShouldBalance (left :: RBT k' v') (right :: RBT k' v') :: BalanceAction where
+    ShouldBalance (N R _ _ _ _) (N R _ _ _ _) = BalanceSpecial
+    ShouldBalance (N R (N R _ _ _ _) _ _ _) _ = BalanceLL
+    ShouldBalance (N R _ _ _ (N R _ _ _ _)) _ = BalanceLR
+    ShouldBalance _ (N R (N R _ _ _ _) _ _ _) = BalanceRL
+    ShouldBalance _ (N R _ _ _ (N R _ _ _ _)) = BalanceRR
+    ShouldBalance _ _                         = DoNotBalance
 
-class Balanceable (color :: Color) 
-                  (left :: RBT Symbol Type) 
-                  (k :: Symbol) 
-                  (v :: Type) 
-                  (right :: RBT Symbol Type) where
-    type Balance color left k v right :: RBT Symbol Type
-    balanceR :: Record f (N color left k v right) -> Record f (Balance color left k v right)
-    balanceV :: Variant f (N color left k v right) -> Variant f (Balance color left k v right)
+class Balanceable (left :: RBT Symbol Type) (k :: Symbol) (v :: Type) (right :: RBT Symbol Type) where
+    type Balance left k v right :: RBT Symbol Type
+    balanceR :: Record f (N color left k v right) -> Record f (Balance left k v right)
+    balanceV :: Variant f (N color left k v right) -> Variant f (Balance left k v right)
 
-instance (ShouldBalance color left right ~ action, 
-          BalanceableHelper action color left k v right
+instance (ShouldBalance left right ~ action, 
+          BalanceableHelper action left k v right
          ) 
-         => Balanceable color left k v right where
+         => Balanceable left k v right where
     -- FIXME possible duplicate work with ShouldBalance: both in constraint and in associated type family. 
     -- Is that bad? How to avoid it?
-    type Balance color left k v right = Balance' (ShouldBalance color left right) color left k v right
-    balanceR = balanceR' @action @color @left @k @v @right
-    balanceV = balanceV' @action @color @left @k @v @right
+    type Balance left k v right = Balance' (ShouldBalance left right) left k v right
+    balanceR = balanceR' @action @left @k @v @right
+    balanceV = balanceV' @action @left @k @v @right
     
 class BalanceableHelper (action :: BalanceAction) 
-                        (color :: Color) 
                         (left :: RBT Symbol Type) 
                         (k :: Symbol) 
                         (v :: Type) 
                         (right :: RBT Symbol Type) where
-    type Balance' action color left k v right :: RBT Symbol Type
-    balanceR' :: Record f (N color left k v right) -> Record f (Balance' action color left k v right)
-    balanceV' :: Variant f (N color left k v right) -> Variant f (Balance' action color left k v right)
+    type Balance' action left k v right :: RBT Symbol Type
+    balanceR' :: Record f (N color left k v right) -> Record f (Balance' action left k v right)
+    balanceV' :: Variant f (N color left k v right) -> Variant f (Balance' action left k v right)
 
-instance BalanceableHelper BalanceSpecial B (N R left1 k1 v1 right1) kx vx (N R left2 k2 v2 right2) where
-    type Balance'          BalanceSpecial B (N R left1 k1 v1 right1) kx vx (N R left2 k2 v2 right2) = 
+instance BalanceableHelper BalanceSpecial (N R left1 k1 v1 right1) kx vx (N R left2 k2 v2 right2) where
+    type Balance'          BalanceSpecial (N R left1 k1 v1 right1) kx vx (N R left2 k2 v2 right2) = 
                                         N R (N B left1 k1 v1 right1) kx vx (N B left2 k2 v2 right2)
     balanceR' (Node (Node left1 v1 right1) vx (Node left2 v2 right2)) = 
               (Node (Node left1 v1 right1) vx (Node left2 v2 right2))
@@ -455,9 +421,9 @@ instance BalanceableHelper BalanceSpecial B (N R left1 k1 v1 right1) kx vx (N R 
         LookRight (LookRight x) -> LookRight (LookRight x)
 
 
-instance BalanceableHelper BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d where
-    type Balance'          BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = 
-                                   N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d)
+instance BalanceableHelper BalanceLL (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d where
+    type Balance'          BalanceLL (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = 
+                                      N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d)
     balanceR' (Node (Node (Node a fv1 b) fv2 c) fv3 d) = 
                Node (Node a fv1 b) fv2 (Node c fv3 d)
     balanceV' v = case v of
@@ -469,9 +435,9 @@ instance BalanceableHelper BalanceLL B (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d whe
         Here x                 -> LookRight (Here x)
         LookRight x            -> LookRight (LookRight x)
 
-instance BalanceableHelper BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d where
-    type Balance'          BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d = 
-                                   N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
+instance BalanceableHelper BalanceLR (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d where
+    type Balance'          BalanceLR (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d = 
+                                      N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
     balanceR' (Node (Node a fv1 (Node b fv2 c)) fv3 d) = 
                Node (Node a fv1 b) fv2 (Node c fv3 d)
     balanceV' v = case v of
@@ -483,8 +449,8 @@ instance BalanceableHelper BalanceLR B (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d whe
         Here x                  -> LookRight (Here x)
         LookRight x             -> LookRight (LookRight x)
 
-instance BalanceableHelper BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) where
-    type Balance'          BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = 
+instance BalanceableHelper BalanceRL a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) where
+    type Balance'          BalanceRL a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = 
                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
     balanceR' (Node a fv1 (Node (Node b fv2 c) fv3 d)) = 
                Node (Node a fv1 b) fv2 (Node c fv3 d)
@@ -497,9 +463,9 @@ instance BalanceableHelper BalanceRL B a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) whe
         LookRight (Here x)      -> LookRight (Here x) 
         LookRight (LookRight x) -> LookRight (LookRight x)
 
-instance BalanceableHelper BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) where
-    type Balance'          BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = 
-                                   N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
+instance BalanceableHelper BalanceRR a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) where
+    type Balance'          BalanceRR a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = 
+                                     N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
     balanceR' (Node a fv1 (Node b fv2 (Node c fv3 d))) = 
                Node (Node a fv1 b) fv2 (Node c fv3 d)
     balanceV' v = case v of
@@ -511,8 +477,8 @@ instance BalanceableHelper BalanceRR B a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) whe
                                                         Here y      -> Here y
                                                         LookRight y -> LookRight y)
 
-instance BalanceableHelper DoNotBalance color a k v b where
-    type Balance' DoNotBalance color a k v b = N B a k v b 
+instance BalanceableHelper DoNotBalance a k v b where
+    type Balance' DoNotBalance a k v b = N B a k v b 
     balanceR' (Node left v right) = (Node left v right)
     balanceV' v = case v of
         LookLeft l -> LookLeft l
@@ -529,8 +495,6 @@ instance BalanceableHelper DoNotBalance color a k v b where
 --
 -- Record accessors are compiled WAY slower without them!
 --
--- TODO: Whould sharing be preserved if I made them type synonyms? Benchmark that.
-
 {- | Auxiliary type family to avoid repetition and help improve compilation times.
  -}
 type family Field (f :: Type -> Type) (t :: RBT Symbol Type) (v :: Type) where
@@ -1094,67 +1058,21 @@ instance ( ToVariantHelper t t1,
 --
 --
 --
--- delete :: (Ord a) => a -> Tree a -> Tree a
--- delete x t = makeBlack $ del x t
---   where makeBlack (T _ a y b) = T B a y b
---         makeBlack E           = E
--- 
--- del :: (Ord a) => a -> Tree a -> Tree a
--- del x t@(T _ l y r)
---   | x < y = delL x t
---   | x > y = delR x t
---   | otherwise = fuse l r
--- 
--- delL :: (Ord a) => a -> Tree a -> Tree a
--- delL x t@(T B t1 y t2) = balL $ T B (del x t1) y t2
--- delL x t@(T R t1 y t2) = T R (del x t1) y t2
--- 
--- balL :: Tree a -> Tree a
--- balL (T B (T R t1 x t2) y t3) = T R (T B t1 x t2) y t3
--- balL (T B t1 y (T B t2 z t3)) = balance' (T B t1 y (T R t2 z t3))
--- balL (T B t1 y (T R (T B t2 u t3) z t4@(T B l value r))) =
---   T R (T B t1 y t2) u (balance' (T B t3 z (T R l value r)))
--- 
--- delR :: (Ord a) => a -> Tree a -> Tree a
--- delR x t@(T B t1 y t2) = balR $ T B t1 y (del x t2)
--- delR x t@(T R t1 y t2) = T R t1 y (del x t2)
--- 
--- balR :: Tree a -> Tree a
--- balR (T B t1 y (T R t2 x t3)) = T R t1 y (T B t2 x t3)
--- balR (T B (T B t1 z t2) y t3) = balance' (T B (T R t1 z t2) y t3)
--- balR (T B (T R t1@(T B l value r) z (T B t2 u t3)) y t4) =
---   T R (balance' (T B (T R l value r) z t2)) u (T B t3 y t4)
--- 
--- fuse :: Tree a -> Tree a -> Tree a
--- fuse E t = t
--- fuse t E = t
--- fuse t1@(T B _ _ _) (T R t3 y t4) = T R (fuse t1 t3) y t4
--- fuse (T R t1 x t2) t3@(T B _ _ _) = T R t1 x (fuse t2 t3)
--- fuse (T R t1 x t2) (T R t3 y t4)  =
---   let s = fuse t2 t3
---   in case s of
---        (T R s1 z s2) -> (T R (T R t1 x s1) z (T R s2 y t4))
---        (T B _ _ _)   -> (T R t1 x (T R s y t4))
--- fuse (T B t1 x t2) (T B t3 y t4)  =
---   let s = fuse t2 t3
---   in case s of
---        (T R s1 z s2) -> (T R (T B t1 x s1) z (T B s2 y t4))
---        (T B s1 z s2) -> balL (T B t1 x (T B s y t4))
 
+-- TO DO: delete this
+-- class BalanceableTree (t :: RBT Symbol Type) where
+--     type BalanceTree t :: RBT Symbol Type
+--     balanceTreeR :: Record f t -> Record f (BalanceTree t)
+--     balanceTreeV :: Variant f t -> Variant f (BalanceTree t)
+-- 
+-- instance Balanceable color left k v right => BalanceableTree (N color left k v right) where
+--     type BalanceTree (N color left k v right) = Balance color left k v right
+--     balanceTreeR = balanceR @color @left @k @v @right
+--     balanceTreeV = balanceV @color @left @k @v @right
 
-class BalanceableTree (t :: RBT Symbol Type) where
-    type BalanceTree t :: RBT Symbol Type
-    balanceTreeR :: Record f t -> Record f (BalanceTree t)
-    balanceTreeV :: Variant f t -> Variant f (BalanceTree t)
-
-instance Balanceable color left k v right => BalanceableTree (N color left k v right) where
-    type BalanceTree (N color left k v right) = Balance color left k v right
-    balanceTreeR = balanceR @color @left @k @v @right
-    balanceTreeV = balanceV @color @left @k @v @right
-
-type family DiscriminateBalL (t :: RBT k v) :: Bool where
-    DiscriminateBalL (N B (N R _ _ _ _) _ _ _) = False
-    DiscriminateBalL _ = True
+type family DiscriminateBalL (t :: RBT k v) (t :: RBT k v) :: Bool where
+    DiscriminateBalL (N R _ _ _ _) _ = False
+    DiscriminateBalL _             _ = True
 
 class BalanceableL (t :: RBT Symbol Type) where
     type BalL t :: RBT Symbol Type
@@ -1666,6 +1584,9 @@ instance (Delable k v t, CanMakeBlack (Del k v t)) => Deletable k v t where
 winnowI :: forall k v t . Deletable k v t => Variant I t -> Either (Variant I (Delete k v t)) v
 winnowI = fmap unI . winnow @k @v @t
 
+-- The original term-level code, taken from:
+-- https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html
+--
 -- {- Version 1, 'untyped' -}
 -- data Color = R | B deriving Show
 -- data RB a = E | T Color (RB a) a (RB a) deriving Show
@@ -1748,23 +1669,3 @@ winnowI = fmap unI . winnow @k @v @t
 -- app a (T R b x c) = T R (app a b) x c
 -- app (T R a x b) c = T R a x (app b c)
 
--- delete @"foo" @Bool (insertI @"foo" True (insertI @"bar" False unit))
---
-
--- ╬ø :kind! (Data.RBR.Internal.DelL "bbar" Bool ('N 'B ('N 'R 'E "bbar" Bool 'E) "bbaz" Int ('N 'R 'E "bfoo" Char 'E)))
--- (Data.RBR.Internal.DelL "bbar" Bool ('N 'B ('N 'R 'E "bbar" Bool 'E) "bbaz" Int ('N 'R 'E "bfoo" Char 'E))) :: RBT
---                                                                                                                  Symbol
---                                                                                                                  *
--- = DelL
---     "bbar"
---     Bool
---     ('N
---        'B ('N 'R 'E "bbar" Bool 'E) "bbaz" Int ('N 'R 'E "bfoo" Char 'E))
---
--- ╬ø :kind! (Data.RBR.Internal.BalR' 'True ('N 'B 'E "kgoz" Int 'E))
--- (Data.RBR.Internal.BalR' 'True ('N 'B 'E "kgoz" Int 'E)) :: RBT
---                                                               Symbol *
--- = BalR' 'True ('N 'B 'E "kgoz" Int 'E)
---
--- TODO: elimitate color argument from all balance functions.
--- TODO: fix problem with 
