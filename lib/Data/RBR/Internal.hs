@@ -1160,8 +1160,8 @@ instance (DiscriminateBalR l r ~ b, BalanceableHelperR b l k v r) => Balanceable
 
 -- balright :: RB a -> a -> RB a -> RB a
 -- balright a x (T R b y c) = T R a x (T B b y c)
-instance BalanceableHelperR False (N color right2 k2 v2 (N R left1 k1 v1 right1)) where
-    type BalR'              False (N color right2 k2 v2 (N R left1 k1 v1 right1)) =
+instance BalanceableHelperR False right2 k2 v2 (N R left1 k1 v1 right1) where
+    type BalR'              False right2 k2 v2 (N R left1 k1 v1 right1) =
                                   (N R right2 k2 v2 (N B left1 k1 v1 right1))
     balRR' (Node right v (Node left' v' right')) = Node  right v (Node left' v' right')
     balRV' v = case v of LookLeft x   -> LookLeft x
@@ -1172,12 +1172,12 @@ instance BalanceableHelperR False (N color right2 k2 v2 (N R left1 k1 v1 right1)
 
 -- balright (T B a x b) y bl = balance (T R a x b) y bl
 instance (BalanceableHelper    (ShouldBalance (N R t2 z zv t3) t1) (N R t2 z zv t3) y yv t1) => 
-    BalanceableHelperR True (N color (N B t2 z zv t3) y yv t1) where
-    type BalR'         True (N color (N B t2 z zv t3) y yv t1)     
-             =  BalanceTree (N B (N R t2 z zv t3) y yv t1)
-    balRR' (Node (Node left1 v1 right1) v2 right2) = balanceTreeR  @(N B (N R t2 z zv t3) y yv t1) 
+    BalanceableHelperR True (N B t2 z zv t3) y yv t1 where
+    type BalR'         True (N B t2 z zv t3) y yv t1     
+             =  Balance (N R t2 z zv t3) y yv t1
+    balRR' (Node (Node left1 v1 right1) v2 right2) = balanceR @(N R t2 z zv t3) @y @yv @t1 
            (Node (Node left1 v1 right1) v2 right2)
-    balRV' v = balanceTreeV  @(N B (N R t2 z zv t3) y yv t1) (case v of
+    balRV' v = balanceV @(N R t2 z zv t3) @y @yv @t1 (case v of
         LookLeft l -> LookLeft (case l of 
             LookLeft l' -> LookLeft l'
             Here x' -> Here x'
@@ -1187,18 +1187,18 @@ instance (BalanceableHelper    (ShouldBalance (N R t2 z zv t3) t1) (N R t2 z zv 
 
 -- balright (T R a x (T B b y c)) z bl = T R (balance (sub1 a) x b) y (T B c z bl)
 instance (BalanceableHelper    (ShouldBalance (N R t2 u uv t3) l) (N R t2 u uv t3) z zv l) => 
-    BalanceableHelperR True (N color (N R (N B t2 u uv t3) z zv (N B l k kv r)) y yv t1) where
-    type BalR'         True (N color (N R (N B t2 u uv t3) z zv (N B l k kv r)) y yv t1) =
-                             N R (BalanceTree (N B (N R t2 u uv t3) z zv l)) k kv (N B r y yv t1) 
+    BalanceableHelperR True (N R (N B t2 u uv t3) z zv (N B l k kv r)) y yv t1 where
+    type BalR'         True (N R (N B t2 u uv t3) z zv (N B l k kv r)) y yv t1 =
+                             N R (Balance (N R t2 u uv t3) z zv l) k kv (N B r y yv t1) 
     balRR' (Node (Node (Node left2 v2 right2) vx (Node left3 v3 right3)) v1 left1) = 
-            Node (balanceTreeR @(N B (N R t2 u uv t3) z zv l) (Node (Node left2 v2 right2) vx left3)) v3 (Node right3 v1 left1)
+            Node (balanceR @(N R t2 u uv t3) @z @zv @l (Node (Node left2 v2 right2) vx left3)) v3 (Node right3 v1 left1)
     balRV' v = case v of
-        LookLeft  (LookLeft rr)                 -> LookLeft (balanceTreeV @(N B (N R t2 u uv t3) z zv l) (LookLeft (case rr of
+        LookLeft  (LookLeft rr)                 -> LookLeft (balanceV @(N R t2 u uv t3) @z @zv @l (LookLeft (case rr of
                                                         LookLeft t2 -> LookLeft t2
                                                         Here uv -> Here uv
                                                         LookRight t3 -> LookRight t3)))
-        LookLeft  (Here zv)                     -> LookLeft (balanceTreeV @(N B (N R t2 u uv t3) z zv l) (Here zv))
-        LookLeft  (LookRight (LookLeft l))      -> LookLeft (balanceTreeV @(N B (N R t2 u uv t3) z zv l) (LookRight l))
+        LookLeft  (Here zv)                     -> LookLeft (balanceV @(N R t2 u uv t3) @z @zv @l (Here zv))
+        LookLeft  (LookRight (LookLeft l))      -> LookLeft (balanceV @(N R t2 u uv t3) @z @zv @l (LookRight l))
         LookLeft  (LookRight (Here kv))         -> Here kv
         LookLeft  (LookRight (LookRight r))     -> LookRight (LookLeft r)
         Here      yv                            -> LookRight (Here yv) 
@@ -1242,7 +1242,6 @@ instance Fuseable (N color left k v right) E where
         Left v -> v
 
 -- fuse t1@(T B _ _ _) (T R t3 y t4) = T R (fuse t1 t3) y t4
-
 instance Fuseable (N B left1 k1 v1 right1) left2 => Fuseable (N B left1 k1 v1 right1) (N R left2 k2 v2 right2) where
     type Fuse (N B left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R (Fuse (N B left1 k1 v1 right1) left2) k2 v2 right2
     fuseRecord (Node left1 v1 right1) (Node left2 v2 right2) = Node (fuseRecord @(N B left1 k1 v1 right1) (Node left1 v1 right1) left2) v2 right2 
@@ -1309,7 +1308,7 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z zv s2) => Fuseable
                             Here      v2     -> LookRight (Here v2)
                             LookRight right2 -> LookRight (LookRight right2)
 
--- FIXME: The Fuseable constraint is repeated from avobe :(
+-- FIXME: The Fuseable constraint is repeated from above :(
 instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2) => FuseableHelper1 (N B s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
     type Fuse1 (N B s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R left1 k1 v1 (N R (N B s1 z zv s2) k2 v2 right2)
     fuseRecord1 (Node left1 v1 right1) (Node left2 v2 right2) = 
@@ -1383,12 +1382,12 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z zv s2) => Fuseable
                             Here      v2     -> LookRight (Here v2)
                             LookRight right2 -> LookRight (LookRight right2)
 
-instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2, BalanceableL (N B left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2))) => FuseableHelper2 (N B s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) where
-    type Fuse2 (N B s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) = BalL (N B left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2))
+instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2, BalanceableL left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2)) => FuseableHelper2 (N B s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) where
+    type Fuse2 (N B s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) = BalL left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2)
     fuseRecord2 (Node left1 v1 right1) (Node left2 v2 right2) = 
         case fuseRecord @right1 @left2 right1 left2 of
-            Node s1 zv s2 -> balLR @(N B left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2)) (Node left1 v1 (Node (Node s1 zv s2) v2 right2))
-    fuseVariant2 e = balLV @(N B left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2)) (case e of
+            Node s1 zv s2 -> balLR @left1 @k1 @v1 @(N B (N B s1 z zv s2) k2 v2 right2) (Node left1 v1 (Node (Node s1 zv s2) v2 right2))
+    fuseVariant2 e = balLV @left1 @k1 @v1 @(N B (N B s1 z zv s2) k2 v2 right2) (case e of
             Left l  -> case l of
                             LookLeft  left1  -> LookLeft left1
                             Here      v1     -> Here v1
@@ -1404,11 +1403,11 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2, Balanceable
                             Here      v2     -> LookRight (Here v2)
                             LookRight right2 -> LookRight (LookRight right2))
 
-instance (BalanceableL (N B left1 k1 v1 (N B E k2 v2 right2))) => FuseableHelper2 E (N B left1 k1 v1 E) (N B E k2 v2 right2) where
-    type Fuse2  E (N B left1 k1 v1 E) (N B E k2 v2 right2) = BalL (N B left1 k1 v1 (N B E k2 v2 right2))
+instance (BalanceableL left1 k1 v1 (N B E k2 v2 right2)) => FuseableHelper2 E (N B left1 k1 v1 E) (N B E k2 v2 right2) where
+    type Fuse2  E (N B left1 k1 v1 E) (N B E k2 v2 right2) = BalL left1 k1 v1 (N B E k2 v2 right2)
     fuseRecord2 (Node left1 v1 right1) (Node left2 v2 right2) = 
-            balLR @(N B left1 k1 v1 (N B E k2 v2 right2)) (Node left1 v1 (Node Empty v2 right2))
-    fuseVariant2 e = balLV @(N B left1 k1 v1 (N B E k2 v2 right2)) (case e of
+            balLR @left1 @k1 @v1 @(N B E k2 v2 right2) (Node left1 v1 (Node Empty v2 right2))
+    fuseVariant2 e = balLV @left1 @k1 @v1 @(N B E k2 v2 right2) (case e of
             Left l  -> case l of
                             LookLeft  left1  -> LookLeft left1
                             Here      v1     -> Here v1
@@ -1430,10 +1429,10 @@ class DelableL (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     delL :: Record f t -> Record f (DelL k v t)
     winL :: Variant f t -> Either (Variant f (DelL k v t)) (f v) 
 
-instance (Delable k v (N B leftz kz vz rightz), BalanceableL (N B (Del k v (N B leftz kz vz rightz)) kx vx right)) => DelableL k v (N color (N B leftz kz vz rightz) kx vx right) where
-    type DelL k v (N color (N B leftz kz vz rightz) kx vx right) = BalL (N B (Del k v (N B leftz kz vz rightz)) kx vx right)
-    delL (Node left vx right) = balLR @(N B (Del k v (N B leftz kz vz rightz)) kx vx right) (Node (del @k @v left) vx right)
-    winL v = first (balLV @(N B (Del k v (N B leftz kz vz rightz)) kx vx right)) (case v of
+instance (Delable k v (N B leftz kz vz rightz), BalanceableL (Del k v (N B leftz kz vz rightz)) kx vx right) => DelableL k v (N color (N B leftz kz vz rightz) kx vx right) where
+    type DelL k v (N color (N B leftz kz vz rightz) kx vx right) = BalL (Del k v (N B leftz kz vz rightz)) kx vx right
+    delL (Node left vx right) = balLR @(Del k v (N B leftz kz vz rightz)) @kx @vx @right (Node (del @k @v left) vx right)
+    winL v = first (balLV @(Del k v (N B leftz kz vz rightz)) @kx @vx @right) (case v of
         LookLeft l -> first LookLeft (win @k @v l)
         Here vx -> Left $ Here vx
         LookRight r -> Left $ LookRight r)
