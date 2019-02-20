@@ -1059,34 +1059,34 @@ instance ( ToVariantHelper t t1,
 --
 --
 
-class BalanceableTree (t :: RBT Symbol Type) where
-    type BalanceTree t :: RBT Symbol Type
-    balanceTreeR :: Record f t -> Record f (BalanceTree t)
-    balanceTreeV :: Variant f t -> Variant f (BalanceTree t)
+-- class BalanceableTree (t :: RBT Symbol Type) where
+--     type BalanceTree t :: RBT Symbol Type
+--     balanceTreeR :: Record f t -> Record f (BalanceTree t)
+--     balanceTreeV :: Variant f t -> Variant f (BalanceTree t)
+-- 
+-- instance Balanceable left k v right => BalanceableTree (N color left k v right) where
+--     type BalanceTree (N color left k v right) = Balance left k v right
+--     balanceTreeR = balanceR @left @k @v @right
+--     balanceTreeV = balanceV @left @k @v @right
 
-instance Balanceable left k v right => BalanceableTree (N color left k v right) where
-    type BalanceTree (N color left k v right) = Balance left k v right
-    balanceTreeR = balanceR @left @k @v @right
-    balanceTreeV = balanceV @left @k @v @right
+type family DiscriminateBalL (l :: RBT k v) (r :: RBT k v) :: Bool where
+    DiscriminateBalL (N R _ _ _ _) _ = False
+    DiscriminateBalL _             _ = True
 
-type family DiscriminateBalL (t :: RBT k v) :: Bool where
-    DiscriminateBalL (N _ (N R _ _ _ _) _ _ _) = False
-    DiscriminateBalL _ = True
+class BalanceableL (l :: RBT Symbol Type) (k :: Symbol) (v :: Type) (r :: RBT Symbol Type) where
+    type BalL l k v r :: RBT Symbol Type
+    balLR :: Record f (N color l k v r) -> Record f (BalL l k v r)
+    balLV :: Variant f (N color l k v r) -> Variant f (BalL l k v r)
 
-class BalanceableL (t :: RBT Symbol Type) where
-    type BalL t :: RBT Symbol Type
-    balLR :: Record f t -> Record f (BalL t)
-    balLV :: Variant f t -> Variant f (BalL t)
+class BalanceableHelperL (b :: Bool) (l :: RBT Symbol Type) (k :: Symbol) (v :: Type) (r :: RBT Symbol Type) where
+    type BalL' b l k v r :: RBT Symbol Type
+    balLR' :: Record f (N color l k v r) -> Record f (BalL' b l k v r)
+    balLV' :: Variant f (N color l k v r) -> Variant f (BalL' b l k v r)
 
-class BalanceableHelperL (b :: Bool) (t :: RBT Symbol Type) where
-    type BalL' b t :: RBT Symbol Type
-    balLR' :: Record f t -> Record f (BalL' b t)
-    balLV' :: Variant f t -> Variant f (BalL' b t)
-
-instance (DiscriminateBalL t ~ b, BalanceableHelperL b t) => BalanceableL t where
-    type BalL t = BalL' (DiscriminateBalL t) t
-    balLR = balLR' @b @t
-    balLV = balLV' @b @t
+instance (DiscriminateBalL l r ~ b, BalanceableHelperL b l k v r) => BalanceableL l k v r where
+    type BalL l k v r = BalL' (DiscriminateBalL l r) l k v r
+    balLR = balLR' @b @l @k @v @r
+    balLV = balLV' @b @l @k @v @r
 
 -- balleft :: RB a -> a -> RB a -> RB a
 -- balleft (T R a x b) y c = T R (T B a x b) y c
