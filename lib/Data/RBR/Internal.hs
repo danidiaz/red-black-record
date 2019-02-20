@@ -1493,31 +1493,33 @@ instance Delable k v E where
     del _ = unit
     win = impossible
 
-instance (CmpSymbol kx k ~ ordering, DelableHelper ordering k v (N color left kx vx right)) => Delable k v (N color left kx vx right) where
-    type Del k v (N color left kx vx right) = Del' (CmpSymbol kx k) k v (N color left kx vx right)
-    del = del' @(CmpSymbol kx k) @k @v @(N color left kx vx right)
-    win = win' @(CmpSymbol kx k) @k @v @(N color left kx vx right)
+-- the color is discarded
+-- 	del (T _ a y b)
+instance (CmpSymbol kx k ~ ordering, DelableHelper ordering k v left kx vx right) => Delable k v (N color left kx vx right) where
+    type Del k v (N color left kx vx right) = Del' (CmpSymbol kx k) k v left kx vx right
+    del = del' @(CmpSymbol kx k) @k @v @left @kx @vx @right
+    win = win' @(CmpSymbol kx k) @k @v @left @kx @vx @right
 
-class DelableHelper (ordering :: Ordering) (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
-    type Del' (ordering :: Ordering) (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) :: RBT Symbol Type
-    del' :: Record f t -> Record f (Del' ordering k v t)
-    win' :: Variant f t -> Either (Variant f (Del' ordering k v t)) (f v) 
+class DelableHelper (ordering :: Ordering) (k :: Symbol) (v :: Type) (l :: RBT Symbol Type) (kx :: Symbol) (vx :: Type) (r :: RBT Symbol Type) where
+    type Del' ordering k v l kx vx r :: RBT Symbol Type
+    del' :: Record f (N color l kx vx r) -> Record f (Del' ordering k v l kx vx r)
+    win' :: Variant f (N color l kx vx r) -> Either (Variant f (Del' ordering k v l kx vx r)) (f v) 
 
-instance DelableL k v left kx vx right => DelableHelper GT k v (N color left kx vx right) where
-    type Del' GT k v (N color left kx vx right) = DelL k v left kx vx right
+instance DelableL k v left kx vx right => DelableHelper GT k v left kx vx right where
+    type Del' GT k v left kx vx right = DelL k v left kx vx right
     del' = delL @k @v @left @kx @vx @right  
     win' = winL @k @v @left @kx @vx @right  
 
-instance Fuseable left right => DelableHelper EQ k v (N color left k v right) where
-    type Del' EQ k v (N color left k v right) = Fuse left right
+instance Fuseable left right => DelableHelper EQ k v left k v right where
+    type Del' EQ k v left k v right = Fuse left right
     del' (Node left _ right) = fuseRecord @left @right left right 
     win' v = case v of
         LookLeft l  ->  Left $ fuseVariant @left @right (Left l)
         Here v      -> Right v 
         LookRight r -> Left $ fuseVariant @left @right (Right r)
 
-instance DelableR k v left kx vx right => DelableHelper LT k v (N color left kx vx right) where
-    type Del' LT k v (N color left kx vx right) = DelR k v left kx vx right
+instance DelableR k v left kx vx right => DelableHelper LT k v left kx vx right where
+    type Del' LT k v left kx vx right = DelR k v left kx vx right
     del' = delR @k @v @left @kx @vx @right  
     win' = winR @k @v @left @kx @vx @right  
 
