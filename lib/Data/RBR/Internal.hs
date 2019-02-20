@@ -1458,53 +1458,35 @@ instance DelableL k v E kx vx right where
         Here vx -> Left (Here vx)
         LookRight r -> Left (LookRight r)
 
--- unnecessary?
--- instance DelableL k v E where
---     type DelL k v E = E
---     delL _ = unit
---     winL = impossible
-
 -- 	delformRight a y b@(T B _ _ _) = balright a y (del b)
 -- 	delformRight a y b = T R a y (del b)
-class DelableR (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
-    type DelR k v t :: RBT Symbol Type
-    delR :: Record f t -> Record f (DelR k v t)
-    winR :: Variant f t -> Either (Variant f (DelR k v t)) (f v) 
+class DelableR (k :: Symbol) (v :: Type) (l :: RBT Symbol Type) (kx :: Symbol) (vx :: Type) (r :: RBT Symbol Type) where
+    type DelR k v l kx vx r :: RBT Symbol Type
+    delR :: Record f (N color l kx vx r) -> Record f (DelR k v l kx vx r)
+    winR :: Variant f (N color l kx vx r) -> Either (Variant f (DelR k v l kx vx r)) (f v) 
 
-instance (Delable k v (N B leftz kz vz rightz), BalanceableR left kx vx (Del k v (N B leftz kz vz rightz))) => DelableR k v (N color left kx vx (N B leftz kz vz rightz)) where
-    type DelR k v (N color left kx vx (N B leftz kz vz rightz)) = BalR left kx vx (Del k v (N B leftz kz vz rightz))
+instance (Delable k v (N B leftz kz vz rightz), BalanceableR left kx vx (Del k v (N B leftz kz vz rightz))) => DelableR k v left kx vx (N B leftz kz vz rightz) where
+    type DelR k v left kx vx (N B leftz kz vz rightz) = BalR left kx vx (Del k v (N B leftz kz vz rightz))
     delR (Node left vx right) = balRR @left @kx @vx @(Del k v (N B leftz kz vz rightz)) (Node left vx (del @k @v right))
     winR v = first (balRV @left @kx @vx @(Del k v (N B leftz kz vz rightz))) (case v of
         LookLeft l -> Left $ LookLeft l
         Here vx -> Left $ Here vx
         LookRight r -> first LookRight (win @k @v r))
 
-instance (Delable k v (N R leftz kz vz rightz)) => DelableR k v (N color left kx vx (N R leftz kz vz rightz)) where
-    type DelR k v (N color left kx vx (N R leftz kz vz rightz)) = N R left kx vx (Del k v (N R leftz kz vz rightz))
+instance (Delable k v (N R leftz kz vz rightz)) => DelableR k v left kx vx (N R leftz kz vz rightz) where
+    type DelR k v left kx vx (N R leftz kz vz rightz) = N R left kx vx (Del k v (N R leftz kz vz rightz))
     delR (Node left vx right) = Node left vx (del @k @v right)
     winR v = case v of
         LookLeft l -> Left (LookLeft l)
         Here vx -> Left (Here vx)
         LookRight r -> first LookRight (win @k @v r)
 
-instance DelableR k v (N color left kx vx E) where
-    type DelR k v (N color left kx vx E) = N R left kx vx E
+instance DelableR k v left kx vx E where
+    type DelR k v left kx vx E = N R left kx vx E
     delR (Node left vx right) = Node left vx Empty
     winR v = case v of
         LookLeft l -> Left (LookLeft l)
         Here vx -> Left (Here vx)
-
--- unnecessary?
--- instance DelableR k v E where
---     type DelR k v E = E
---     delR _ = unit
---     winR = impossible
-
--- del :: (Ord a) => a -> Tree a -> Tree a
--- del x t@(T _ l y r)
---   | x < y = delL x t
---   | x > y = delR x t
---   | otherwise = fuse l r
 
 instance Delable k v E where
     type Del k v E = E
@@ -1534,10 +1516,10 @@ instance Fuseable left right => DelableHelper EQ k v (N color left k v right) wh
         Here v      -> Right v 
         LookRight r -> Left $ fuseVariant @left @right (Right r)
 
-instance DelableR k v (N color left kx vx right) => DelableHelper LT k v (N color left kx vx right) where
-    type Del' LT k v (N color left kx vx right) = DelR k v (N color left kx vx right)
-    del' = delR @k @v @(N color left kx vx right)  
-    win' = winR @k @v @(N color left kx vx right)  
+instance DelableR k v left kx vx right => DelableHelper LT k v (N color left kx vx right) where
+    type Del' LT k v (N color left kx vx right) = DelR k v left kx vx right
+    del' = delR @k @v @left @kx @vx @right  
+    win' = winR @k @v @left @kx @vx @right  
 
 class Deletable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
     type Delete k v t :: RBT Symbol Type
