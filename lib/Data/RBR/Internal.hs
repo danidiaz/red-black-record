@@ -1090,8 +1090,8 @@ instance (DiscriminateBalL l r ~ b, BalanceableHelperL b l k v r) => Balanceable
 
 -- balleft :: RB a -> a -> RB a -> RB a
 -- balleft (T R a x b) y c = T R (T B a x b) y c
-instance BalanceableHelperL False (N color (N R left1 k1 v1 right1) k2 v2 right2) where
-    type BalL'              False (N color (N R left1 k1 v1 right1) k2 v2 right2) =
+instance BalanceableHelperL False (N R left1 k1 v1 right1) k2 v2 right2 where
+    type BalL'              False (N R left1 k1 v1 right1) k2 v2 right2 =
                                   (N R (N B left1 k1 v1 right1) k2 v2 right2)
     balLR' (Node (Node left' v' right') v right) = Node (Node left' v' right') v right
     balLV' v = case v of LookLeft x  -> LookLeft (case x of LookLeft y  -> LookLeft y
@@ -1103,12 +1103,12 @@ instance BalanceableHelperL False (N color (N R left1 k1 v1 right1) k2 v2 right2
 -- balleft bl x (T B a y b) = balance bl x (T R a y b)
 -- the @(N B in the call to balance tree is misleading, as it is ingored...
 instance (BalanceableHelper (ShouldBalance t1 (N R t2 z zv t3)) t1 y yv (N R t2 z zv t3)) => 
-    BalanceableHelperL True (N color t1 y yv (N B t2 z zv t3)) where
-    type BalL'         True (N color t1 y yv (N B t2 z zv t3))     
-             =  BalanceTree (N B t1 y yv (N R t2 z zv t3))
+    BalanceableHelperL True t1 y yv (N B t2 z zv t3) where
+    type BalL'         True t1 y yv (N B t2 z zv t3)     
+             =  Balance t1 y yv (N R t2 z zv t3)
     balLR' (Node left1 v1 (Node left2 v2 right2)) = 
-        balanceTreeR @(N B t1 y yv (N R t2 z zv t3)) (Node left1 v1 (Node left2 v2 right2))
-    balLV' v = balanceTreeV  @(N B t1 y yv (N R t2 z zv t3)) (case v of
+        balanceR @t1 @y @yv @(N R t2 z zv t3) (Node left1 v1 (Node left2 v2 right2))
+    balLV' v = balanceV @t1 @y @yv @(N R t2 z zv t3) (case v of
         LookLeft l -> LookLeft l
         Here x -> Here x
         LookRight r -> LookRight (case r of
@@ -1118,18 +1118,18 @@ instance (BalanceableHelper (ShouldBalance t1 (N R t2 z zv t3)) t1 y yv (N R t2 
 
 -- balleft bl x (T R (T B a y b) z c) = T R (T B bl x a) y (balance b z (sub1 c))
 instance (BalanceableHelper    (ShouldBalance t3 (N R l k kv r)) t3 z zv  (N R l k kv r)) => 
-    BalanceableHelperL True (N color t1 y yv (N R (N B t2 u uv t3) z zv (N B l k kv r))) where
-    type BalL'         True (N color t1 y yv (N R (N B t2 u uv t3) z zv (N B l k kv r))) =
-                             N R (N B t1 y yv t2) u uv (BalanceTree (N B t3 z zv (N R l k kv r)))          
+    BalanceableHelperL True t1 y yv (N R (N B t2 u uv t3) z zv (N B l k kv r)) where
+    type BalL'         True t1 y yv (N R (N B t2 u uv t3) z zv (N B l k kv r)) =
+                             N R (N B t1 y yv t2) u uv (Balance t3 z zv (N R l k kv r))          
     balLR' (Node left1 v1 (Node (Node left2 v2 right2) vx (Node left3 v3 right3))) = 
-            Node (Node left1 v1 left2) v2 (balanceTreeR @(N B t3 z zv (N R l k kv r)) (Node right2 vx (Node left3 v3 right3)))
+            Node (Node left1 v1 left2) v2 (balanceR @t3 @z @zv @(N R l k kv r) (Node right2 vx (Node left3 v3 right3)))
     balLV' v = case v of LookLeft left1                          -> LookLeft (LookLeft left1)
                          Here v1                                 -> LookLeft (Here v1)
                          LookRight (LookLeft (LookLeft left2))   -> LookLeft (LookRight left2)
                          LookRight (LookLeft (Here v2))          -> Here v2
-                         LookRight (LookLeft (LookRight right2)) -> LookRight (balanceTreeV @(N B t3 z zv (N R l k kv r)) (LookLeft right2))
-                         LookRight (Here vx)                     -> LookRight (balanceTreeV @(N B t3 z zv (N R l k kv r)) (Here vx))
-                         LookRight (LookRight rr)                -> LookRight (balanceTreeV @(N B t3 z zv (N R l k kv r)) (LookRight (case rr of
+                         LookRight (LookLeft (LookRight right2)) -> LookRight (balanceV @t3 @z @zv @(N R l k kv r) (LookLeft right2))
+                         LookRight (Here vx)                     -> LookRight (balanceV @t3 @z @zv @(N R l k kv r) (Here vx))
+                         LookRight (LookRight rr)                -> LookRight (balanceV @t3 @z @zv @(N R l k kv r) (LookRight (case rr of
                                                                         LookLeft left3 -> LookLeft left3
                                                                         Here v3 -> Here v3
                                                                         LookRight right3 -> LookRight right3)))
