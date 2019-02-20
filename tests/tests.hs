@@ -2,17 +2,61 @@
              TypeApplications,
              DeriveGeneric,
              StandaloneDeriving,
-             PartialTypeSignatures
+             KindSignatures,
+             PartialTypeSignatures,
+             FlexibleContexts,
+             ScopedTypeVariables
 #-}
 {-# OPTIONS_GHC -Wno-partial-type-signatures #-}
 module Main where
 
 import Data.RBR
 import Data.SOP
+import Data.SOP.NP (cpure_NP,collapse_NP)
+import Data.Typeable
+import GHC.TypeLits
+import Data.Proxy
+import Data.Kind
 import GHC.Generics (Generic)
 
 import Test.Tasty
 import Test.Tasty.HUnit (testCase,Assertion,assertEqual,assertBool)
+
+-- sequences of actions for tests
+--
+--
+data InsertOrDelete = In
+                    | De 
+                    deriving (Show, Eq)
+
+class DemotableInsertOrDelete (iod :: InsertOrDelete) where
+    demoteIoD :: Proxy iod -> InsertOrDelete
+
+instance DemotableInsertOrDelete 'In where
+    demoteIoD _ = In
+
+instance DemotableInsertOrDelete 'De where
+    demoteIoD _ = De
+
+data Action s t = Act InsertOrDelete s t deriving (Show, Eq)
+
+class DemotableAction (a :: Action Symbol Type) where 
+    demoteAction :: Proxy a -> Action String TypeRep
+
+instance (DemotableInsertOrDelete iod, KnownSymbol s, Typeable t) => DemotableAction (Act iod s t) where
+    demoteAction _ = Act (demoteIoD (Proxy @iod)) 
+                         (symbolVal (Proxy @s)) 
+                         (typeRep (Proxy @t))
+
+demoteActions :: forall as. All DemotableAction as => Proxy (as :: [Action Symbol Type]) -> [Action String TypeRep] 
+demoteActions _ = collapse_NP $ cpure_NP @_ @as (Proxy @DemotableAction) conjure
+    where 
+    conjure :: forall a. DemotableAction a => K (Action String TypeRep) a
+    conjure = K (demoteAction (Proxy @a))
+
+-- TODO: write demote code for the RBT map
+-- TODO: write term-level test code based on the reference impl
+-- TODO: write tests that compare term-level and type-level code
 
 main :: IO ()
 main = defaultMain tests
