@@ -1,7 +1,10 @@
 {-# LANGUAGE DataKinds,
+             TypeOperators,
+             TypeFamilies,
              TypeApplications,
              DeriveGeneric,
              StandaloneDeriving,
+             UndecidableInstances,
              KindSignatures,
              PartialTypeSignatures,
              FlexibleContexts,
@@ -11,6 +14,7 @@
 module Main where
 
 import Data.RBR
+import Data.RBR.Internal (DemotableMap(demoteMap),t_insert,t_delete) 
 import Data.SOP
 import Data.SOP.NP (cpure_NP,collapse_NP)
 import Data.Typeable
@@ -53,6 +57,11 @@ demoteActions _ = collapse_NP $ cpure_NP @_ @as (Proxy @DemotableAction) conjure
     where 
     conjure :: forall a. DemotableAction a => K (Action String TypeRep) a
     conjure = K (demoteAction (Proxy @a))
+
+type family Perform (as :: [Action Symbol Type]) :: RBT Symbol Type where
+    Perform (Act In s v ': as) = Insert s v (Perform as)
+    Perform (Act De s v ': as) = Delete s v (Perform as)
+    Perform '[]                 = E
 
 -- TODO: write demote code for the RBT map
 -- TODO: write term-level test code based on the reference impl
@@ -327,3 +336,4 @@ testVariantDeletionMany = do
         Right a  = winnowI @"bfoo" @Char a14
     assertEqual "bfoo" a 'z'
     return ()
+

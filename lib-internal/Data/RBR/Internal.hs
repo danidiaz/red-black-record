@@ -85,6 +85,15 @@ instance (c k v, KeysValuesAll c left, KeysValuesAll c right) => KeysValuesAll c
   cpara_RBT p nil cons =
     cons (cpara_RBT p nil cons) (cpara_RBT p nil cons)
 
+cpure_Record :: forall c t f. KeysValuesAll c t => (Proxy c) -> (forall k v. c k v => f v) -> Record f t
+cpure_Record _ fpure = cpara_RBT (Proxy @c) unit go
+    where
+    go :: forall left k' v' right color. (c k' v', KeysValuesAll c left, KeysValuesAll c right) 
+       => Record f left
+       -> Record f right
+       -> Record f (N color left k' v' right)
+    go left right = Node left (fpure @k' @v') right 
+
 {- | Create a 'Record' containing the names of each field. 
     
      The names are represented by a constant functor 'K' carrying an annotation
@@ -103,6 +112,19 @@ demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
 -- the "class synonym" trick. https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/
 class KnownSymbol k => KnownKey (k :: Symbol) (v :: z)
 instance KnownSymbol k => KnownKey k v 
+
+demoteEntries :: forall t. KeysValuesAll KnownKeyTypeableVal t => Record (K (String,TypeRep)) t
+demoteEntries = cpara_RBT (Proxy @KnownKeyTypeableVal) unit go
+    where
+    go :: forall left k v right color. (KnownKeyTypeableVal k v, KeysValuesAll KnownKeyTypeableVal left, KeysValuesAll KnownKeyTypeableVal right) 
+       => Record (K (String,TypeRep)) left 
+       -> Record (K (String,TypeRep)) right 
+       -> Record (K (String,TypeRep)) (N color left k v right)
+    go left right = Node left (K (symbolVal (Proxy @k),typeRep (Proxy @v))) right 
+
+-- the "class synonym" trick. https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/
+class (KnownSymbol k, Typeable v) => KnownKeyTypeableVal (k :: Symbol) (v :: Type)
+instance (KnownSymbol k, Typeable v) => KnownKeyTypeableVal k v 
 
 -- demoteRBT :: forall t. KeysValuesAll KnownKeyTypeableVal t => K (RBT String TypeRep) t
 -- demoteRBT = cpara_RBT (Proxy @KnownKeyTypeableVal) (K E) go
@@ -1604,6 +1626,22 @@ t_balance (N R a x xv (N R b y yv c)) z zv d = N R (N B a x xv b) y yv (N B c z 
 t_balance a x xv (N R b y yv (N R c z zv d)) = N R (N B a x xv b) y yv (N B c z zv d)
 t_balance a x xv (N R (N R b y yv c) z zv d) = N R (N B a x xv b) y yv (N B c z zv d)
 t_balance a x xv b = N B a x xv b
+
+
+t_delete :: Ord a => a -> RBT a v -> RBT a v
+t_delete x t =
+ case del t of {N _ a y yv b -> N B a y yv b; _ -> E}
+ where
+ del E = E
+ del (N _ a y yv b)
+     | x<y = delformLeft a y yv b
+     | x>y = delformRight a y yv b
+     | otherwise = t_app a b
+ delformLeft a@(N B _ _ _ _) y yv b = t_balleft (del a) y yv b
+ delformLeft a y yv b = N R (del a) y yv b
+
+ delformRight a y yv b@(N B _ _ _ _) = t_balright a y yv (del b)
+ delformRight a y yv b = N R a y yv (del b)
 
 t_balleft :: RBT a v -> a -> v -> RBT a v -> RBT a v
 t_balleft (N R a x xv b) y yv c = N R (N B a x xv b) y yv c
