@@ -14,7 +14,7 @@
 module Main where
 
 import Data.RBR
-import Data.RBR.Internal (DemotableMap(demoteMap),t_insert,t_delete) 
+import Data.RBR.Demoted (DemotableMap(demoteMap),t_insert,t_delete) 
 import Data.SOP
 import Data.SOP.NP (cpure_NP,collapse_NP)
 import Data.Typeable
@@ -361,4 +361,20 @@ type Actions01 = [Act In "f1" Bool,
 testInTandem01 :: IO ()
 testInTandem01 = assertEqual "" (demoteMap (Proxy @(Perform Actions01))) (perform (demoteActions (Proxy @Actions01)))
     
+type Actions02 = [Act In "f11" Bool,
+                  Act In "f10" Bool,
+                  Act In "f9" Bool,
+                  Act In "f8" Bool,
+                  Act In "f7" Bool,
+                  Act In "f6" Bool,
+                  Act In "f5" Bool,
+                  Act In "f4" Bool,
+                  Act In "f3" Bool,
+                  Act In "f2" Bool,
+                  Act In "f1" Bool
+                 ]
+
+testInTandem02 :: IO ()
+testInTandem02 = assertEqual "" (demoteMap (Proxy @(Perform Actions02))) (perform (demoteActions (Proxy @Actions02)))
     
+
