@@ -2,7 +2,7 @@ module Data.RBR (
         -- * Type-level Red-Black tree
         -- $typelevel
         Color (..),
-        RBT (..),
+        Map (..),
         KeysValuesAll,
         KnownKey,
         demoteKeys,

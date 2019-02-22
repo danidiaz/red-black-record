@@ -46,8 +46,8 @@ data Color = R
     deriving (Show,Eq)
 
 -- | The Red-Black tree. It will be used, as a kind, to index the 'Record' and 'Variant' types.
-data RBT k v = E 
-             | N Color (RBT k v) k v (RBT k v)
+data Map k v = E 
+             | N Color (Map k v) k v (Map k v)
     deriving (Show,Eq)
 
 --
@@ -60,18 +60,18 @@ data RBT k v = E
 --
 -- UndecidableSuperClasses and RankNTypes seem to be required by KeysValuesAllF.
 type family
-  KeysValuesAllF (c :: k -> v -> Constraint) (t :: RBT k v) :: Constraint where
+  KeysValuesAllF (c :: k -> v -> Constraint) (t :: Map k v) :: Constraint where
   KeysValuesAllF  _ E                        = ()
   KeysValuesAllF  c (N color left k v right) = (c k v, KeysValuesAll c left, KeysValuesAll c right)
 
 {- | Require a constraint for every key-value pair in a tree. This is a generalization of 'Data.SOP.All' from "Data.SOP".
  
-     'cpara_RBT' constructs a 'Record' by means of a constraint for producing
+     'cpara_Map' constructs a 'Record' by means of a constraint for producing
      the nodes of the tree. The constraint is passed as a 'Data.Proxy.Proxy'.
      This function seldom needs to be called directly.
 -}
-class KeysValuesAllF c t => KeysValuesAll (c :: k -> v -> Constraint) (t :: RBT k v) where
-  cpara_RBT ::
+class KeysValuesAllF c t => KeysValuesAll (c :: k -> v -> Constraint) (t :: Map k v) where
+  cpara_Map ::
        proxy c
     -> r E
     -> (forall left k v right color . (c k v, KeysValuesAll c left, KeysValuesAll c right) 
@@ -79,14 +79,14 @@ class KeysValuesAllF c t => KeysValuesAll (c :: k -> v -> Constraint) (t :: RBT 
     -> r t
 
 instance KeysValuesAll c E where
-  cpara_RBT _p nil _step = nil
+  cpara_Map _p nil _step = nil
 
 instance (c k v, KeysValuesAll c left, KeysValuesAll c right) => KeysValuesAll c (N color left k v right) where
-  cpara_RBT p nil cons =
-    cons (cpara_RBT p nil cons) (cpara_RBT p nil cons)
+  cpara_Map p nil cons =
+    cons (cpara_Map p nil cons) (cpara_Map p nil cons)
 
 cpure_Record :: forall c t f. KeysValuesAll c t => (Proxy c) -> (forall k v. c k v => f v) -> Record f t
-cpure_Record _ fpure = cpara_RBT (Proxy @c) unit go
+cpure_Record _ fpure = cpara_Map (Proxy @c) unit go
     where
     go :: forall left k' v' right color. (c k' v', KeysValuesAll c left, KeysValuesAll c right) 
        => Record f left
@@ -101,7 +101,7 @@ cpure_Record _ fpure = cpara_RBT (Proxy @c) unit go
      type that corresponds to each field, only the 'String' annotations.
 -} 
 demoteKeys :: forall t. KeysValuesAll KnownKey t => Record (K String) t
-demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
+demoteKeys = cpara_Map (Proxy @KnownKey) unit go
     where
     go :: forall left k v right color. (KnownKey k v, KeysValuesAll KnownKey left, KeysValuesAll KnownKey right) 
        => Record (K String) left 
@@ -113,30 +113,30 @@ demoteKeys = cpara_RBT (Proxy @KnownKey) unit go
 class KnownSymbol k => KnownKey (k :: Symbol) (v :: z)
 instance KnownSymbol k => KnownKey k v 
 
-demoteEntries :: forall t. KeysValuesAll KnownKeyTypeableVal t => Record (K (String,TypeRep)) t
-demoteEntries = cpara_RBT (Proxy @KnownKeyTypeableVal) unit go
+demoteEntries :: forall t. KeysValuesAll KnownKeyTypeableValue t => Record (K (String,TypeRep)) t
+demoteEntries = cpara_Map (Proxy @KnownKeyTypeableValue) unit go
     where
-    go :: forall left k v right color. (KnownKeyTypeableVal k v, KeysValuesAll KnownKeyTypeableVal left, KeysValuesAll KnownKeyTypeableVal right) 
+    go :: forall left k v right color. (KnownKeyTypeableValue k v, KeysValuesAll KnownKeyTypeableValue left, KeysValuesAll KnownKeyTypeableValue right) 
        => Record (K (String,TypeRep)) left 
        -> Record (K (String,TypeRep)) right 
        -> Record (K (String,TypeRep)) (N color left k v right)
     go left right = Node left (K (symbolVal (Proxy @k),typeRep (Proxy @v))) right 
 
 -- the "class synonym" trick. https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/
-class (KnownSymbol k, Typeable v) => KnownKeyTypeableVal (k :: Symbol) (v :: Type)
-instance (KnownSymbol k, Typeable v) => KnownKeyTypeableVal k v 
+class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) (v :: Type)
+instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v 
 
--- demoteRBT :: forall t. KeysValuesAll KnownKeyTypeableVal t => K (RBT String TypeRep) t
--- demoteRBT = cpara_RBT (Proxy @KnownKeyTypeableVal) (K E) go
+-- demoteMap :: forall t. KeysValuesAll KnownKeyTypeableValue t => K (Map String TypeRep) t
+-- demoteMap = cpara_Map (Proxy @KnownKeyTypeableValue) (K E) go
 --     where
---     go :: forall left k v right color. (KnownKeyTypeableVal k v, KeysValuesAll KnownKeyTypeableVal left, KeysValuesAll KnownKeyTypeableVal right) 
---        => K (RBT String TypeRep) left 
---        -> K (RBT String TypeRep) right 
---        -> K (RBT String TypeRep) (N color left k v right)
+--     go :: forall left k v right color. (KnownKeyTypeableValue k v, KeysValuesAll KnownKeyTypeableValue left, KeysValuesAll KnownKeyTypeableValue right) 
+--        => K (Map String TypeRep) left 
+--        -> K (Map String TypeRep) right 
+--        -> K (Map String TypeRep) (N color left k v right)
 --     go (K left) (K right) = K ()
 -- 
--- class (KnownSymbol k, Typeable v) => KnownKeyTypeableVal (k :: Symbol) (v :: z)
--- instance (KnownSymbol k, Typeable v) => KnownKeyTypeableVal k v
+-- class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) (v :: z)
+-- instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v
 
 -- class KeyValueTop (k :: Symbol) (v :: z)
 -- instance KeyValueTop k v
@@ -149,7 +149,7 @@ instance (KnownSymbol k, Typeable v) => KnownKeyTypeableVal k v
      The values in the 'Record' come wrapped in a type constructor @f@, which
      por pure records will be the identity functor 'I'.
 -}
-data Record (f :: Type -> Type) (t :: RBT Symbol Type)  where
+data Record (f :: Type -> Type) (t :: Map Symbol Type)  where
     Empty :: Record f E 
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
@@ -188,7 +188,7 @@ unit = Empty
      The values in the 'Variant' come wrapped in a type constructor @f@, which
      por pure variants will be the identity functor 'I'.
 -}
-data Variant (f :: Type -> Type) (t :: RBT Symbol Type)  where
+data Variant (f :: Type -> Type) (t :: Map Symbol Type)  where
     Here       :: f v -> Variant f (N color left k v right)
     LookRight  :: Variant f t -> Variant f (N color' left' k' v' t)
     LookLeft   :: Variant f t -> Variant f (N color' t k' v' right')
@@ -227,7 +227,7 @@ prettyShowVariantI v = prettyShowVariant (show . unI) v
 
 {- | Insert a list of type level key / value pairs into a type-level tree. 
 -}
-type family InsertAll (es :: [(Symbol,Type)]) (t :: RBT Symbol Type) :: RBT Symbol Type where
+type family InsertAll (es :: [(Symbol,Type)]) (t :: Map Symbol Type) :: Map Symbol Type where
     InsertAll '[] t = t
     InsertAll ( '(name,fieldType) ': es ) t = Insert name fieldType (InsertAll es t)
 
@@ -263,8 +263,8 @@ addFieldI = insertI @k @v @t
      If the tree already has the key but with a /different/ type, the insertion
      fails to compile.
  -}
-class Insertable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
-    type Insert k v t :: RBT Symbol Type
+class Insertable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
+    type Insert k v t :: Map Symbol Type
     insert :: f v -> Record f t -> Record f (Insert k v t)
     widen :: Variant f t -> Variant f (Insert k v t)
 
@@ -273,8 +273,8 @@ instance (InsertableHelper1 k v t, CanMakeBlack (Insert1 k v t)) => Insertable k
     insert fv r = makeBlackR (insert1 @k @v fv r) 
     widen v = makeBlackV (widen1 @k @v v)
 
-class CanMakeBlack (t :: RBT Symbol Type) where
-    type MakeBlack t :: RBT Symbol Type
+class CanMakeBlack (t :: Map Symbol Type) where
+    type MakeBlack t :: Map Symbol Type
     makeBlackR :: Record f t -> Record f (MakeBlack t)
     makeBlackV :: Variant f t -> Variant f (MakeBlack t)
 
@@ -293,8 +293,8 @@ instance CanMakeBlack E where
 
 class InsertableHelper1 (k :: Symbol) 
                         (v :: Type) 
-                        (t :: RBT Symbol Type) where
-    type Insert1 k v t :: RBT Symbol Type 
+                        (t :: Map Symbol Type) where
+    type Insert1 k v t :: Map Symbol Type 
     insert1 :: f v -> Record f t -> Record f (Insert1 k v t)
     widen1 :: Variant f t -> Variant f (Insert1 k v t)
 
@@ -317,11 +317,11 @@ class InsertableHelper2 (ordering :: Ordering)
                         (k :: Symbol) 
                         (v :: Type) 
                         (color :: Color) 
-                        (left :: RBT Symbol Type) 
+                        (left :: Map Symbol Type) 
                         (k' :: Symbol) 
                         (v' :: Type) 
-                        (right :: RBT Symbol Type) where
-    type Insert2 ordering k v color left k' v' right :: RBT Symbol Type 
+                        (right :: Map Symbol Type) where
+    type Insert2 ordering k v color left k' v' right :: Map Symbol Type 
     insert2 :: f v -> Record f (N color left k' v' right) -> Record f (Insert2 ordering k v color left k' v' right)
     widen2 :: Variant f (N color left k' v' right) -> Variant f (Insert2 ordering k v color left k' v' right)
 
@@ -396,7 +396,7 @@ data BalanceAction = BalanceSpecial
                    | DoNotBalance
                    deriving Show
 
-type family ShouldBalance (left :: RBT k' v') (right :: RBT k' v') :: BalanceAction where
+type family ShouldBalance (left :: Map k' v') (right :: Map k' v') :: BalanceAction where
     ShouldBalance (N R _ _ _ _) (N R _ _ _ _) = BalanceSpecial
     ShouldBalance (N R (N R _ _ _ _) _ _ _) _ = BalanceLL
     ShouldBalance (N R _ _ _ (N R _ _ _ _)) _ = BalanceLR
@@ -404,8 +404,8 @@ type family ShouldBalance (left :: RBT k' v') (right :: RBT k' v') :: BalanceAct
     ShouldBalance _ (N R _ _ _ (N R _ _ _ _)) = BalanceRR
     ShouldBalance _ _                         = DoNotBalance
 
-class Balanceable (left :: RBT Symbol Type) (k :: Symbol) (v :: Type) (right :: RBT Symbol Type) where
-    type Balance left k v right :: RBT Symbol Type
+class Balanceable (left :: Map Symbol Type) (k :: Symbol) (v :: Type) (right :: Map Symbol Type) where
+    type Balance left k v right :: Map Symbol Type
     balanceR :: Record f (N color left k v right) -> Record f (Balance left k v right)
     balanceV :: Variant f (N color left k v right) -> Variant f (Balance left k v right)
 
@@ -420,11 +420,11 @@ instance (ShouldBalance left right ~ action,
     balanceV = balanceV' @action @left @k @v @right
     
 class BalanceableHelper (action :: BalanceAction) 
-                        (left :: RBT Symbol Type) 
+                        (left :: Map Symbol Type) 
                         (k :: Symbol) 
                         (v :: Type) 
-                        (right :: RBT Symbol Type) where
-    type Balance' action left k v right :: RBT Symbol Type
+                        (right :: Map Symbol Type) where
+    type Balance' action left k v right :: Map Symbol Type
     balanceR' :: Record f (N color left k v right) -> Record f (Balance' action left k v right)
     balanceV' :: Variant f (N color left k v right) -> Variant f (Balance' action left k v right)
 
@@ -519,12 +519,12 @@ instance BalanceableHelper DoNotBalance a k v b where
 --
 {- | Auxiliary type family to avoid repetition and help improve compilation times.
  -}
-type family Field (f :: Type -> Type) (t :: RBT Symbol Type) (v :: Type) where
+type family Field (f :: Type -> Type) (t :: Map Symbol Type) (v :: Type) where
     Field f t v = Record f t -> (f v -> Record f t, f v)
 
 {- | Auxiliary type family to avoid repetition and help improve compilation times.
  -}
-type family Branch (f :: Type -> Type) (t :: RBT Symbol Type) (v :: Type) where
+type family Branch (f :: Type -> Type) (t :: Map Symbol Type) (v :: Type) where
     Branch f t v = (Variant f t -> Maybe (f v), f v -> Variant f t)
 
 --
@@ -541,12 +541,12 @@ type family Branch (f :: Type -> Type) (t :: RBT Symbol Type) (v :: Type) where
      'branch' takes a branch name (given through @TypeApplications@) and
      returns a pair of a match function and a constructor.
 -} 
-class Key (k :: Symbol) (t :: RBT Symbol Type) where
+class Key (k :: Symbol) (t :: Map Symbol Type) where
     type Value k t :: Type
     field  :: Field  f t (Value k t)
     branch :: Branch f t (Value k t)
 
-class KeyHelper (ordering :: Ordering) (k :: Symbol) (left :: RBT Symbol Type) (v :: Type) (right :: RBT Symbol Type) where 
+class KeyHelper (ordering :: Ordering) (k :: Symbol) (left :: Map Symbol Type) (v :: Type) (right :: Map Symbol Type) where 
     type Value' ordering k left v right :: Type
     field'  :: Field  f (N colorx left kx v right) (Value' ordering k left v right)
     branch' :: Branch f (N colorx left kx v right) (Value' ordering k left v right)
@@ -676,12 +676,12 @@ addCaseI f = addField @k @v @t (Case (f . unI))
 newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
  
 -- this odd trick again...
-class (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type) 
-instance (Key k t, Value k t ~ v) => PresentIn (t :: RBT Symbol Type) (k :: Symbol) (v :: Type)
+class (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol Type) (k :: Symbol) (v :: Type) 
+instance (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol Type) (k :: Symbol) (v :: Type)
 
 {- | Constraint for trees that represent subsets of fields of 'Record'-like types.
 -}
-type ProductlikeSubset (subset :: RBT Symbol Type) (whole :: RBT Symbol Type) (flat :: [Type]) = 
+type ProductlikeSubset (subset :: Map Symbol Type) (whole :: Map Symbol Type) (flat :: [Type]) = 
                        (KeysValuesAll (PresentIn whole) subset,
                         Productlike '[] subset flat,
                         SListI flat)
@@ -698,7 +698,7 @@ fieldSubset r =
                -> Record (SetField f (Record f whole)) right 
                -> Record (SetField f (Record f whole)) (N color left k v right)
          goset left right = Node left (SetField (\v w -> fst (field @k @whole w) v)) right
-         setters = toNP @subset @_ @(SetField f (Record f whole)) (cpara_RBT (Proxy @(PresentIn whole)) unit goset)
+         setters = toNP @subset @_ @(SetField f (Record f whole)) (cpara_Map (Proxy @(PresentIn whole)) unit goset)
          appz (SetField func) fv = K (Endo (func fv))
       in \toset -> appEndo (mconcat (collapse_NP (liftA2_NP appz setters (toNP toset)))) r)
     (let goget :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
@@ -707,7 +707,7 @@ fieldSubset r =
                -> Record f right 
                -> Record f (N color left k v right)
          goget left right = Node left (project @k @whole r) right
-      in cpara_RBT (Proxy @(PresentIn whole)) unit goget)
+      in cpara_Map (Proxy @(PresentIn whole)) unit goget)
 
 {- | Like 'project', but extracts multiple fields at the same time.
  
@@ -747,7 +747,7 @@ modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
 
 {- | Constraint for trees that represent subsets of branches of 'Variant'-like types.
 -}
-type SumlikeSubset (subset :: RBT Symbol Type) (whole :: RBT Symbol Type) (subflat :: [Type]) (wholeflat :: [Type]) = 
+type SumlikeSubset (subset :: Map Symbol Type) (whole :: Map Symbol Type) (subflat :: [Type]) (wholeflat :: [Type]) = 
                    (KeysValuesAll (PresentIn whole) subset,
                     Productlike '[] whole  wholeflat,
                     Sumlike '[] whole  wholeflat,
@@ -815,7 +815,7 @@ eliminateSubset cases =
      The functions 'toNP' and 'fromNP' are usually easier to use. 
 -}
 class Productlike (start :: [Type])
-                  (t :: RBT Symbol Type) 
+                  (t :: Map Symbol Type) 
                   (result :: [Type]) | start t -> result, result t -> start where
     prefixNP:: Record f t -> NP f start -> NP f result
     breakNP :: NP f result -> (Record f t, NP f start)
@@ -853,7 +853,7 @@ fromNP np = let (r,Nil) = breakNP np in r
      The functions 'toNS' and 'fromNS' are usually easier to use. 
 -}
 class Sumlike (start :: [Type]) 
-              (t :: RBT Symbol Type) 
+              (t :: Map Symbol Type) 
               (result :: [Type]) | start t -> result, result t -> start where
     prefixNS :: Either (NS f start) (Variant f t) -> NS f result
     breakNS :: NS f result -> Either (NS f start) (Variant f t)
@@ -932,15 +932,15 @@ fromNS ns = case breakNS ns of
 -- Interfacing with normal records
 
 class ToRecord (r :: Type) where
-    type RecordCode r :: RBT Symbol Type
+    type RecordCode r :: Map Symbol Type
     -- https://stackoverflow.com/questions/22087549/defaultsignatures-and-associated-type-families/22088808
     type RecordCode r = RecordCode' E (G.Rep r)
     toRecord :: r -> Record I (RecordCode r)
     default toRecord :: (G.Generic r,ToRecordHelper E (G.Rep r),RecordCode r ~ RecordCode' E (G.Rep r)) => r -> Record I (RecordCode r)
     toRecord r = toRecord' unit (G.from r)
 
-class ToRecordHelper (start :: RBT Symbol Type) (g :: Type -> Type) where
-    type RecordCode' start g :: RBT Symbol Type
+class ToRecordHelper (start :: Map Symbol Type) (g :: Type -> Type) where
+    type RecordCode' start g :: Map Symbol Type
     toRecord' :: Record I start -> g x -> Record I (RecordCode' start g)
 
 instance ToRecordHelper E fields => ToRecordHelper E (D1 meta (C1 metacons fields)) where
@@ -979,7 +979,7 @@ class ToRecord r => FromRecord (r :: Type) where
     default fromRecord :: (G.Generic r, FromRecordHelper (RecordCode r) (G.Rep r)) => Record I (RecordCode r) -> r
     fromRecord r = G.to (fromRecord' @(RecordCode r) @(G.Rep r) r)
 
-class FromRecordHelper (t :: RBT Symbol Type) (g :: Type -> Type) where
+class FromRecordHelper (t :: Map Symbol Type) (g :: Type -> Type) where
     fromRecord' :: Record I t -> g x
 
 instance FromRecordHelper t fields => FromRecordHelper t (D1 meta (C1 metacons fields)) where
@@ -1008,10 +1008,10 @@ instance ( FromRecordHelper t t1,
 --
 --
 --
-type family VariantCode (s :: Type) :: RBT Symbol Type where
+type family VariantCode (s :: Type) :: Map Symbol Type where
     VariantCode s = VariantCode' E (G.Rep s)
 
-type family VariantCode' (acc :: RBT Symbol Type) (g :: Type -> Type) :: RBT Symbol Type where
+type family VariantCode' (acc :: Map Symbol Type) (g :: Type -> Type) :: Map Symbol Type where
     VariantCode' acc (D1 meta fields) = VariantCode' acc fields
     VariantCode' acc (t1 G.:+: t2) = VariantCode' (VariantCode' acc t2) t1
     VariantCode' acc (C1 (G.MetaCons k _ _) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v))) = Insert k v acc
@@ -1023,7 +1023,7 @@ class FromVariant (s :: Type) where
         Just x -> G.to x
         Nothing -> error "fromVariant match fail. Should not happen."
 
-class FromVariantHelper (t :: RBT Symbol Type) (g :: Type -> Type) where
+class FromVariantHelper (t :: Map Symbol Type) (g :: Type -> Type) where
     fromVariant' :: Variant I t -> Maybe (g x)
 
 instance FromVariantHelper t fields => FromVariantHelper t (D1 meta fields) where
@@ -1054,7 +1054,7 @@ class ToVariant (s :: Type) where
     default toVariant :: (G.Generic s, ToVariantHelper (VariantCode s) (G.Rep s)) => s -> Variant I (VariantCode s)
     toVariant s = toVariant' @(VariantCode s) @(G.Rep s) (G.from s)
 
-class ToVariantHelper (t :: RBT Symbol Type) (g :: Type -> Type) where
+class ToVariantHelper (t :: Map Symbol Type) (g :: Type -> Type) where
     toVariant' :: g x -> Variant I t 
 
 instance ToVariantHelper t fields => ToVariantHelper t (D1 meta fields) where
@@ -1081,8 +1081,8 @@ instance ( ToVariantHelper t t1,
 --
 --
 
--- class BalanceableTree (t :: RBT Symbol Type) where
---     type BalanceTree t :: RBT Symbol Type
+-- class BalanceableTree (t :: Map Symbol Type) where
+--     type BalanceTree t :: Map Symbol Type
 --     balanceTreeR :: Record f t -> Record f (BalanceTree t)
 --     balanceTreeV :: Variant f t -> Variant f (BalanceTree t)
 -- 
@@ -1091,17 +1091,17 @@ instance ( ToVariantHelper t t1,
 --     balanceTreeR = balanceR @left @k @v @right
 --     balanceTreeV = balanceV @left @k @v @right
 
-type family DiscriminateBalL (l :: RBT k v) (r :: RBT k v) :: Bool where
+type family DiscriminateBalL (l :: Map k v) (r :: Map k v) :: Bool where
     DiscriminateBalL (N R _ _ _ _) _ = False
     DiscriminateBalL _             _ = True
 
-class BalanceableL (l :: RBT Symbol Type) (k :: Symbol) (v :: Type) (r :: RBT Symbol Type) where
-    type BalL l k v r :: RBT Symbol Type
+class BalanceableL (l :: Map Symbol Type) (k :: Symbol) (v :: Type) (r :: Map Symbol Type) where
+    type BalL l k v r :: Map Symbol Type
     balLR :: Record f (N color l k v r) -> Record f (BalL l k v r)
     balLV :: Variant f (N color l k v r) -> Variant f (BalL l k v r)
 
-class BalanceableHelperL (b :: Bool) (l :: RBT Symbol Type) (k :: Symbol) (v :: Type) (r :: RBT Symbol Type) where
-    type BalL' b l k v r :: RBT Symbol Type
+class BalanceableHelperL (b :: Bool) (l :: Map Symbol Type) (k :: Symbol) (v :: Type) (r :: Map Symbol Type) where
+    type BalL' b l k v r :: Map Symbol Type
     balLR' :: Record f (N color l k v r) -> Record f (BalL' b l k v r)
     balLV' :: Variant f (N color l k v r) -> Variant f (BalL' b l k v r)
 
@@ -1161,17 +1161,17 @@ instance (BalanceableHelper    (ShouldBalance t3 (N R l k kv r)) t3 z zv  (N R l
 -- balright a x (T R b y c) = T R a x (T B b y c)
 -- balright (T B a x b) y bl = balance (T R a x b) y bl
 -- balright (T R a x (T B b y c)) z bl = T R (balance (sub1 a) x b) y (T B c z bl)
-type family DiscriminateBalR (l :: RBT k v) (r :: RBT k v) :: Bool where
+type family DiscriminateBalR (l :: Map k v) (r :: Map k v) :: Bool where
     DiscriminateBalR _ (N R _ _ _ _) = False
     DiscriminateBalR _ _             = True
 
-class BalanceableR (l :: RBT Symbol Type) (k :: Symbol) (v :: Type) (r :: RBT Symbol Type) where
-    type BalR l k v r :: RBT Symbol Type
+class BalanceableR (l :: Map Symbol Type) (k :: Symbol) (v :: Type) (r :: Map Symbol Type) where
+    type BalR l k v r :: Map Symbol Type
     balRR :: Record f (N color l k v r) -> Record f (BalR l k v r)
     balRV :: Variant f (N color l k v r) -> Variant f (BalR l k v r)
 
-class BalanceableHelperR (b :: Bool) (l :: RBT Symbol Type) (k :: Symbol) (v :: Type) (r :: RBT Symbol Type) where
-    type BalR' b l k v r :: RBT Symbol Type
+class BalanceableHelperR (b :: Bool) (l :: Map Symbol Type) (k :: Symbol) (v :: Type) (r :: Map Symbol Type) where
+    type BalR' b l k v r :: Map Symbol Type
     balRR' :: Record f (N color l k v r) -> Record f (BalR' b l k v r)
     balRV' :: Variant f (N color l k v r) -> Variant f (BalR' b l k v r)
 
@@ -1241,8 +1241,8 @@ instance (BalanceableHelper    (ShouldBalance (N R t2 u uv t3) l) (N R t2 u uv t
 -- app (T R a x b) c = T R a x (app b c)
 
 
-class Fuseable (l :: RBT Symbol Type) (r :: RBT Symbol Type) where
-    type Fuse l r :: RBT Symbol Type
+class Fuseable (l :: Map Symbol Type) (r :: Map Symbol Type) where
+    type Fuse l r :: Map Symbol Type
     fuseRecord :: Record f l -> Record f r -> Record f (Fuse l r)
     fuseVariant :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
 
@@ -1302,8 +1302,8 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ fused, FuseableHelper1 fuse
     fuseRecord = fuseRecord1 @(Fuse right1 left2) 
     fuseVariant = fuseVariant1 @(Fuse right1 left2)
 
-class FuseableHelper1 (fused :: RBT Symbol Type) (l :: RBT Symbol Type) (r :: RBT Symbol Type) where
-    type Fuse1 fused l r :: RBT Symbol Type
+class FuseableHelper1 (fused :: Map Symbol Type) (l :: Map Symbol Type) (r :: Map Symbol Type) where
+    type Fuse1 fused l r :: Map Symbol Type
     fuseRecord1 :: Record f l -> Record f r -> Record f (Fuse l r)
     fuseVariant1 :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
 
@@ -1377,8 +1377,8 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ fused, FuseableHelper2 fuse
     fuseVariant = fuseVariant2 @(Fuse right1 left2)
 
 -- could FuseableHelper1 and FuseableHelper2 be, well... fused?
-class FuseableHelper2 (fused :: RBT Symbol Type) (l :: RBT Symbol Type) (r :: RBT Symbol Type) where
-    type Fuse2 fused l r :: RBT Symbol Type
+class FuseableHelper2 (fused :: Map Symbol Type) (l :: Map Symbol Type) (r :: Map Symbol Type) where
+    type Fuse2 fused l r :: Map Symbol Type
     fuseRecord2 :: Record f l -> Record f r -> Record f (Fuse l r)
     fuseVariant2 :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
 
@@ -1443,16 +1443,16 @@ instance (BalanceableL left1 k1 v1 (N B E k2 v2 right2)) => FuseableHelper2 E (N
 --      | x<y = delformLeft a y b
 --      | x>y = delformRight a y b
 --             | otherwise = app a b
-class Delable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
-    type Del k v t :: RBT Symbol Type
+class Delable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
+    type Del k v t :: Map Symbol Type
     del :: Record f t -> Record f (Del k v t)
     win :: Variant f t -> Either (Variant f (Del k v t)) (f v) 
 
 --  delformLeft a@(T B _ _ _) y b = balleft (del a) y b
 --  delformLeft a y b = T R (del a) y b
 --  In the term-level code, the k to delete is already on the environment.
-class DelableL (k :: Symbol) (v :: Type) (l :: RBT Symbol Type) (kx :: Symbol) (vx :: Type) (r :: RBT Symbol Type) where
-    type DelL k v l kx vx r :: RBT Symbol Type
+class DelableL (k :: Symbol) (v :: Type) (l :: Map Symbol Type) (kx :: Symbol) (vx :: Type) (r :: Map Symbol Type) where
+    type DelL k v l kx vx r :: Map Symbol Type
     delL :: Record f (N color l kx vx r) -> Record f (DelL k v l kx vx r)
     winL :: Variant f (N color l kx vx r) -> Either (Variant f (DelL k v l kx vx r)) (f v) 
 
@@ -1482,8 +1482,8 @@ instance DelableL k v E kx vx right where
 
 --  delformRight a y b@(T B _ _ _) = balright a y (del b)
 --  delformRight a y b = T R a y (del b)
-class DelableR (k :: Symbol) (v :: Type) (l :: RBT Symbol Type) (kx :: Symbol) (vx :: Type) (r :: RBT Symbol Type) where
-    type DelR k v l kx vx r :: RBT Symbol Type
+class DelableR (k :: Symbol) (v :: Type) (l :: Map Symbol Type) (kx :: Symbol) (vx :: Type) (r :: Map Symbol Type) where
+    type DelR k v l kx vx r :: Map Symbol Type
     delR :: Record f (N color l kx vx r) -> Record f (DelR k v l kx vx r)
     winR :: Variant f (N color l kx vx r) -> Either (Variant f (DelR k v l kx vx r)) (f v) 
 
@@ -1522,8 +1522,8 @@ instance (CmpSymbol kx k ~ ordering, DelableHelper ordering k v left kx vx right
     del = del' @(CmpSymbol kx k) @k @v @left @kx @vx @right
     win = win' @(CmpSymbol kx k) @k @v @left @kx @vx @right
 
-class DelableHelper (ordering :: Ordering) (k :: Symbol) (v :: Type) (l :: RBT Symbol Type) (kx :: Symbol) (vx :: Type) (r :: RBT Symbol Type) where
-    type Del' ordering k v l kx vx r :: RBT Symbol Type
+class DelableHelper (ordering :: Ordering) (k :: Symbol) (v :: Type) (l :: Map Symbol Type) (kx :: Symbol) (vx :: Type) (r :: Map Symbol Type) where
+    type Del' ordering k v l kx vx r :: Map Symbol Type
     del' :: Record f (N color l kx vx r) -> Record f (Del' ordering k v l kx vx r)
     win' :: Variant f (N color l kx vx r) -> Either (Variant f (Del' ordering k v l kx vx r)) (f v) 
 
@@ -1545,8 +1545,8 @@ instance DelableR k v left kx vx right => DelableHelper LT k v left kx vx right 
     del' = delR @k @v @left @kx @vx @right  
     win' = winR @k @v @left @kx @vx @right  
 
-class Deletable (k :: Symbol) (v :: Type) (t :: RBT Symbol Type) where
-    type Delete k v t :: RBT Symbol Type
+class Deletable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
+    type Delete k v t :: Map Symbol Type
     delete :: Record f t -> Record f (Delete k v t)
     winnow :: Variant f t -> Either (Variant f (Delete k v t)) (f v) 
 

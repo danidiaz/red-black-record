@@ -58,17 +58,17 @@ demoteActions _ = collapse_NP $ cpure_NP @_ @as (Proxy @DemotableAction) conjure
     conjure :: forall a. DemotableAction a => K (Action String TypeRep) a
     conjure = K (demoteAction (Proxy @a))
 
-type family Perform (as :: [Action Symbol Type]) :: RBT Symbol Type where
+type family Perform (as :: [Action Symbol Type]) :: Map Symbol Type where
     Perform (Act In s v ': as) = Insert s v (Perform as)
     Perform (Act De s v ': as) = Delete s v (Perform as)
     Perform '[]                 = E
 
-perform :: [Action String TypeRep] -> RBT String TypeRep
+perform :: [Action String TypeRep] -> Map String TypeRep
 perform = foldr (\(Act iod s v) t -> case iod of In -> t_insert s v t
                                                  De -> t_delete s t) 
                 E 
 
--- TODO: write demote code for the RBT map
+-- TODO: write demote code for the Map map
 -- TODO: write term-level test code based on the reference impl
 -- TODO: write tests that compare term-level and type-level code
 
@@ -98,7 +98,8 @@ tests = testGroup "Tests" [ testCase "recordGetSet01" testRecordGetSet01,
                                 ]
                             ],
                             testGroup "typeLevelTermLvel" [
-                                    testCase "tandem01" testInTandem01
+                                    testCase "tandem01" testInTandem01,
+                                    testCase "tandem02" testInTandem02
                             ]
                           ]
 

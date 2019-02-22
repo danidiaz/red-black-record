@@ -40,8 +40,8 @@ instance DemotableColor R where
 instance DemotableColor B where
     demoteColor _ = B
 
-class DemotableMap (t :: RBT Symbol Type) where
-    demoteMap :: Proxy t -> RBT String TypeRep
+class DemotableMap (t :: Map Symbol Type) where
+    demoteMap :: Proxy t -> Map String TypeRep
 
 instance DemotableMap E where
     demoteMap _ = E
@@ -58,7 +58,7 @@ instance (DemotableColor c,
                     (typeRep (Proxy @ty)) 
                     (demoteMap (Proxy @r))
 
-t_insert :: Ord a => a -> v -> RBT a v -> RBT a v
+t_insert :: Ord a => a -> v -> Map a v -> Map a v
 t_insert x val s =
     N B a v z b
     where
@@ -73,7 +73,7 @@ t_insert x val s =
         | x>y = N R a y val' (ins b)
         | otherwise = s
 
-t_balance :: RBT a v -> a -> v -> RBT a v -> RBT a v
+t_balance :: Map a v -> a -> v -> Map a v -> Map a v
 t_balance (N R a x xv b) y yv (N R c z zv d) = N R (N B a x xv b) y yv (N B c z zv d)
 t_balance (N R (N R a x xv b) y yv c) z zv d = N R (N B a x xv b) y yv (N B c z zv d)
 t_balance (N R a x xv (N R b y yv c)) z zv d = N R (N B a x xv b) y yv (N B c z zv d)
@@ -82,7 +82,7 @@ t_balance a x xv (N R (N R b y yv c) z zv d) = N R (N B a x xv b) y yv (N B c z 
 t_balance a x xv b = N B a x xv b
 
 
-t_delete :: Ord a => a -> RBT a v -> RBT a v
+t_delete :: Ord a => a -> Map a v -> Map a v
 t_delete x t =
  case del t of {N _ a y yv b -> N B a y yv b; _ -> E}
  where
@@ -97,21 +97,21 @@ t_delete x t =
  delformRight a y yv b@(N B _ _ _ _) = t_balright a y yv (del b)
  delformRight a y yv b = N R a y yv (del b)
 
-t_balleft :: RBT a v -> a -> v -> RBT a v -> RBT a v
+t_balleft :: Map a v -> a -> v -> Map a v -> Map a v
 t_balleft (N R a x xv b) y yv c = N R (N B a x xv b) y yv c
 t_balleft bl x xv (N B a y yv b) = t_balance bl x xv (N R a y yv b)
 t_balleft bl x xv (N R (N B a y yv b) z zv c) = N R (N B bl x xv a) y yv (t_balance b z zv (t_sub1 c))
 
-t_balright :: RBT a v -> a -> v -> RBT a v -> RBT a v
+t_balright :: Map a v -> a -> v -> Map a v -> Map a v
 t_balright a x xv (N R b y yv c) = N R a x xv (N B b y yv c)
 t_balright (N B a x xv b) y yv bl = t_balance (N R a x xv b) y yv bl
 t_balright (N R a x xv (N B b y yv c)) z zv bl = N R (t_balance (t_sub1 a) x xv b) y yv (N B c z zv bl)
 
-t_sub1 :: RBT a v -> RBT a v
+t_sub1 :: Map a v -> Map a v
 t_sub1 (N B a x xv b) = N R a x xv b
 t_sub1 _ = error "invariance violation"
 
-t_app :: RBT a v -> RBT a v -> RBT a v
+t_app :: Map a v -> Map a v -> Map a v
 t_app E x = x
 t_app x E = x
 t_app (N R a x xv b) (N R c y yv d) =
