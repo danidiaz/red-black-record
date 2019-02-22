@@ -1,11 +1,13 @@
 module Data.RBR (
         -- * Type-level Red-Black tree
         -- $typelevel
-        Color (..),
-        Map (..),
+        Map,
+        EmptyMap,
         KeysValuesAll,
         KnownKey,
         demoteKeys,
+        KnownKeyTypeableValue,
+        demoteEntries,
         -- * Records and Variants
         Record,
         unit,

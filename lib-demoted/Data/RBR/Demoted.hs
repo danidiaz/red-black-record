@@ -31,6 +31,9 @@ import           Data.Kind
 import           Data.Typeable
 import           GHC.TypeLits
 
+emptyMap :: Map String TypeRep
+emptyMap = E
+
 class DemotableColor (c :: Color) where
     demoteColor :: Proxy c -> Color
 

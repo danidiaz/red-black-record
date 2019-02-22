@@ -50,6 +50,8 @@ data Map k v = E
              | N Color (Map k v) k v (Map k v)
     deriving (Show,Eq)
 
+type EmptyMap = E
+
 --
 --
 -- This code has been copied and adapted from the corresponding Data.SOP code (the All constraint).
@@ -126,17 +128,7 @@ demoteEntries = cpara_Map (Proxy @KnownKeyTypeableValue) unit go
 class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) (v :: Type)
 instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v 
 
--- demoteMap :: forall t. KeysValuesAll KnownKeyTypeableValue t => K (Map String TypeRep) t
--- demoteMap = cpara_Map (Proxy @KnownKeyTypeableValue) (K E) go
---     where
---     go :: forall left k v right color. (KnownKeyTypeableValue k v, KeysValuesAll KnownKeyTypeableValue left, KeysValuesAll KnownKeyTypeableValue right) 
---        => K (Map String TypeRep) left 
---        -> K (Map String TypeRep) right 
---        -> K (Map String TypeRep) (N color left k v right)
---     go (K left) (K right) = K ()
--- 
--- class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) (v :: z)
--- instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v
+-- TODO: add "Collapse" newtype
 
 -- class KeyValueTop (k :: Symbol) (v :: z)
 -- instance KeyValueTop k v

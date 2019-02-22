@@ -14,7 +14,7 @@
 module Main where
 
 import Data.RBR
-import Data.RBR.Demoted (DemotableMap(demoteMap),t_insert,t_delete) 
+import Data.RBR.Demoted (emptyMap,DemotableMap(demoteMap),t_insert,t_delete) 
 import Data.SOP
 import Data.SOP.NP (cpure_NP,collapse_NP)
 import Data.Typeable
@@ -61,12 +61,12 @@ demoteActions _ = collapse_NP $ cpure_NP @_ @as (Proxy @DemotableAction) conjure
 type family Perform (as :: [Action Symbol Type]) :: Map Symbol Type where
     Perform (Act In s v ': as) = Insert s v (Perform as)
     Perform (Act De s v ': as) = Delete s v (Perform as)
-    Perform '[]                 = E
+    Perform '[]                = EmptyMap
 
 perform :: [Action String TypeRep] -> Map String TypeRep
 perform = foldr (\(Act iod s v) t -> case iod of In -> t_insert s v t
                                                  De -> t_delete s t) 
-                E 
+                emptyMap
 
 -- TODO: write demote code for the Map map
 -- TODO: write term-level test code based on the reference impl
