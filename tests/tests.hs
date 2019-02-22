@@ -63,6 +63,11 @@ type family Perform (as :: [Action Symbol Type]) :: RBT Symbol Type where
     Perform (Act De s v ': as) = Delete s v (Perform as)
     Perform '[]                 = E
 
+perform :: [Action String TypeRep] -> RBT String TypeRep
+perform = foldr (\(Act iod s v) t -> case iod of In -> t_insert s v t
+                                                 De -> t_delete s t) 
+                E 
+
 -- TODO: write demote code for the RBT map
 -- TODO: write term-level test code based on the reference impl
 -- TODO: write tests that compare term-level and type-level code
@@ -91,6 +96,9 @@ tests = testGroup "Tests" [ testCase "recordGetSet01" testRecordGetSet01,
                                     testCase "variantDeletion3Elem" testVariantDeletion3Elem,
                                     testCase "variantDeletionMany" testVariantDeletionMany 
                                 ]
+                            ],
+                            testGroup "typeLevelTermLvel" [
+                                    testCase "tandem01" testInTandem01
                             ]
                           ]
 
@@ -337,3 +345,20 @@ testVariantDeletionMany = do
     assertEqual "bfoo" a 'z'
     return ()
 
+type Actions01 = [Act In "f1" Bool,
+                  Act In "f2" Bool,
+                  Act In "f3" Bool,
+                  Act In "f4" Bool,
+                  Act In "f5" Bool,
+                  Act In "f6" Bool,
+                  Act In "f7" Bool,
+                  Act In "f8" Bool,
+                  Act In "f9" Bool,
+                  Act In "f10" Bool,
+                  Act In "f11" Bool
+                 ]
+
+testInTandem01 :: IO ()
+testInTandem01 = assertEqual "" (demoteMap (Proxy @(Perform Actions01))) (perform (demoteActions (Proxy @Actions01)))
+    
+    
