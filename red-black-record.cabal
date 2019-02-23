@@ -1,6 +1,6 @@
 cabal-version:       2.0
 name:                red-black-record
-version:             2.0.0.0
+version:             2.0.0.1
 synopsis:            Extensible records and variants indexed by a type-level Red-Black tree.
 
 description:         A library that provides extensible records and variants,
@@ -32,27 +32,18 @@ source-repository head
 
 library
   exposed-modules:     Data.RBR
-                       Data.RBR.Examples
-  reexported-modules:
                        Data.RBR.Internal
-  build-depends:       base                 >= 4.10.0.0 && < 5,
-                       sop-core             >= 0.4.0.0 && < 0.5,
-                       red-black-record-internal
-  hs-source-dirs:      lib
-  default-language:    Haskell2010
-
-library red-black-record-internal
-  exposed-modules:     Data.RBR.Internal
+                       Data.RBR.Examples
   build-depends:       base                 >= 4.10.0.0 && < 5,
                        sop-core             >= 0.4.0.0 && < 0.5
-  hs-source-dirs:      lib-internal
+  hs-source-dirs:      lib
   default-language:    Haskell2010
 
 library demoted
   exposed-modules:     Data.RBR.Demoted
   build-depends:       base                 >= 4.10.0.0 && < 5,
                        sop-core             >= 0.4.0.0 && < 0.5,
-                       red-black-record-internal
+                       red-black-record
   hs-source-dirs:      lib-demoted
   default-language:    Haskell2010
 
