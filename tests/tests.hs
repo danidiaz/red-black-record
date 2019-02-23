@@ -94,7 +94,8 @@ tests = testGroup "Tests" [ testCase "recordGetSet01" testRecordGetSet01,
                                     testCase "variantDeletionLeftElem" testVariantDeletionLeftElem,
                                     testCase "variantDeletionRightElem" testVariantDeletionRightElem,
                                     testCase "variantDeletion3Elem" testVariantDeletion3Elem,
-                                    testCase "variantDeletionMany" testVariantDeletionMany 
+                                    testCase "variantDeletionMany" testVariantDeletionMany, 
+                                    testCase "variantDeletionManyB" testVariantDeletionManyB 
                                 ]
                             ],
                             testGroup "typeLevelTermLvel" [
@@ -345,6 +346,49 @@ testVariantDeletionMany = do
         Left a13 = winnowI @"fbaz" @Int a12
         Left a14 = winnowI @"kgoz" @Int a13
         Right a  = winnowI @"bfoo" @Char a14
+    assertEqual "bfoo" a 'z'
+    return ()
+
+type Tree02b = FromList [ 
+                         '("bfoo",Char),
+                         '("bbar",Bool),
+                         '("bbaz",Int),
+                         '("afoo",Char),
+                         '("abar",Bool),
+                         '("abaz",Int),
+                         '("zfoo",Char),
+                         '("zbar",Bool),
+                         '("zbaz",Int),
+                         '("dfoo",Char),
+                         '("dbar",Bool),
+                         '("dbaz",Int),
+                         '("fbaz",Int),
+                         '("kgoz",Int) 
+                         ]
+
+testVariantDeletionManyB :: IO ()
+testVariantDeletionManyB = do
+    let a00 = injectI @"bfoo" @Tree02b 'z'
+        a00' = widen @"ggg" @Char a00
+        Left a02 = winnowI @"bbar" @Bool a00
+        Left a03 = winnowI @"bbaz" @Int a02
+        Left a04 = winnowI @"afoo" @Char a03
+        Left a05 = winnowI @"abar" @Bool a04
+        Left a06 = winnowI @"abaz" @Int a05
+        a06b = widen @"bbb" @Int a06
+        Left a07 = winnowI @"zfoo" @Char a06b
+        Left a08 = winnowI @"zbar" @Bool a07
+        Left a09 = winnowI @"zbaz" @Int a08
+        Left a10 = winnowI @"dfoo" @Char a09
+        Left a10b = winnowI @"zzz" @Float a10 -- non-existen entry
+        Right m = winnowI @"bfoo" @Char a10b
+        Left a11 = winnowI @"dbar" @Bool a10b
+        Left a12 = winnowI @"dbaz" @Int a11
+        Left a13 = winnowI @"fbaz" @Int a12
+        Left a14 = winnowI @"kgoz" @Int a13
+        Left a15 = winnowI @"ggg"  @Char a14
+        Right a  = winnowI @"bfoo" @Char a15
+    assertEqual "bfoo" m 'z'
     assertEqual "bfoo" a 'z'
     return ()
 
