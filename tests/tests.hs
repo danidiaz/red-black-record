@@ -99,7 +99,9 @@ tests = testGroup "Tests" [ testCase "recordGetSet01" testRecordGetSet01,
                             ],
                             testGroup "typeLevelTermLvel" [
                                     testCase "tandem01" testInTandem01,
-                                    testCase "tandem02" testInTandem02
+                                    testCase "tandem02" testInTandem02,
+                                    testCase "tandem03" testInTandem03,
+                                    testCase "tandem04" testInTandem04
                             ]
                           ]
 
@@ -347,35 +349,83 @@ testVariantDeletionMany = do
     return ()
 
 type Actions01 = [Act In "f1" Bool,
-                  Act In "f2" Bool,
-                  Act In "f3" Bool,
-                  Act In "f4" Bool,
+                  Act In "f2" Char,
+                  Act In "f3" Float,
+                  Act In "f4" (Int -> Int),
                   Act In "f5" Bool,
-                  Act In "f6" Bool,
-                  Act In "f7" Bool,
-                  Act In "f8" Bool,
+                  Act In "f6" Char,
+                  Act In "f7" String,
+                  Act In "f8" (Char -> Char),
                   Act In "f9" Bool,
-                  Act In "f10" Bool,
-                  Act In "f11" Bool
+                  Act In "f10" Char,
+                  Act In "f11" Float
                  ]
 
 testInTandem01 :: IO ()
 testInTandem01 = assertEqual "" (demoteMap (Proxy @(Perform Actions01))) (perform (demoteActions (Proxy @Actions01)))
     
 type Actions02 = [Act In "f11" Bool,
-                  Act In "f10" Bool,
-                  Act In "f9" Bool,
-                  Act In "f8" Bool,
-                  Act In "f7" Bool,
-                  Act In "f6" Bool,
-                  Act In "f5" Bool,
-                  Act In "f4" Bool,
-                  Act In "f3" Bool,
+                  Act In "f10" Int,
+                  Act In "f9" Char,
+                  Act In "f8" (Char -> Char),
+                  Act In "f7" Int,
+                  Act In "f6" Char,
+                  Act In "f5" Float,
+                  Act In "f4" Int,
+                  Act In "f3" (Char -> Int),
                   Act In "f2" Bool,
-                  Act In "f1" Bool
+                  Act In "f1" Char
                  ]
 
 testInTandem02 :: IO ()
 testInTandem02 = assertEqual "" (demoteMap (Proxy @(Perform Actions02))) (perform (demoteActions (Proxy @Actions02)))
     
+type Actions03 = [Act In "ff1" Bool,
+                  Act In "af2" Char,
+                  Act In "wf3" Int,
+                  Act In "uf4" Bool,
+                  Act In "uf5" Char,
+                  Act In "af6" Int,
+                  Act In "pf7" Bool,
+                  Act De "qf5" Char,
+                  Act De "bf2" Char,
+                  Act In "hf8" (Int -> Int),
+                  Act De "mf4" Bool,
+                  Act In "af9" Bool,
+                  Act In "yf10" Char,
+                  Act In "mf11" String,
+                  Act De "zf3" Int
+                 ]
+
+testInTandem03 :: IO ()
+testInTandem03 = assertEqual "" (demoteMap (Proxy @(Perform Actions03))) (perform (demoteActions (Proxy @Actions03)))
+
+
+type Actions04 = [Act In "ef1" Bool,
+                  Act In "ef2" Char,
+                  Act De "ef3" Int, -- we can delete entries that don't exist
+                  Act In "af3" Int,
+                  Act De "af3" Int, 
+                  Act In "kf4" Bool,
+                  Act De "kf4" Bool,
+                  Act In "pf5" Char,
+                  Act De "pf5" Char,
+                  Act In "zf6" Int,
+                  Act De "zf6" Int,
+                  Act In "ff7" Bool,
+                  Act De "ff7" Bool,
+                  Act In "rf5" Char,
+                  Act De "rf5" Char,
+                  Act De "ef2" Char,
+                  Act In "lf8" (Int -> Int),
+                  Act In "lll" Bool,
+                  Act De "lll" Bool,
+                  Act De "lf8" (Int -> Int),
+                  Act In "ef1" Bool, -- we can re-add the exact same entry
+                  Act De "ef1" Bool
+                 ]
+
+testInTandem04 :: IO ()
+testInTandem04 = assertEqual "" (demoteMap (Proxy @(Perform Actions04))) (perform (demoteActions (Proxy @Actions04)))
+
 
