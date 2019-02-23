@@ -11,6 +11,8 @@ module Data.RBR (
         -- * Records and Variants
         Record,
         unit,
+        cpure_Record,
+        collapse_Record,
         prettyShowRecord,
         prettyShowRecordI,
         Variant,

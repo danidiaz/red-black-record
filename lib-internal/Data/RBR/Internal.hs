@@ -70,7 +70,7 @@ type family
  
      'cpara_Map' constructs a 'Record' by means of a constraint for producing
      the nodes of the tree. The constraint is passed as a 'Data.Proxy.Proxy'.
-     This function seldom needs to be called directly.
+     
 -}
 class KeysValuesAllF c t => KeysValuesAll (c :: k -> v -> Constraint) (t :: Map k v) where
   cpara_Map ::
@@ -87,6 +87,11 @@ instance (c k v, KeysValuesAll c left, KeysValuesAll c right) => KeysValuesAll c
   cpara_Map p nil cons =
     cons (cpara_Map p nil cons) (cpara_Map p nil cons)
 
+{- |
+    Create a 'Record', knowing that both keys and values satisfy some constraints. 
+
+    The naming scheme follows that of 'Data.SOP.NP.cpure_NP'.
+ -}
 cpure_Record :: forall c t f. KeysValuesAll c t => (Proxy c) -> (forall k v. c k v => f v) -> Record f t
 cpure_Record _ fpure = cpara_Map (Proxy @c) unit go
     where
@@ -147,6 +152,15 @@ data Record (f :: Type -> Type) (t :: Map Symbol Type)  where
 
 instance (Productlike '[] t result, Show (NP f result)) => Show (Record f t) where
     show x = "fromNP (" ++ show (toNP x) ++ ")"
+
+
+{- | Collapse a 'Record' composed of 'K' annotations.
+    
+     The naming scheme follows that of 'Data.SOP.NP.collapse_NP'.
+
+-}
+collapse_Record :: (Productlike '[] t result) => Record (K a) t -> [a]
+collapse_Record = collapse_NP . toNP
 
 {- | Show a 'Record' in a friendlier way than the default 'Show' instance. The
      function argument will usually be 'show', but it can be used to unwrap the
