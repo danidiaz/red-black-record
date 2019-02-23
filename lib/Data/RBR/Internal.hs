@@ -122,7 +122,7 @@ demoteKeys = cpara_Map (Proxy @KnownKey) unit go
     go left right = Node left (K (symbolVal (Proxy @k))) right 
 
 {- |
-  Two-place constraint saying that the symbol can be demoted to String. Nothing is required from the value type.
+  Two-place constraint saying that the 'Symbol' can be demoted to String. Nothing is required from the value type.
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
@@ -1588,12 +1588,6 @@ instance DelableR k v left kx vx right => DelableHelper LT k v left kx vx right 
     del' = delR @k @v @left @kx @vx @right  
     win' = winR @k @v @left @kx @vx @right  
 
--- delete :: Ord a => a -> RB a -> RB a
-class Deletable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
-    type Delete k v t :: Map Symbol Type
-    delete :: Record f t -> Record f (Delete k v t)
-    winnow :: Variant f t -> Either (Variant f (Delete k v t)) (f v) 
-
 {- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
      be deleted from a type-level tree.
  
@@ -1610,6 +1604,11 @@ class Deletable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
      If the tree already has the key but with a /different/ type, the deletion
      fails to compile.
  -}
+class Deletable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
+    type Delete k v t :: Map Symbol Type
+    delete :: Record f t -> Record f (Delete k v t)
+    winnow :: Variant f t -> Either (Variant f (Delete k v t)) (f v) 
+
 instance (Delable k v t, CanMakeBlack (Del k v t)) => Deletable k v t where
     type Delete k v t = MakeBlack (Del k v t)
     delete r = makeBlackR (del @k @v r) 
