@@ -1,3 +1,7 @@
+-- | See <https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html here> for
+-- the original term-level code by Stefan Kahrs. It is also copied at the end
+-- of this file.  Some parts of the type-level code include the correspondign
+-- term-level parts in their comments.
 {-# LANGUAGE DataKinds,
              TypeOperators,
              ConstraintKinds,
@@ -50,6 +54,7 @@ data Map k v = E
              | N Color (Map k v) k v (Map k v)
     deriving (Show,Eq)
 
+-- | A map without entries. See also 'unit' and 'impossible'.
 type EmptyMap = E
 
 --
@@ -88,7 +93,7 @@ instance (c k v, KeysValuesAll c left, KeysValuesAll c right) => KeysValuesAll c
     cons (cpara_Map p nil cons) (cpara_Map p nil cons)
 
 {- |
-    Create a 'Record', knowing that both keys and values satisfy some constraints. 
+    Create a 'Record', knowing that both keys and values satisfy a 2-place constraint. The constraint is passed as a 'Data.Proxy.Proxy'.
 
     The naming scheme follows that of 'Data.SOP.NP.cpure_NP'.
  -}
@@ -116,10 +121,20 @@ demoteKeys = cpara_Map (Proxy @KnownKey) unit go
        -> Record (K String) (N color left k v right)
     go left right = Node left (K (symbolVal (Proxy @k))) right 
 
--- the "class synonym" trick. https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/
+{- |
+  Two-place constraint saying that the symbol can be demoted to String. Nothing is required from the value type.
+
+  Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
+-}
 class KnownSymbol k => KnownKey (k :: Symbol) (v :: z)
 instance KnownSymbol k => KnownKey k v 
 
+{- | 
+  Create a record containing the names of each field along with a term-level
+  representation of each type.
+
+  See also 'collapse_Record' for getting the entries as a list.
+-}
 demoteEntries :: forall t. KeysValuesAll KnownKeyTypeableValue t => Record (K (String,TypeRep)) t
 demoteEntries = cpara_Map (Proxy @KnownKeyTypeableValue) unit go
     where
@@ -129,11 +144,13 @@ demoteEntries = cpara_Map (Proxy @KnownKeyTypeableValue) unit go
        -> Record (K (String,TypeRep)) (N color left k v right)
     go left right = Node left (K (symbolVal (Proxy @k),typeRep (Proxy @v))) right 
 
--- the "class synonym" trick. https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/
+{- |
+  Two-place constraint saying that the symbol can be demoted to String, and that a term-level representation can be obtained for the value type. 
+
+  Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
+-}
 class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) (v :: Type)
 instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v 
-
--- TODO: add "Collapse" newtype
 
 -- class KeyValueTop (k :: Symbol) (v :: z)
 -- instance KeyValueTop k v
@@ -159,7 +176,7 @@ instance (Productlike '[] t result, Show (NP f result)) => Show (Record f t) whe
      The naming scheme follows that of 'Data.SOP.NP.collapse_NP'.
 
 -}
-collapse_Record :: (Productlike '[] t result) => Record (K a) t -> [a]
+collapse_Record :: forall t result a. (Productlike '[] t result) => Record (K a) t -> [a]
 collapse_Record = collapse_NP . toNP
 
 {- | Show a 'Record' in a friendlier way than the default 'Show' instance. The
@@ -1087,16 +1104,6 @@ instance ( ToVariantHelper t t1,
 --
 --
 
--- class BalanceableTree (t :: Map Symbol Type) where
---     type BalanceTree t :: Map Symbol Type
---     balanceTreeR :: Record f t -> Record f (BalanceTree t)
---     balanceTreeV :: Variant f t -> Variant f (BalanceTree t)
--- 
--- instance Balanceable left k v right => BalanceableTree (N color left k v right) where
---     type BalanceTree (N color left k v right) = Balance left k v right
---     balanceTreeR = balanceR @left @k @v @right
---     balanceTreeV = balanceV @left @k @v @right
-
 type family DiscriminateBalL (l :: Map k v) (r :: Map k v) :: Bool where
     DiscriminateBalL (N R _ _ _ _) _ = False
     DiscriminateBalL _             _ = True
@@ -1257,19 +1264,21 @@ instance Fuseable E E where
     fuseRecord _ _ = unit
     fuseVariant v = case v of
 
+-- app E x = x
 instance Fuseable E (N color left k v right) where
     type Fuse E (N color left k v right) = N color left k v right
     fuseRecord _ r = r
     fuseVariant e = case e of
         Right v -> v
 
+-- app x E = x
 instance Fuseable (N color left k v right) E where
     type Fuse (N color left k v right) E = N color left k v right
     fuseRecord r _ = r
     fuseVariant e = case e of
         Left v -> v
 
--- fuse t1@(T B _ _ _) (T R t3 y t4) = T R (fuse t1 t3) y t4
+-- app a (T R b x c) = T R (app a b) x c
 instance Fuseable (N B left1 k1 v1 right1) left2 => Fuseable (N B left1 k1 v1 right1) (N R left2 k2 v2 right2) where
     type Fuse (N B left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R (Fuse (N B left1 k1 v1 right1) left2) k2 v2 right2
     fuseRecord (Node left1 v1 right1) (Node left2 v2 right2) = Node (fuseRecord @(N B left1 k1 v1 right1) (Node left1 v1 right1) left2) v2 right2 
@@ -1283,7 +1292,8 @@ instance Fuseable (N B left1 k1 v1 right1) left2 => Fuseable (N B left1 k1 v1 ri
             Here v2          -> Here      v2
             LookRight right2 -> LookRight right2
 
--- fuse (T R t1 x t2) t3@(T B _ _ _) = T R t1 x (fuse t2 t3)
+
+-- app (T R a x b) c = T R a x (app b c)
 instance Fuseable right1 (N B left2 k2 v2 right2) => Fuseable (N R left1 k1 v1 right1) (N B left2 k2 v2 right2) where
     type Fuse (N R left1 k1 v1 right1) (N B left2 k2 v2 right2) = N R left1 k1 v1 (Fuse right1 (N B left2 k2 v2 right2))
     fuseRecord (Node left1 v1 right1) (Node left2 v2 right2) = Node left1 v1 (fuseRecord @_ @(N B left2 k2 v2 right2) right1 (Node left2 v2 right2))
@@ -1297,12 +1307,8 @@ instance Fuseable right1 (N B left2 k2 v2 right2) => Fuseable (N R left1 k1 v1 r
             Here v2          -> LookRight (fuseVariant @right1 @(N B left2 k2 v2 right2) (Right (Here v2)))
             LookRight right2 -> LookRight (fuseVariant @right1 @(N B left2 k2 v2 right2) (Right (LookRight right2)))
 
--- fuse (T R t1 x t2) (T R t3 y t4)  =
---   let s = fuse t2 t3
---   in case s of
---        (T R s1 z s2) -> (T R (T R t1 x s1) z (T R s2 y t4))
---        (T B _ _ _)   -> (T R t1 x (T R s y t4))
 
+-- app (T R a x b) (T R c y d) =
 instance (Fuseable right1 left2, Fuse right1 left2 ~ fused, FuseableHelper1 fused (N R left1 k1 v1 right1) (N R left2 k2 v2 right2)) => Fuseable (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
     type Fuse (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) = Fuse1 (Fuse right1 left2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) 
     fuseRecord = fuseRecord1 @(Fuse right1 left2) 
@@ -1313,6 +1319,9 @@ class FuseableHelper1 (fused :: Map Symbol Type) (l :: Map Symbol Type) (r :: Ma
     fuseRecord1 :: Record f l -> Record f r -> Record f (Fuse l r)
     fuseVariant1 :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
 
+-- app (T R a x b) (T R c y d) =
+--  case app b c of
+--      T R b' z c' -> T R (T R a x b') z (T R c' y d)
 -- FIXME: The Fuseable constraint is repeated from avobe :(
 instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z zv s2) => FuseableHelper1 (N R s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
     type Fuse1 (N R s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R (N R left1 k1 v1 s1) z zv (N R s2 k2 v2 right2)
@@ -1336,6 +1345,11 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z zv s2) => Fuseable
                             Here      v2     -> LookRight (Here v2)
                             LookRight right2 -> LookRight (LookRight right2)
 
+
+-- app (T R a x b) (T R c y d) =
+--  case app b c of
+--      ...
+--      bc -> T R a x (T R bc y d)
 -- FIXME: The Fuseable constraint is repeated from above :(
 instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2) => FuseableHelper1 (N B s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) where
     type Fuse1 (N B s1 z zv s2) (N R left1 k1 v1 right1) (N R left2 k2 v2 right2) = N R left1 k1 v1 (N R (N B s1 z zv s2) k2 v2 right2)
@@ -1359,6 +1373,10 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2) => Fuseable
                             Here      v2     -> LookRight (Here v2)
                             LookRight right2 -> LookRight (LookRight right2)
 
+-- app (T R a x b) (T R c y d) =
+--  case app b c of
+--      ...
+--      bc -> T R a x (T R bc y d)
 instance FuseableHelper1 E (N R left1 k1 v1 E) (N R E k2 v2 right2) where
     type Fuse1 E (N R left1 k1 v1 E) (N R E k2 v2 right2) = N R left1 k1 v1 (N R E k2 v2 right2)
     fuseRecord1 (Node left1 v1 right1) (Node left2 v2 right2) = Node left1 v1 (Node Empty v2 right2)
@@ -1371,12 +1389,7 @@ instance FuseableHelper1 E (N R left1 k1 v1 E) (N R E k2 v2 right2) where
                             Here      v2     -> LookRight (Here v2)
                             LookRight right2 -> LookRight (LookRight right2)
 
--- fuse (T B t1 x t2) (T B t3 y t4)  =
---   let s = fuse t2 t3
---   in case s of
---        (T R s1 z s2) -> (T R (T B t1 x s1) z (T B s2 y t4))
---        (T B s1 z s2) -> balL (T B t1 x (T B s y t4))
-
+-- app (T B a x b) (T B c y d) = 
 instance (Fuseable right1 left2, Fuse right1 left2 ~ fused, FuseableHelper2 fused (N B left1 k1 v1 right1) (N B left2 k2 v2 right2)) => Fuseable (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) where
     type Fuse (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) = Fuse2 (Fuse right1 left2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) 
     fuseRecord = fuseRecord2 @(Fuse right1 left2) 
@@ -1388,6 +1401,9 @@ class FuseableHelper2 (fused :: Map Symbol Type) (l :: Map Symbol Type) (r :: Ma
     fuseRecord2 :: Record f l -> Record f r -> Record f (Fuse l r)
     fuseVariant2 :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
 
+-- app (T B a x b) (T B c y d) = 
+--  case app b c of
+--      T R b' z c' -> T R (T B a x b') z (T B c' y d)
 instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z zv s2) => FuseableHelper2 (N R s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) where
     type Fuse2 (N R s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) = N R (N B left1 k1 v1 s1) z zv (N B s2 k2 v2 right2)
     fuseRecord2 (Node left1 v1 right1) (Node left2 v2 right2) = 
@@ -1410,6 +1426,10 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z zv s2) => Fuseable
                             Here      v2     -> LookRight (Here v2)
                             LookRight right2 -> LookRight (LookRight right2)
 
+-- app (T B a x b) (T B c y d) = 
+--  case app b c of
+--      ...
+--      bc -> balleft a x (T B bc y d)
 instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2, BalanceableL left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2)) => FuseableHelper2 (N B s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) where
     type Fuse2 (N B s1 z zv s2) (N B left1 k1 v1 right1) (N B left2 k2 v2 right2) = BalL left1 k1 v1 (N B (N B s1 z zv s2) k2 v2 right2)
     fuseRecord2 (Node left1 v1 right1) (Node left2 v2 right2) = 
@@ -1431,6 +1451,10 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2, Balanceable
                             Here      v2     -> LookRight (Here v2)
                             LookRight right2 -> LookRight (LookRight right2))
 
+-- app (T B a x b) (T B c y d) = 
+--  case app b c of
+--      ...
+--      bc -> balleft a x (T B bc y d)
 instance (BalanceableL left1 k1 v1 (N B E k2 v2 right2)) => FuseableHelper2 E (N B left1 k1 v1 E) (N B E k2 v2 right2) where
     type Fuse2  E (N B left1 k1 v1 E) (N B E k2 v2 right2) = BalL left1 k1 v1 (N B E k2 v2 right2)
     fuseRecord2 (Node left1 v1 right1) (Node left2 v2 right2) = 
@@ -1448,7 +1472,7 @@ instance (BalanceableL left1 k1 v1 (N B E k2 v2 right2)) => FuseableHelper2 E (N
 --  del (T _ a y b)
 --      | x<y = delformLeft a y b
 --      | x>y = delformRight a y b
---             | otherwise = app a b
+--      | otherwise = app a b
 class Delable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
     type Del k v t :: Map Symbol Type
     del :: Record f t -> Record f (Del k v t)
@@ -1462,6 +1486,7 @@ class DelableL (k :: Symbol) (v :: Type) (l :: Map Symbol Type) (kx :: Symbol) (
     delL :: Record f (N color l kx vx r) -> Record f (DelL k v l kx vx r)
     winL :: Variant f (N color l kx vx r) -> Either (Variant f (DelL k v l kx vx r)) (f v) 
 
+--  delformLeft a@(T B _ _ _) y b = balleft (del a) y b
 instance (Delable k v (N B leftz kz vz rightz), BalanceableL (Del k v (N B leftz kz vz rightz)) kx vx right) 
     => DelableL k v (N B leftz kz vz rightz) kx vx right where
     type DelL k v (N B leftz kz vz rightz) kx vx right = BalL (Del k v (N B leftz kz vz rightz)) kx vx right
@@ -1471,6 +1496,7 @@ instance (Delable k v (N B leftz kz vz rightz), BalanceableL (Del k v (N B leftz
         Here vx -> Left $ Here vx
         LookRight r -> Left $ LookRight r)
 
+--  delformLeft a y b = T R (del a) y b
 instance (Delable k v (N R leftz kz vz rightz)) => DelableL k v (N R leftz kz vz rightz) kx vx right where
     type DelL k v (N R leftz kz vz rightz) kx vx right = N R (Del k v (N R leftz kz vz rightz)) kx vx right
     delL (Node left vx right) = Node (del @k @v left) vx right
@@ -1479,6 +1505,7 @@ instance (Delable k v (N R leftz kz vz rightz)) => DelableL k v (N R leftz kz vz
         Here vx -> Left (Here vx)
         LookRight r -> Left (LookRight r)
 
+--  delformLeft a y b = T R (del a) y b
 instance DelableL k v E kx vx right where
     type DelL k v E kx vx right = N R E kx vx right
     delL (Node left vx right) = Node Empty vx right
@@ -1493,6 +1520,7 @@ class DelableR (k :: Symbol) (v :: Type) (l :: Map Symbol Type) (kx :: Symbol) (
     delR :: Record f (N color l kx vx r) -> Record f (DelR k v l kx vx r)
     winR :: Variant f (N color l kx vx r) -> Either (Variant f (DelR k v l kx vx r)) (f v) 
 
+--  delformRight a y b@(T B _ _ _) = balright a y (del b)
 instance (Delable k v (N B leftz kz vz rightz), BalanceableR left kx vx (Del k v (N B leftz kz vz rightz))) => DelableR k v left kx vx (N B leftz kz vz rightz) where
     type DelR k v left kx vx (N B leftz kz vz rightz) = BalR left kx vx (Del k v (N B leftz kz vz rightz))
     delR (Node left vx right) = balRR @left @kx @vx @(Del k v (N B leftz kz vz rightz)) (Node left vx (del @k @v right))
@@ -1501,6 +1529,7 @@ instance (Delable k v (N B leftz kz vz rightz), BalanceableR left kx vx (Del k v
         Here vx -> Left $ Here vx
         LookRight r -> first LookRight (win @k @v r))
 
+--  delformRight a y b = T R a y (del b)
 instance (Delable k v (N R leftz kz vz rightz)) => DelableR k v left kx vx (N R leftz kz vz rightz) where
     type DelR k v left kx vx (N R leftz kz vz rightz) = N R left kx vx (Del k v (N R leftz kz vz rightz))
     delR (Node left vx right) = Node left vx (del @k @v right)
@@ -1509,6 +1538,7 @@ instance (Delable k v (N R leftz kz vz rightz)) => DelableR k v left kx vx (N R 
         Here vx -> Left (Here vx)
         LookRight r -> first LookRight (win @k @v r)
 
+--  delformRight a y b = T R a y (del b)
 instance DelableR k v left kx vx E where
     type DelR k v left kx vx E = N R left kx vx E
     delR (Node left vx right) = Node left vx Empty
@@ -1516,6 +1546,7 @@ instance DelableR k v left kx vx E where
         LookLeft l -> Left (LookLeft l)
         Here vx -> Left (Here vx)
 
+--  del E = E
 instance Delable k v E where
     type Del k v E = E
     del _ = unit
@@ -1523,6 +1554,9 @@ instance Delable k v E where
 
 -- the color is discarded
 --  del (T _ a y b)
+--      | x<y = delformLeft a y b
+--      | x>y = delformRight a y b
+--      | otherwise = app a b
 instance (CmpSymbol kx k ~ ordering, DelableHelper ordering k v left kx vx right) => Delable k v (N color left kx vx right) where
     type Del k v (N color left kx vx right) = Del' (CmpSymbol kx k) k v left kx vx right
     del = del' @(CmpSymbol kx k) @k @v @left @kx @vx @right
@@ -1533,11 +1567,13 @@ class DelableHelper (ordering :: Ordering) (k :: Symbol) (v :: Type) (l :: Map S
     del' :: Record f (N color l kx vx r) -> Record f (Del' ordering k v l kx vx r)
     win' :: Variant f (N color l kx vx r) -> Either (Variant f (Del' ordering k v l kx vx r)) (f v) 
 
+--      | x<y = delformLeft a y b
 instance DelableL k v left kx vx right => DelableHelper GT k v left kx vx right where
     type Del' GT k v left kx vx right = DelL k v left kx vx right
     del' = delL @k @v @left @kx @vx @right  
     win' = winL @k @v @left @kx @vx @right  
 
+--      | otherwise = app a b
 instance Fuseable left right => DelableHelper EQ k v left k v right where
     type Del' EQ k v left k v right = Fuse left right
     del' (Node left _ right) = fuseRecord @left @right left right 
@@ -1546,11 +1582,13 @@ instance Fuseable left right => DelableHelper EQ k v left k v right where
         Here v      -> Right v 
         LookRight r -> Left $ fuseVariant @left @right (Right r)
 
+--      | x>y = delformRight a y b
 instance DelableR k v left kx vx right => DelableHelper LT k v left kx vx right where
     type Del' LT k v left kx vx right = DelR k v left kx vx right
     del' = delR @k @v @left @kx @vx @right  
     win' = winR @k @v @left @kx @vx @right  
 
+-- delete :: Ord a => a -> RB a -> RB a
 class Deletable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
     type Delete k v t :: Map Symbol Type
     delete :: Record f t -> Record f (Delete k v t)
@@ -1659,7 +1697,7 @@ winnowI = fmap unI . winnow @k @v @t
 -- app x E = x
 -- app (T R a x b) (T R c y d) =
 --  case app b c of
---      T R b' z c' -> T R(T R a x b') z (T R c' y d)
+--      T R b' z c' -> T R (T R a x b') z (T R c' y d)
 --      bc -> T R a x (T R bc y d)
 -- app (T B a x b) (T B c y d) = 
 --  case app b c of

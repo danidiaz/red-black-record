@@ -11,6 +11,10 @@
 
 - Solved bugs with coloring/balancing, added new tests.
 
+- Data.RBR.Internal is still exported, but it doesn't appear in the Haddocks.
+  It appears that Haddock doesn't play well with reexported-modules sections in
+  Cabal.
+
 ## 1.1.0.0
 
 - Field and Branch type families to help speed up type-level computations. 

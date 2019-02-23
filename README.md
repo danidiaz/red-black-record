@@ -91,9 +91,8 @@ equivalent structures.
 ### I can't insert into a record when a field with the same name but different type already exists. Why not simply overwrite it?
 
 That limitation was intentional, because allowing it would make impossible to
-implement of `widen` for `Variant`. When/if key deletion gets implemented
-type-level tree, one solution would be to explicitly delete the field and then
-insert it again.
+implement of `widen` for `Variant`. One solution is to explicitly delete the
+field and then insert it again.
 
 ### The library doesn't use Proxy and relies on type application instead. But what’s the order of the type parameters?
 
@@ -122,11 +121,6 @@ be used to build lawful lenses and prisms over fragmenst of a structure.
 
 They can also be used to convert between type-level trees that have the same
 entries but different structure.
-
-### I want a version of "match" that when it fails returns a variant with the unmatched cases.
-
-That isn't implemented (yet). It would require key deletion on the type-level
-tree.
 
 ### What about compilation times?
 
@@ -183,7 +177,8 @@ Alternatives
   fully-featured extensible records libraries. Uses a type level list of
   fields. The fields' values are wrapped in a type constructor, like in
   sop-core. The records seem to use an auxiliary sum type that serves as a
-  "code" for the fields.
+  "code" for the fields. See also
+  [vinyl-genercics](https://hackage.haskell.org/package/vinyl-generics).
 
 - [HTree](https://github.com/i-am-tom/learn-me-a-haskell#htree). Another
   implementation of extensible records using type-level red-black trees.
