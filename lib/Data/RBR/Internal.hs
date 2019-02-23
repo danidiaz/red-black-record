@@ -203,7 +203,7 @@ prettyShowRecordI r = prettyShowRecord (show . unI) r
 
 {-| A Record without components is a boring, uninformative type whose single value can be conjured out of thin air.
 -}
-unit :: Record f E
+unit :: Record f EmptyMap
 unit = Empty
 
 {- | An extensible sum-like type with named branches.
@@ -221,7 +221,7 @@ instance (Sumlike '[] t result, Show (NS f result)) => Show (Variant f t) where
 
 {-| A Variant without branches doesn't have any values. From an impossible thing, anything can come out. 
 -}
-impossible :: Variant f E -> b
+impossible :: Variant f EmptyMap -> b
 impossible v = case v of
 
 {- | Show a 'Variant' in a friendlier way than the default 'Show' instance. The
