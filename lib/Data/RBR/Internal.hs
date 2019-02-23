@@ -259,7 +259,7 @@ type family InsertAll (es :: [(Symbol,Type)]) (t :: Map Symbol Type) :: Map Symb
 
 {- | Build a type-level tree out of a list of type level key / value pairs. 
 -}
-type FromList (es :: [(Symbol,Type)]) = InsertAll es E
+type FromList (es :: [(Symbol,Type)]) = InsertAll es Empty
 
 {- | Alias for 'insert'. 
 -}
