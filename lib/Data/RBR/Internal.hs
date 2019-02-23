@@ -57,6 +57,7 @@ data Map k v = E
 -- | A map without entries. See also 'unit' and 'impossible'.
 type Empty = E
 
+{-# DEPRECATED EmptyMap "Use Empty instead." #-}
 type EmptyMap = E
 
 --

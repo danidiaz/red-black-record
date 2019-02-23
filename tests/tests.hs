@@ -61,7 +61,7 @@ demoteActions _ = collapse_NP $ cpure_NP @_ @as (Proxy @DemotableAction) conjure
 type family Perform (as :: [Action Symbol Type]) :: Map Symbol Type where
     Perform (Act In s v ': as) = Insert s v (Perform as)
     Perform (Act De s v ': as) = Delete s v (Perform as)
-    Perform '[]                = EmptyMap
+    Perform '[]                = Empty
 
 perform :: [Action String TypeRep] -> Map String TypeRep
 perform = foldr (\(Act iod s v) t -> case iod of In -> t_insert s v t
