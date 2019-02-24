@@ -49,7 +49,7 @@ data Color = R
            | B
     deriving (Show,Eq)
 
--- | The Red-Black tree. It will be used, as a kind, to index the 'Record' and 'Variant' types.
+-- | A Red-Black tree. It will be used as a kind, to index the 'Record' and 'Variant' types.
 data Map k v = E 
              | N Color (Map k v) k v (Map k v)
     deriving (Show,Eq)
@@ -125,7 +125,7 @@ demoteKeys = cpara_Map (Proxy @KnownKey) unit go
     go left right = Node left (K (symbolVal (Proxy @k))) right 
 
 {- |
-  Two-place constraint saying that the 'Symbol' can be demoted to String. Nothing is required from the value type.
+  Two-place constraint saying that a 'Symbol' key can be demoted to 'String'. Nothing is required from the corresponding value.
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
@@ -148,7 +148,7 @@ demoteEntries = cpara_Map (Proxy @KnownKeyTypeableValue) unit go
     go left right = Node left (K (symbolVal (Proxy @k),typeRep (Proxy @v))) right 
 
 {- |
-  Two-place constraint saying that the symbol can be demoted to String, and that a term-level representation can be obtained for the value type. 
+  Two-place constraint saying that a 'Symbol' key can be demoted to 'String', and that the corresponding value 'Type' has a term-level representation. 
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
@@ -165,6 +165,8 @@ instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v
  
      The values in the 'Record' come wrapped in a type constructor @f@, which
      por pure records will be the identity functor 'I'.
+
+     See also 'insert', 'delete' and 'project'.
 -}
 data Record (f :: Type -> Type) (t :: Map Symbol Type)  where
     Empty :: Record f E 
@@ -213,6 +215,8 @@ unit = Empty
  
      The values in the 'Variant' come wrapped in a type constructor @f@, which
      por pure variants will be the identity functor 'I'.
+
+     See also 'widen', 'winnow' and 'inject'.
 -}
 data Variant (f :: Type -> Type) (t :: Map Symbol Type)  where
     Here       :: f v -> Variant f (N color left k v right)
@@ -251,13 +255,13 @@ prettyShowVariantI v = prettyShowVariant (show . unI) v
 --
 -- Insertion
 
-{- | Insert a list of type level key / value pairs into a type-level tree. 
+{- | Insert a list of type level key / value pairs into a type-level map. 
 -}
 type family InsertAll (es :: [(Symbol,Type)]) (t :: Map Symbol Type) :: Map Symbol Type where
     InsertAll '[] t = t
     InsertAll ( '(name,fieldType) ': es ) t = Insert name fieldType (InsertAll es t)
 
-{- | Build a type-level tree out of a list of type level key / value pairs. 
+{- | Build a type-level map out of a list of type level key / value pairs. 
 -}
 type FromList (es :: [(Symbol,Type)]) = InsertAll es Empty
 
@@ -277,17 +281,17 @@ addFieldI :: forall k v t . Insertable k v t => v -> Record I t -> Record I (Ins
 addFieldI = insertI @k @v @t
 
 {- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
-     be inserted into a type-level tree.
+     be inserted into a type-level map.
  
-     The associated type family 'Insert' produces the resulting tree.
+     The associated type family 'Insert' produces the resulting map.
 
      At the term level, this manifests in 'insert', which adds a new field to a
      record, and in 'widen', which lets you use a 'Variant' in a bigger context
      than the one in which is was defined. 'insert' tends to be more useful in
      practice.
 
-     If the tree already has the key but with a /different/ type, the insertion
-     fails to compile.
+     If the map already has the key but with a /different/ 'Type', the
+     insertion fails to compile.
  -}
 class Insertable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
     type Insert k v t :: Map Symbol Type
@@ -556,7 +560,7 @@ type family Branch (f :: Type -> Type) (t :: Map Symbol Type) (v :: Type) where
 --
 {- | 
      Class that determines if a given 'Symbol' key is present in a type-level
-     tree.
+     map.
 
      The 'Value' type family gives the 'Type' corresponding to the key.
 
@@ -705,7 +709,7 @@ newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
 class (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol Type) (k :: Symbol) (v :: Type) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol Type) (k :: Symbol) (v :: Type)
 
-{- | Constraint for trees that represent subsets of fields of 'Record'-like types.
+{- | Constraint for maps that represent subsets of fields of 'Record'-like types.
 -}
 type ProductlikeSubset (subset :: Map Symbol Type) (whole :: Map Symbol Type) (flat :: [Type]) = 
                        (KeysValuesAll (PresentIn whole) subset,
@@ -737,7 +741,7 @@ fieldSubset r =
 
 {- | Like 'project', but extracts multiple fields at the same time.
  
-     Can also be used to convert between structurally dissimilar trees that
+     Can also be used to convert between structurally dissimilar maps that
      nevertheless have the same entries. 
 -}
 projectSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat) 
@@ -771,7 +775,7 @@ modifyFieldSubset :: forall subset whole flat f.  (ProductlikeSubset subset whol
 modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
 
 
-{- | Constraint for trees that represent subsets of branches of 'Variant'-like types.
+{- | Constraint for maps that represent subsets of branches of 'Variant'-like types.
 -}
 type SumlikeSubset (subset :: Map Symbol Type) (whole :: Map Symbol Type) (subflat :: [Type]) (wholeflat :: [Type]) = 
                    (KeysValuesAll (PresentIn whole) subset,
@@ -1592,19 +1596,17 @@ instance DelableR k v left kx vx right => DelableHelper LT k v left kx vx right 
     win' = winR @k @v @left @kx @vx @right  
 
 {- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
-     be deleted from a type-level tree.
+     be deleted from a type-level map.
  
-     The associated type family 'Delete' produces the resulting tree.
+     The associated type family 'Delete' produces the resulting map.
 
      At the term level, this manifests in 'delete', which removes a field from
      a record, and in 'winnow', which checks if a 'Variant' is of a given
      branch and returns the value in the branch if there's a match, or a
-     reduced 'Variant' if there isn't.
-     
-     'winnow' tends to be more useful in
+     reduced 'Variant' if there isn't. 'winnow' tends to be more useful in
      practice.
 
-     If the tree already has the key but with a /different/ type, the deletion
+     If the map already has the key but with a /different/ 'Type', the deletion
      fails to compile.
  -}
 class Deletable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
