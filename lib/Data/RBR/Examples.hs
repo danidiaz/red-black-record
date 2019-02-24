@@ -14,6 +14,9 @@ module Data.RBR.Examples (
     -- * Injecting into a Variant and eliminating it
     -- $variant1
     
+    -- * Working with a bigger error type inside a function
+    -- $variant1bError
+    
     -- * Creating a Variant out of a sum type and matching on it
     -- $variant2
       
@@ -114,6 +117,33 @@ Because here the types of each field can be inferred, we can use a wildcard
      in eliminate e b
 :}
 c
+
+-} 
+
+{- $variant1bError
+ 
+    A function can use internally an error 'Variant' bigger than the one it
+    eventually returns. The internal branches of the 'Variant' can be removed with
+    'winnow'. 
+
+    This library makes it more involved than it should be, because inserting an
+    entry and then deleting it can result in structurally dissimilar type-level
+    maps. So we need extra type annotations in 'winnow', and also a call to
+    'injectSubset' to perform the conversion.
+ 
+>>> type Smaller = FromList '[ '("foo",Char), '("bar",Int) ]
+>>> :{
+    let func :: Int -> Variant I Smaller 
+        func i = 
+            let v = if (i == 0) then injectI @"baz" "internal"
+                                else injectI @"foo" 'c'
+                r = case winnowI @"baz" @String @(Insert "baz" String Smaller) v of
+                        Right   e       -> error "this is the baz internal error"
+                        Left    smaller -> smaller
+             in injectSubset r
+     in prettyShowVariantI (func 1)
+:}
+foo ('c')
 
 -} 
 

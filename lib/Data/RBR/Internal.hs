@@ -741,8 +741,8 @@ fieldSubset r =
 
 {- | Like 'project', but extracts multiple fields at the same time.
  
-     Can also be used to convert between structurally dissimilar maps that
-     nevertheless have the same entries. 
+     Can also be used to convert between 'Record's with structurally dissimilar
+     type-level maps that nevertheless hold the same entries. 
 -}
 projectSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat) 
               => Record f whole 
@@ -811,6 +811,9 @@ branchSubset =
        in eliminate injs)
 
 {- | Like 'inject', but injects one of several possible branches.
+ 
+     Can also be used to convert between 'Variant's with structurally
+     dissimilar type-level maps that nevertheless hold the same entries. 
 -}
 injectSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
              => Variant f subset -> Variant f whole
