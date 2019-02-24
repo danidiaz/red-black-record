@@ -298,6 +298,10 @@ class Insertable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
     insert :: f v -> Record f t -> Record f (Insert k v t)
     widen :: Variant f t -> Variant f (Insert k v t)
 
+-- insert x s =
+--  T B a z b
+--  where
+--  T _ a z b = ins s
 instance (InsertableHelper1 k v t, CanMakeBlack (Insert1 k v t)) => Insertable k v t where
     type Insert k v t = MakeBlack (Insert1 k v t)
     insert fv r = makeBlackR (insert1 @k @v fv r) 
@@ -458,6 +462,7 @@ class BalanceableHelper (action :: BalanceAction)
     balanceR' :: Record f (N color left k v right) -> Record f (Balance' action left k v right)
     balanceV' :: Variant f (N color left k v right) -> Variant f (Balance' action left k v right)
 
+-- balance (T R a x b) y (T R c z d) = T R (T B a x b) y (T B c z d)
 instance BalanceableHelper BalanceSpecial (N R left1 k1 v1 right1) kx vx (N R left2 k2 v2 right2) where
     type Balance'          BalanceSpecial (N R left1 k1 v1 right1) kx vx (N R left2 k2 v2 right2) = 
                                         N R (N B left1 k1 v1 right1) kx vx (N B left2 k2 v2 right2)
@@ -472,7 +477,7 @@ instance BalanceableHelper BalanceSpecial (N R left1 k1 v1 right1) kx vx (N R le
         LookRight (Here x)      -> LookRight (Here x)
         LookRight (LookRight x) -> LookRight (LookRight x)
 
-
+-- balance (T R (T R a x b) y c) z d = T R (T B a x b) y (T B c z d)
 instance BalanceableHelper BalanceLL (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d where
     type Balance'          BalanceLL (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = 
                                       N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d)
@@ -487,6 +492,7 @@ instance BalanceableHelper BalanceLL (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d where
         Here x                 -> LookRight (Here x)
         LookRight x            -> LookRight (LookRight x)
 
+-- balance (T R a x (T R b y c)) z d = T R (T B a x b) y (T B c z d)
 instance BalanceableHelper BalanceLR (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d where
     type Balance'          BalanceLR (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d = 
                                       N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
@@ -501,6 +507,7 @@ instance BalanceableHelper BalanceLR (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d where
         Here x                  -> LookRight (Here x)
         LookRight x             -> LookRight (LookRight x)
 
+-- balance a x (T R (T R b y c) z d) = T R (T B a x b) y (T B c z d)
 instance BalanceableHelper BalanceRL a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) where
     type Balance'          BalanceRL a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = 
                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
@@ -515,6 +522,8 @@ instance BalanceableHelper BalanceRL a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) where
         LookRight (Here x)      -> LookRight (Here x) 
         LookRight (LookRight x) -> LookRight (LookRight x)
 
+
+-- balance a x (T R b y (T R c z d)) = T R (T B a x b) y (T B c z d)
 instance BalanceableHelper BalanceRR a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) where
     type Balance'          BalanceRR a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = 
                                      N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
@@ -529,6 +538,7 @@ instance BalanceableHelper BalanceRR a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) where
                                                         Here y      -> Here y
                                                         LookRight y -> LookRight y)
 
+-- balance a x b = T B a x b
 instance BalanceableHelper DoNotBalance a k v b where
     type Balance' DoNotBalance a k v b = N B a k v b 
     balanceR' (Node left v right) = (Node left v right)
@@ -576,6 +586,7 @@ class Key (k :: Symbol) (t :: Map Symbol Type) where
     field  :: Field  f t (Value k t)
     branch :: Branch f t (Value k t)
 
+-- member :: Ord a => a -> RB a -> Bool
 class KeyHelper (ordering :: Ordering) (k :: Symbol) (left :: Map Symbol Type) (v :: Type) (right :: Map Symbol Type) where 
     type Value' ordering k left v right :: Type
     field'  :: Field  f (N colorx left kx v right) (Value' ordering k left v right)
@@ -586,6 +597,7 @@ instance (CmpSymbol k' k ~ ordering, KeyHelper ordering k left v' right) => Key 
     field = field' @ordering @k @left @v' @right
     branch = branch' @ordering @k @left @v' @right
 
+--  | x<y = member x a
 instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2) 
       => KeyHelper LT k left v (N color2 left2 k2 v2 right2) where
     type Value'    LT k left v (N color2 left2 k2 v2 right2) = Value' (CmpSymbol k2 k) k left2 v2 right2
@@ -598,6 +610,7 @@ instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2)
                    _ -> Nothing,
              \fv -> LookRight (inj fv))
 
+--  | x>y = member x b
 instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2) 
       => KeyHelper GT k (N color2 left2 k2 v2 right2) v' right where
     type    Value' GT k (N color2 left2 k2 v2 right2) v' right = Value' (CmpSymbol k2 k) k left2 v2 right2
@@ -610,6 +623,7 @@ instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2)
                    _ -> Nothing,
              \fv -> LookLeft (inj fv))
 
+--  | otherwise = True
 instance KeyHelper EQ k left v right where
     type Value' EQ k left v right = v
     field' (Node left fv right) = (\x -> Node left x right, fv)
