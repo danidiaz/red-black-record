@@ -1407,7 +1407,7 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z zv s2)
 --      ...
 --      bc -> T R a x (T R bc y d)
 instance FuseableHelper1 E (N R left1 k1 v1 E) (N R E k2 v2 right2) where
-    type Fuse1 E           (N R left1 k1 v1 E) (N R E k2 v2 right2) = N R left1 k1 v1 (N R E k2 v2 right2)
+    type Fuse1           E (N R left1 k1 v1 E) (N R E k2 v2 right2) = N R left1 k1 v1 (N R E k2 v2 right2)
     fuseRecord1 (Node left1 v1 right1) (Node left2 v2 right2) = Node left1 v1 (Node Empty v2 right2)
     fuseVariant1 e = 
         case e of
