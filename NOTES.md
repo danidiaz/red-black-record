@@ -54,6 +54,8 @@ your own control structure functions"
 
 [vinyl-generics](http://hackage.haskell.org/package/vinyl-generics).
 
+[comparison of record libraries](https://docs.google.com/spreadsheets/d/14MJEjiMVulTVzSU4Bg4cCYZVfkbgANCRlrOiRneNRv8/edit#gid=0)
+
 Improving compilation times for type family-heavy code
 ======================================================
 
