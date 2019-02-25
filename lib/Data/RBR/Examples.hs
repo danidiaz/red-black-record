@@ -141,7 +141,7 @@ c
                         Right   e       -> error "this is the baz internal error"
                         Left    smaller -> smaller
              in injectSubset r
-     in prettyShowVariantI (func 1)
+     in putStrLn $ prettyShowVariantI (func 1)
 :}
 foo ('c')
 
