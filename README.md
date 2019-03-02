@@ -1,8 +1,6 @@
-red-black-record
-================
+# red-black-record
 
-What's this?
-------------
+## What's this?
 
 A library that provides extensible records and variants, both indexed by a
 type-level [red-black](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
@@ -38,22 +36,21 @@ provides conversion typeclasses with default implementations by way of
 For examples on how to use the library, check the haddocks for the
 `Data.RBR.Examples` module.
 
-FAQ
----
+## FAQ
 
 ### What extensions do I need to use this library?
 
-- `DataKinds`.
+* `DataKinds`.
 
-- `TypeApplications` to be able to specify field and branch names.
+* `TypeApplications` to be able to specify field and branch names.
 
-- `TypeFamilies`.
+* `TypeFamilies`.
 
-- `FlexibleContexts`.
+* `FlexibleContexts`.
 
-- `DeriveGeneric` for interfacing with normal records.
+* `DeriveGeneric` for interfacing with normal records.
 
-- `PartialTypeSignatures` for hiding complex tree types.
+* `PartialTypeSignatures` for hiding complex tree types.
 
 ### My type signatures are getting big and scary because of those type-level trees. What to do?
 
@@ -137,26 +134,24 @@ The default generics-based implementations of `FromRecord` and `FromVariant`
 use the same type-level machinery as the getters and its use will likely slow
 down compilation as well.
 
-Inspirations
-------------
+## Inspirations
 
-- The code for the red-black tree has been lifted from Stefan Kahrs's code
+* The code for the red-black tree has been lifted from Stefan Kahrs's code
   [available
   here](https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html). See also
   [this post](https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html).
 
-- Besides depending on sop-core, I have copied and adapted code from it. In
+* Besides depending on sop-core, I have copied and adapted code from it. In
   particular the `KeysValuessAll` typeclass is a version of the `All` typeclass
   from sop-core. 
 
-- [Surgery for data
+* [Surgery for data
   types](https://blog.poisson.chat/posts/2018-11-26-type-surgery.html).
   [reddit](https://www.reddit.com/r/haskell/comments/a0gi4z/surgery_for_data_types/).
 
-Alternatives
-------------
+## Alternatives
 
-- [generics-sop](http://hackage.haskell.org/package/generics-sop) and
+* [generics-sop](http://hackage.haskell.org/package/generics-sop) and
   [records-sop](http://hackage.haskell.org/package/records-sop). Like
   red-black-record, both of these libraries build upon sop-core. They are in
   fact written by the same author of sop-core. generics-sop can provide
@@ -172,30 +167,30 @@ Alternatives
   subtyping based on a type-level list of fields (unlike the type-level tree
   used by red-black-record). It doesn't seem to provide variants.
 
-- [superrecord](http://hackage.haskell.org/package/superrecord). This library
+* [superrecord](http://hackage.haskell.org/package/superrecord). This library
   provides very efficient field access at runtime because the fields are backed
   internally by an array. Uses a *sorted* type-level list of fields, to avoid
   the problems of multiple orderings of the same fields.
 
-- [vinyl](http://hackage.haskell.org/package/vinyl). One of the oldest and more
+* [vinyl](http://hackage.haskell.org/package/vinyl). One of the oldest and more
   fully-featured extensible records libraries. Uses a type level list of
   fields. The fields' values are wrapped in a type constructor, like in
   sop-core. The records seem to use an auxiliary sum type that serves as a
   "code" for the fields. See also
   [vinyl-genercics](https://hackage.haskell.org/package/vinyl-generics).
 
-- [HTree](https://github.com/i-am-tom/learn-me-a-haskell#htree). Another
+* [HTree](https://github.com/i-am-tom/learn-me-a-haskell#htree). Another
   implementation of extensible records using type-level red-black trees.
 
-- [megarecord](https://github.com/jvanbruegge/Megarecord). Seems to be a
+* [megarecord](https://github.com/jvanbruegge/Megarecord). Seems to be a
   proof-of-concept for a future [row polymorphism
   extension](https://github.com/ghc-proposals/ghc-proposals/pull/180) for
   Haskell.
 
-- [generic-data-surgery](https://hackage.haskell.org/package/generic-data-surgery).
+* [generic-data-surgery](https://hackage.haskell.org/package/generic-data-surgery).
   Lots of useful machinery for manipulating generic representations of
   dataytpes, without requiring intrusive changes to the original
   representation.
 
-- [Coxswain](https://ghc.haskell.org/trac/ghc/wiki/Plugins/TypeChecker/RowTypes/Coxswain).
+* [Coxswain](https://ghc.haskell.org/trac/ghc/wiki/Plugins/TypeChecker/RowTypes/Coxswain).
 
