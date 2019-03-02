@@ -302,7 +302,7 @@ class Insertable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
 --  T B a z b
 --  where
 --  T _ a z b = ins s
-instance (InsertableHelper1 k v t, CanMakeBlack (Insert1 k v t)) => Insertable k v t where
+instance (InsertableHelper1 k v t, Insert1 k v t ~ inserted, CanMakeBlack inserted) => Insertable k v t where
     type Insert k v t = MakeBlack (Insert1 k v t)
     insert fv r = makeBlackR (insert1 @k @v fv r) 
     widen v = makeBlackV (widen1 @k @v v)
@@ -361,8 +361,8 @@ class InsertableHelper2 (ordering :: Ordering)
 
 --  ins s@(T B a y b)
 --      | x<y = balance (ins a) y b
-instance (InsertableHelper1 k v left,
-          Balanceable (Insert1 k v left) k' v' right -- TODO remove B here
+instance (InsertableHelper1 k v left, Insert1 k v left ~ inserted,
+          Balanceable inserted k' v' right 
          )
          => InsertableHelper2 LT k v B left k' v' right where
     type Insert2              LT k v B left k' v' right = Balance (Insert1 k v left) k' v' right
@@ -374,8 +374,8 @@ instance (InsertableHelper1 k v left,
 
 --  ins s@(T B a y b)
 --      | x<y = balance (ins a) y b
-instance (InsertableHelper1 k v left,
-          Balanceable (Insert1 k v left) k' v' right-- TODO remove B here
+instance (InsertableHelper1 k v left, Insert1 k v left ~ inserted,
+          Balanceable inserted k' v' right
          )
          => InsertableHelper2 LT k v R left k' v' right where
     type Insert2              LT k v R left k' v' right = N R (Insert1 k v left) k' v' right
@@ -397,8 +397,8 @@ instance InsertableHelper2 EQ k v color left k v right where
 --  ins s@(T B a y b)
 --      | ...
 --      | x>y = balance a y (ins b)
-instance (InsertableHelper1 k v right,
-          Balanceable left  k' v' (Insert1 k v right)
+instance (InsertableHelper1 k v right, Insert1 k v right ~ inserted,
+          Balanceable left  k' v' inserted
          )
          => InsertableHelper2 GT k v B left k' v' right where
     type Insert2              GT k v B left k' v' right = Balance left  k' v' (Insert1 k v right)
@@ -411,8 +411,8 @@ instance (InsertableHelper1 k v right,
 --  ins s@(T R a y b)
 --      | ...
 --      | x>y = T R a y (ins b)
-instance (InsertableHelper1 k v right,
-          Balanceable left  k' v' (Insert1 k v right)
+instance (InsertableHelper1 k v right, Insert1 k v right ~ inserted,
+          Balanceable left  k' v' inserted
          )
          => InsertableHelper2 GT k v R left k' v' right where
     type Insert2              GT k v R left k' v' right = N R left k' v' (Insert1 k v right)
@@ -1161,7 +1161,7 @@ instance BalanceableHelperL False (N R left1 k1 v1 right1) k2 v2 right2 where
 
 -- balleft bl x (T B a y b) = balance bl x (T R a y b)
 -- the @(N B in the call to balance tree is misleading, as it is ingored...
-instance (BalanceableHelper (ShouldBalance t1 (N R t2 z zv t3)) t1 y yv (N R t2 z zv t3)) => 
+instance (N R t2 z zv t3 ~ g, BalanceableHelper (ShouldBalance t1 g) t1 y yv g) => 
     BalanceableHelperL True t1 y yv (N B t2 z zv t3) where
     type BalL'         True t1 y yv (N B t2 z zv t3)     
                  =  Balance t1 y yv (N R t2 z zv t3)
@@ -1176,7 +1176,7 @@ instance (BalanceableHelper (ShouldBalance t1 (N R t2 z zv t3)) t1 y yv (N R t2 
                             LookRight r' -> LookRight r'))
 
 -- balleft bl x (T R (T B a y b) z c) = T R (T B bl x a) y (balance b z (sub1 c))
-instance (BalanceableHelper    (ShouldBalance t3 (N R l k kv r)) t3 z zv  (N R l k kv r)) => 
+instance (N R l k kv r ~ g, BalanceableHelper    (ShouldBalance t3 g) t3 z zv g) => 
     BalanceableHelperL True t1 y yv (N R (N B t2 u uv t3) z zv (N B l k kv r)) where
     type BalL'         True t1 y yv (N R (N B t2 u uv t3) z zv (N B l k kv r)) =
                              N R (N B t1 y yv t2) u uv (Balance t3 z zv (N R l k kv r))          
@@ -1230,7 +1230,7 @@ instance BalanceableHelperR False right2 k2 v2 (N R left1 k1 v1 right1) where
                                                               LookRight y -> LookRight y)
 
 -- balright (T B a x b) y bl = balance (T R a x b) y bl
-instance (BalanceableHelper (ShouldBalance (N R t2 z zv t3) t1) (N R t2 z zv t3) y yv t1) => 
+instance (N R t2 z zv t3 ~ g, ShouldBalance g t1 ~ shouldbalance, BalanceableHelper shouldbalance g y yv t1) => 
     BalanceableHelperR True (N B t2 z zv t3) y yv t1 where
     type BalR'         True (N B t2 z zv t3) y yv t1     
              =  Balance (N R t2 z zv t3) y yv t1
@@ -1245,7 +1245,7 @@ instance (BalanceableHelper (ShouldBalance (N R t2 z zv t3) t1) (N R t2 z zv t3)
         LookRight r -> LookRight r)
 
 -- balright (T R a x (T B b y c)) z bl = T R (balance (sub1 a) x b) y (T B c z bl)
-instance (BalanceableHelper    (ShouldBalance (N R t2 u uv t3) l) (N R t2 u uv t3) z zv l) => 
+instance (N R t2 u uv t3 ~ g, ShouldBalance g l ~ shouldbalance, BalanceableHelper shouldbalance g z zv l) => 
     BalanceableHelperR True (N R (N B t2 u uv t3) z zv (N B l k kv r)) y yv t1 where
     type BalR'         True (N R (N B t2 u uv t3) z zv (N B l k kv r)) y yv t1 =
                              N R (Balance (N R t2 u uv t3) z zv l) k kv (N B r y yv t1) 
@@ -1520,7 +1520,7 @@ class DelableL (k :: Symbol) (v :: Type) (l :: Map Symbol Type) (kx :: Symbol) (
     winL :: Variant f (N color l kx vx r) -> Either (Variant f (DelL k v l kx vx r)) (f v) 
 
 --  delformLeft a@(T B _ _ _) y b = balleft (del a) y b
-instance (Delable k v (N B leftz kz vz rightz), Del k v (N B leftz kz vz rightz) ~ deleted, BalanceableL deleted kx vx right) 
+instance (N B leftz kz vz rightz ~ g, Delable k v g, Del k v g ~ deleted, BalanceableL deleted kx vx right) 
     => DelableL k v (N B leftz kz vz rightz) kx vx right where
     type DelL   k v (N B leftz kz vz rightz) kx vx right = BalL (Del k v (N B leftz kz vz rightz)) kx vx right
     delL (Node left vx right) = balLR @(Del k v (N B leftz kz vz rightz)) @kx @vx @right (Node (del @k @v left) vx right)
@@ -1555,7 +1555,7 @@ class DelableR (k :: Symbol) (v :: Type) (l :: Map Symbol Type) (kx :: Symbol) (
     winR :: Variant f (N color l kx vx r) -> Either (Variant f (DelR k v l kx vx r)) (f v) 
 
 --  delformRight a y b@(T B _ _ _) = balright a y (del b)
-instance (Delable k v (N B leftz kz vz rightz), Del k v (N B leftz kz vz rightz) ~ deleted, BalanceableR left kx vx deleted) 
+instance (N B leftz kz vz rightz ~ g, Delable k v g, Del k v g ~ deleted, BalanceableR left kx vx deleted) 
     => DelableR k v left kx vx (N B leftz kz vz rightz) where
     type DelR   k v left kx vx (N B leftz kz vz rightz) = BalR left kx vx (Del k v (N B leftz kz vz rightz))
     delR (Node left vx right) = balRR @left @kx @vx @(Del k v (N B leftz kz vz rightz)) (Node left vx (del @k @v right))
@@ -1643,7 +1643,7 @@ class Deletable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
     delete :: Record f t -> Record f (Delete k v t)
     winnow :: Variant f t -> Either (Variant f (Delete k v t)) (f v) 
 
-instance (Delable k v t, CanMakeBlack (Del k v t)) => Deletable k v t where
+instance (Delable k v t, Del k v t ~ deleted, CanMakeBlack deleted) => Deletable k v t where
     type Delete k v t = MakeBlack (Del k v t)
     delete r = makeBlackR (del @k @v r) 
     winnow v = first makeBlackV (win @k @v v)

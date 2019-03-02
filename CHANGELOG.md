@@ -1,5 +1,9 @@
 # Revision history for red-black-record
 
+## 2.0.2.2
+
+- Improved compilation times for type-level deletion.
+
 ## 2.0.0.0
 
 - BREAKING CHANGES

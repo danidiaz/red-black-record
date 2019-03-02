@@ -127,8 +127,8 @@ record whose fields are afterwards accessed one by one. It takes about 22
 seconds to compile in my machine. 
 
 Code involving deletion of fields and branches (like using the `winnow`
-function for `Variant`s) is currently poorly optimized and will compile [much
-slower](https://github.com/danidiaz/red-black-record/issues/12) than that.
+function for `Variant`s) is currently poorly optimized and will compile
+[slower](https://github.com/danidiaz/red-black-record/issues/12) than that.
 
 The default generics-based implementations of `FromRecord` and `FromVariant`
 use the same type-level machinery as the getters and its use will likely slow
