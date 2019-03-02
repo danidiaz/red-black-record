@@ -124,14 +124,18 @@ entries but different structure.
 
 ### What about compilation times?
 
-Sadly, compilation times balloon for large records. In the tests folder there's
+Compilation times balloon for large records. In the tests folder there's
 an example (not run by default in the tests) of the construction of a 50-field
 record whose fields are afterwards accessed one by one. It takes about 22
 seconds to compile in my machine. 
 
+Code involving deletion of fields and branches (like using the `winnow`
+function for `Variant`s) is currently poorly optimized and will compile [much
+slower](https://github.com/danidiaz/red-black-record/issues/12) than that.
+
 The default generics-based implementations of `FromRecord` and `FromVariant`
 use the same type-level machinery as the getters and its use will likely slow
-down compilation as well :(
+down compilation as well.
 
 Inspirations
 ------------
