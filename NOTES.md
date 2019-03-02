@@ -89,3 +89,13 @@ Some confusing (?) results:
         - using the "constraint trick" to unify the two Value invocations
           doesn't seem to change anything either way.
 
+Some conclusions:
+
+- If a typeclass function uses an expensive type family computation twice in
+  its signature, use an auxiliary type family to increase sharing.
+- Pull type family invocations out of typeclass parameters, first assign them
+  to a var with ~, then pass the var. 
+- Type equalities in the preconditions of a typeclass are available for type
+  application at the term level. BUT in some cases they seem to slow things
+  down!? Better pass CmpSymbol k k' as a type parameter each time?
+
