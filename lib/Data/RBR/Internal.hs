@@ -1520,7 +1520,7 @@ class DelableL (k :: Symbol) (v :: Type) (l :: Map Symbol Type) (kx :: Symbol) (
     winL :: Variant f (N color l kx vx r) -> Either (Variant f (DelL k v l kx vx r)) (f v) 
 
 --  delformLeft a@(T B _ _ _) y b = balleft (del a) y b
-instance (Delable k v (N B leftz kz vz rightz), BalanceableL (Del k v (N B leftz kz vz rightz)) kx vx right) 
+instance (Delable k v (N B leftz kz vz rightz), Del k v (N B leftz kz vz rightz) ~ deleted, BalanceableL deleted kx vx right) 
     => DelableL k v (N B leftz kz vz rightz) kx vx right where
     type DelL   k v (N B leftz kz vz rightz) kx vx right = BalL (Del k v (N B leftz kz vz rightz)) kx vx right
     delL (Node left vx right) = balLR @(Del k v (N B leftz kz vz rightz)) @kx @vx @right (Node (del @k @v left) vx right)
@@ -1555,7 +1555,7 @@ class DelableR (k :: Symbol) (v :: Type) (l :: Map Symbol Type) (kx :: Symbol) (
     winR :: Variant f (N color l kx vx r) -> Either (Variant f (DelR k v l kx vx r)) (f v) 
 
 --  delformRight a y b@(T B _ _ _) = balright a y (del b)
-instance (Delable k v (N B leftz kz vz rightz), BalanceableR left kx vx (Del k v (N B leftz kz vz rightz))) 
+instance (Delable k v (N B leftz kz vz rightz), Del k v (N B leftz kz vz rightz) ~ deleted, BalanceableR left kx vx deleted) 
     => DelableR k v left kx vx (N B leftz kz vz rightz) where
     type DelR   k v left kx vx (N B leftz kz vz rightz) = BalR left kx vx (Del k v (N B leftz kz vz rightz))
     delR (Node left vx right) = balRR @left @kx @vx @(Del k v (N B leftz kz vz rightz)) (Node left vx (del @k @v right))
