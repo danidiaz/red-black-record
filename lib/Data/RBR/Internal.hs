@@ -1533,12 +1533,15 @@ class DelableHelper (ordering :: Ordering) (k :: Symbol) (v :: Type) (l :: Map S
     win' :: Variant f (N color l kx vx r) -> Either (Variant f (Del' ordering k v l kx vx r)) (f v) 
 
 --      | x<y = delformLeft a y b
-instance  (N B leftz kz vz rightz ~ g, Delable k v g, Del k v g ~ deleted, BalanceableL deleted kx vx right) =>
+instance  (CmpSymbol kz k ~ ordering',
+           DelableHelper ordering' k v leftz kz vz rightz, 
+           Del' ordering' k v leftz kz vz rightz ~ deleted,
+           BalanceableL deleted kx vx right) =>
           DelableHelper GT k v (N B leftz kz vz rightz) kx vx right where
-    type Del' GT k v (N B leftz kz vz rightz) kx vx right = BalL (Del k v (N B leftz kz vz rightz)) kx vx right
-    del' (Node left vx right) = balLR @(Del k v (N B leftz kz vz rightz)) @kx @vx @right (Node (del @k @v left) vx right)
-    win' v = first (balLV @(Del k v (N B leftz kz vz rightz)) @kx @vx @right) (case v of
-        LookLeft l -> first LookLeft (win @k @v l)
+    type Del' GT k v (N B leftz kz vz rightz) kx vx right = BalL (Del' (CmpSymbol kz k) k v leftz kz vz rightz) kx vx right
+    del' (Node left vx right) = balLR @(Del' (CmpSymbol kz k) k v leftz kz vz rightz) @kx @vx @right (Node (del' @(CmpSymbol kz k) @k @v left) vx right)
+    win' v = first (balLV @(Del' (CmpSymbol kz k) k v leftz kz vz rightz) @kx @vx @right) (case v of
+        LookLeft l -> first LookLeft (win' @(CmpSymbol kz k) @k @v l)
         Here vx -> Left $ Here vx
         LookRight r -> Left $ LookRight r)
 
