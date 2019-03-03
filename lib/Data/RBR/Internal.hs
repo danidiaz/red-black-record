@@ -1572,23 +1572,28 @@ instance Fuseable left right => DelableHelper EQ k v left k v right where
         LookRight r -> Left $ fuseVariant @left @right (Right r)
 
 --  delformRight a y b@(T B _ _ _) = balright a y (del b)
-instance (N B leftz kz vz rightz ~ g, Delable k v g, Del k v g ~ deleted, BalanceableR left kx vx deleted) 
+instance (CmpSymbol kz k ~ ordering',
+          DelableHelper ordering' k v leftz kz vz rightz, 
+          Del' ordering' k v leftz kz vz rightz ~ deleted, 
+          -- N B leftz kz vz rightz ~ g, 
+          BalanceableR left kx vx deleted) 
     => DelableHelper LT k v left kx vx (N B leftz kz vz rightz) where
-    type Del' LT k v left kx vx (N B leftz kz vz rightz) = BalR left kx vx (Del k v (N B leftz kz vz rightz))
-    del' (Node left vx right) = balRR @left @kx @vx @(Del k v (N B leftz kz vz rightz)) (Node left vx (del @k @v right))
-    win' v = first (balRV @left @kx @vx @(Del k v (N B leftz kz vz rightz))) (case v of
+    type Del' LT k v left kx vx (N B leftz kz vz rightz) = BalR left kx vx (Del' (CmpSymbol kz k) k v leftz kz vz rightz)
+    del' (Node left vx right) = balRR @left @kx @vx @(Del' (CmpSymbol kz k) k v leftz kz vz rightz) (Node left vx (del' @(CmpSymbol kz k ) @k @v right))
+    win' v = first (balRV @left @kx @vx @(Del' (CmpSymbol kz k) k v leftz kz vz rightz)) (case v of
         LookLeft l -> Left $ LookLeft l
         Here vx -> Left $ Here vx
-        LookRight r -> first LookRight (win @k @v r))
+        LookRight r -> first LookRight (win' @(CmpSymbol kz k ) @k @v r))
 
-instance (Delable k v (N R leftz kz vz rightz)) 
+instance (CmpSymbol kz k ~ ordering',
+          DelableHelper ordering' k v leftz kz vz rightz) 
     => DelableHelper LT k v left kx vx (N R leftz kz vz rightz) where
-    type  Del' LT k v left kx vx (N R leftz kz vz rightz) = N R left kx vx (Del k v (N R leftz kz vz rightz))
-    del' (Node left vx right) = Node left vx (del @k @v right)
+    type  Del' LT k v left kx vx (N R leftz kz vz rightz) = N R left kx vx (Del' (CmpSymbol kz k)  k v leftz kz vz rightz)
+    del' (Node left vx right) = Node left vx (del' @(CmpSymbol kz k) @k @v right)
     win' v = case v of
         LookLeft l -> Left (LookLeft l)
         Here vx -> Left (Here vx)
-        LookRight r -> first LookRight (win @k @v r)
+        LookRight r -> first LookRight (win' @(CmpSymbol kz k) @k @v r)
 
 instance DelableHelper LT k v left kx vx E where
     type Del' LT k v left kx vx E = N R left kx vx E
