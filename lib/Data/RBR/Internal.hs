@@ -1511,41 +1511,6 @@ class Delable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
     del :: Record f t -> Record f (Del k v t)
     win :: Variant f t -> Either (Variant f (Del k v t)) (f v) 
 
---  delformRight a y b@(T B _ _ _) = balright a y (del b)
---  delformRight a y b = T R a y (del b)
-class DelableR (k :: Symbol) (v :: Type) (l :: Map Symbol Type) (kx :: Symbol) (vx :: Type) (r :: Map Symbol Type) where
-    type DelR k v l kx vx r :: Map Symbol Type
-    delR :: Record f (N color l kx vx r) -> Record f (DelR k v l kx vx r)
-    winR :: Variant f (N color l kx vx r) -> Either (Variant f (DelR k v l kx vx r)) (f v) 
-
---  delformRight a y b@(T B _ _ _) = balright a y (del b)
-instance (N B leftz kz vz rightz ~ g, Delable k v g, Del k v g ~ deleted, BalanceableR left kx vx deleted) 
-    => DelableR k v left kx vx (N B leftz kz vz rightz) where
-    type DelR   k v left kx vx (N B leftz kz vz rightz) = BalR left kx vx (Del k v (N B leftz kz vz rightz))
-    delR (Node left vx right) = balRR @left @kx @vx @(Del k v (N B leftz kz vz rightz)) (Node left vx (del @k @v right))
-    winR v = first (balRV @left @kx @vx @(Del k v (N B leftz kz vz rightz))) (case v of
-        LookLeft l -> Left $ LookLeft l
-        Here vx -> Left $ Here vx
-        LookRight r -> first LookRight (win @k @v r))
-
---  delformRight a y b = T R a y (del b)
-instance (Delable k v (N R leftz kz vz rightz)) 
-    => DelableR k v left kx vx (N R leftz kz vz rightz) where
-    type   DelR k v left kx vx (N R leftz kz vz rightz) = N R left kx vx (Del k v (N R leftz kz vz rightz))
-    delR (Node left vx right) = Node left vx (del @k @v right)
-    winR v = case v of
-        LookLeft l -> Left (LookLeft l)
-        Here vx -> Left (Here vx)
-        LookRight r -> first LookRight (win @k @v r)
-
---  delformRight a y b = T R a y (del b)
-instance DelableR k v left kx vx E where
-    type DelR     k v left kx vx E = N R left kx vx E
-    delR (Node left vx right) = Node left vx Empty
-    winR v = case v of
-        LookLeft l -> Left (LookLeft l)
-        Here vx -> Left (Here vx)
-
 --  del E = E
 instance Delable k v E where
     type Del     k v E = E
@@ -1602,11 +1567,32 @@ instance Fuseable left right => DelableHelper EQ k v left k v right where
         Here v      -> Right v 
         LookRight r -> Left $ fuseVariant @left @right (Right r)
 
---      | x>y = delformRight a y b
-instance DelableR k v left kx vx right => DelableHelper LT k v left kx vx right where
-    type Del'                                           LT k v left kx vx right = DelR k v left kx vx right
-    del' = delR @k @v @left @kx @vx @right  
-    win' = winR @k @v @left @kx @vx @right  
+--  delformRight a y b@(T B _ _ _) = balright a y (del b)
+instance (N B leftz kz vz rightz ~ g, Delable k v g, Del k v g ~ deleted, BalanceableR left kx vx deleted) 
+    => DelableHelper LT k v left kx vx (N B leftz kz vz rightz) where
+    type Del' LT k v left kx vx (N B leftz kz vz rightz) = BalR left kx vx (Del k v (N B leftz kz vz rightz))
+    del' (Node left vx right) = balRR @left @kx @vx @(Del k v (N B leftz kz vz rightz)) (Node left vx (del @k @v right))
+    win' v = first (balRV @left @kx @vx @(Del k v (N B leftz kz vz rightz))) (case v of
+        LookLeft l -> Left $ LookLeft l
+        Here vx -> Left $ Here vx
+        LookRight r -> first LookRight (win @k @v r))
+
+instance (Delable k v (N R leftz kz vz rightz)) 
+    => DelableHelper LT k v left kx vx (N R leftz kz vz rightz) where
+    type  Del' LT k v left kx vx (N R leftz kz vz rightz) = N R left kx vx (Del k v (N R leftz kz vz rightz))
+    del' (Node left vx right) = Node left vx (del @k @v right)
+    win' v = case v of
+        LookLeft l -> Left (LookLeft l)
+        Here vx -> Left (Here vx)
+        LookRight r -> first LookRight (win @k @v r)
+
+instance DelableHelper LT k v left kx vx E where
+    type Del' LT k v left kx vx E = N R left kx vx E
+    del' (Node left vx right) = Node left vx Empty
+    win' v = case v of
+        LookLeft l -> Left (LookLeft l)
+        Here vx -> Left (Here vx)
+
 
 {- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
      be deleted from a type-level map.
