@@ -1511,42 +1511,6 @@ class Delable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
     del :: Record f t -> Record f (Del k v t)
     win :: Variant f t -> Either (Variant f (Del k v t)) (f v) 
 
---  delformLeft a@(T B _ _ _) y b = balleft (del a) y b
---  delformLeft a y b = T R (del a) y b
---  In the term-level code, the k to delete is already on the environment.
-class DelableL (k :: Symbol) (v :: Type) (l :: Map Symbol Type) (kx :: Symbol) (vx :: Type) (r :: Map Symbol Type) where
-    type DelL k v l kx vx r :: Map Symbol Type
-    delL :: Record f (N color l kx vx r) -> Record f (DelL k v l kx vx r)
-    winL :: Variant f (N color l kx vx r) -> Either (Variant f (DelL k v l kx vx r)) (f v) 
-
---  delformLeft a@(T B _ _ _) y b = balleft (del a) y b
-instance (N B leftz kz vz rightz ~ g, Delable k v g, Del k v g ~ deleted, BalanceableL deleted kx vx right) 
-    => DelableL k v (N B leftz kz vz rightz) kx vx right where
-    type DelL   k v (N B leftz kz vz rightz) kx vx right = BalL (Del k v (N B leftz kz vz rightz)) kx vx right
-    delL (Node left vx right) = balLR @(Del k v (N B leftz kz vz rightz)) @kx @vx @right (Node (del @k @v left) vx right)
-    winL v = first (balLV @(Del k v (N B leftz kz vz rightz)) @kx @vx @right) (case v of
-        LookLeft l -> first LookLeft (win @k @v l)
-        Here vx -> Left $ Here vx
-        LookRight r -> Left $ LookRight r)
-
---  delformLeft a y b = T R (del a) y b
-instance (Delable k v (N R leftz kz vz rightz)) 
-    => DelableL k v (N R leftz kz vz rightz) kx vx right where
-    type DelL   k v (N R leftz kz vz rightz) kx vx right = N R (Del k v (N R leftz kz vz rightz)) kx vx right
-    delL (Node left vx right) = Node (del @k @v left) vx right
-    winL v = case v of
-        LookLeft l -> first LookLeft (win @k @v l)
-        Here vx -> Left (Here vx)
-        LookRight r -> Left (LookRight r)
-
---  delformLeft a y b = T R (del a) y b
-instance DelableL k v E kx vx right where
-    type DelL     k v E kx vx right = N R E kx vx right
-    delL (Node left vx right) = Node Empty vx right
-    winL v = case v of
-        Here vx -> Left (Here vx)
-        LookRight r -> Left (LookRight r)
-
 --  delformRight a y b@(T B _ _ _) = balright a y (del b)
 --  delformRight a y b = T R a y (del b)
 class DelableR (k :: Symbol) (v :: Type) (l :: Map Symbol Type) (kx :: Symbol) (vx :: Type) (r :: Map Symbol Type) where
@@ -1604,10 +1568,30 @@ class DelableHelper (ordering :: Ordering) (k :: Symbol) (v :: Type) (l :: Map S
     win' :: Variant f (N color l kx vx r) -> Either (Variant f (Del' ordering k v l kx vx r)) (f v) 
 
 --      | x<y = delformLeft a y b
-instance DelableL k v left kx vx right => DelableHelper GT k v left kx vx right where
-    type Del'                                           GT k v left kx vx right = DelL k v left kx vx right
-    del' = delL @k @v @left @kx @vx @right  
-    win' = winL @k @v @left @kx @vx @right  
+instance  (N B leftz kz vz rightz ~ g, Delable k v g, Del k v g ~ deleted, BalanceableL deleted kx vx right) =>
+          DelableHelper GT k v (N B leftz kz vz rightz) kx vx right where
+    type Del' GT k v (N B leftz kz vz rightz) kx vx right = BalL (Del k v (N B leftz kz vz rightz)) kx vx right
+    del' (Node left vx right) = balLR @(Del k v (N B leftz kz vz rightz)) @kx @vx @right (Node (del @k @v left) vx right)
+    win' v = first (balLV @(Del k v (N B leftz kz vz rightz)) @kx @vx @right) (case v of
+        LookLeft l -> first LookLeft (win @k @v l)
+        Here vx -> Left $ Here vx
+        LookRight r -> Left $ LookRight r)
+
+instance (Delable k v (N R leftz kz vz rightz)) =>
+    DelableHelper GT k v (N R leftz kz vz rightz) kx vx right where
+    type Del' GT k v (N R leftz kz vz rightz) kx vx right = N R (Del k v (N R leftz kz vz rightz)) kx vx right
+    del' (Node left vx right) = Node (del @k @v left) vx right
+    win' v = case v of
+        LookLeft l -> first LookLeft (win @k @v l)
+        Here vx -> Left (Here vx)
+        LookRight r -> Left (LookRight r)
+
+instance DelableHelper GT k v E kx vx right where
+    type Del' GT k v E kx vx right = N R E kx vx right
+    del' (Node left vx right) = Node Empty vx right
+    win' v = case v of
+        Here vx -> Left (Here vx)
+        LookRight r -> Left (LookRight r)
 
 --      | otherwise = app a b
 instance Fuseable left right => DelableHelper EQ k v left k v right where
