@@ -1545,12 +1545,13 @@ instance  (CmpSymbol kz k ~ ordering',
         Here vx -> Left $ Here vx
         LookRight r -> Left $ LookRight r)
 
-instance (Delable k v (N R leftz kz vz rightz)) =>
+instance (CmpSymbol kz k ~ ordering',
+          DelableHelper ordering' k v leftz kz vz rightz) =>
     DelableHelper GT k v (N R leftz kz vz rightz) kx vx right where
-    type Del' GT k v (N R leftz kz vz rightz) kx vx right = N R (Del k v (N R leftz kz vz rightz)) kx vx right
-    del' (Node left vx right) = Node (del @k @v left) vx right
+    type Del' GT k v (N R leftz kz vz rightz) kx vx right = N R (Del' (CmpSymbol kz k) k v leftz kz vz rightz) kx vx right
+    del' (Node left vx right) = Node (del' @(CmpSymbol kz k) @k @v left) vx right
     win' v = case v of
-        LookLeft l -> first LookLeft (win @k @v l)
+        LookLeft l -> first LookLeft (win' @(CmpSymbol kz k) @k @v l)
         Here vx -> Left (Here vx)
         LookRight r -> Left (LookRight r)
 
