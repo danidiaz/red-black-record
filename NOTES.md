@@ -56,6 +56,8 @@ your own control structure functions"
 
 [comparison of record libraries](https://docs.google.com/spreadsheets/d/14MJEjiMVulTVzSU4Bg4cCYZVfkbgANCRlrOiRneNRv8/edit#gid=0)
 
+[generic-data](http://hackage.haskell.org/package/generic-data) seems quite general
+
 Improving compilation times for type family-heavy code
 ======================================================
 
