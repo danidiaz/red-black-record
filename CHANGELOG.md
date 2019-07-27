@@ -1,5 +1,10 @@
 # Revision history for red-black-record
 
+## 2.0.4.0
+
+- Compatibility with sop-core 0.5.0.0.
+- Contravariant intance for Case newtype.
+
 ## 2.0.3.0
 
 - Issue #7: FromVariant & ToVariant instances for sum types with branches with

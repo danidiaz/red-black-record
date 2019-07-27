@@ -32,6 +32,7 @@ import           Data.Proxy
 import           Data.Kind
 import           Data.Typeable
 import           Data.Coerce
+import           Data.Functor.Contravariant (Contravariant(contramap))
 import           Data.Bifunctor (first)
 import           Data.Monoid (Endo(..))
 import           Data.List (intersperse)
@@ -702,6 +703,9 @@ eliminate cases variant =
 {- | Represents a handler for a branch of a 'Variant'.  
 -}
 newtype Case f a b = Case (f b -> a)
+
+instance Functor f => Contravariant (Case f a) where
+    contramap g (Case c) = Case (c . fmap g)
 
 {- | A form of 'addField' for creating eliminators for 'Variant's.
 -}
