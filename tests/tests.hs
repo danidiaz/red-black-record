@@ -26,51 +26,6 @@ import GHC.Generics (Generic)
 import Test.Tasty
 import Test.Tasty.HUnit (testCase,Assertion,assertEqual,assertBool)
 
--- sequences of actions for tests
---
---
-data InsertOrDelete = In
-                    | De 
-                    deriving (Show, Eq)
-
-class DemotableInsertOrDelete (iod :: InsertOrDelete) where
-    demoteIoD :: Proxy iod -> InsertOrDelete
-
-instance DemotableInsertOrDelete 'In where
-    demoteIoD _ = In
-
-instance DemotableInsertOrDelete 'De where
-    demoteIoD _ = De
-
-data Action s t = Act InsertOrDelete s t deriving (Show, Eq)
-
-class DemotableAction (a :: Action Symbol Type) where 
-    demoteAction :: Proxy a -> Action String TypeRep
-
-instance (DemotableInsertOrDelete iod, KnownSymbol s, Typeable t) => DemotableAction (Act iod s t) where
-    demoteAction _ = Act (demoteIoD (Proxy @iod)) 
-                         (symbolVal (Proxy @s)) 
-                         (typeRep (Proxy @t))
-
-demoteActions :: forall as. All DemotableAction as => Proxy (as :: [Action Symbol Type]) -> [Action String TypeRep] 
-demoteActions _ = collapse_NP $ cpure_NP @_ @as (Proxy @DemotableAction) conjure
-    where 
-    conjure :: forall a. DemotableAction a => K (Action String TypeRep) a
-    conjure = K (demoteAction (Proxy @a))
-
-type family Perform (as :: [Action Symbol Type]) :: Map Symbol Type where
-    Perform (Act In s v ': as) = Insert s v (Perform as)
-    Perform (Act De s v ': as) = Delete s v (Perform as)
-    Perform '[]                = Empty
-
-perform :: [Action String TypeRep] -> Map String TypeRep
-perform = foldr (\(Act iod s v) t -> case iod of In -> t_insert s v t
-                                                 De -> t_delete s t) 
-                emptyMap
-
--- TODO: write demote code for the Map map
--- TODO: write term-level test code based on the reference impl
--- TODO: write tests that compare term-level and type-level code
 
 main :: IO ()
 main = defaultMain tests
@@ -79,10 +34,14 @@ tests :: TestTree
 tests = testGroup "Tests" [ testCase "recordGetSet01" testRecordGetSet01,
                             testCase "variantInjectMatch01" testVariantInjectMatch01,
                             testCase "projectSubset01" testProjectSubset01,
-                            testCase "toRecord01" testToRecord01,
-                            testCase "fromRecord01" testFromRecord01,
-                            testCase "toVariant01" testToVariant01,
-                            testCase "fromVariant01" testFromVariant01,
+                            testGroup "nominalConversion" [
+                                testCase "toRecord01" testToRecord01,
+                                testCase "fromRecord01" testFromRecord01,
+                                testCase "toVariant01" testToVariant01,
+                                testCase "toVariant02Units" testToVariant02Units,
+                                testCase "fromVariant01" testFromVariant01,
+                                testCase "fromVariant02Units" testFromVariant02Units
+                            ],
                             testGroup "deletion" [
                                 testGroup "records" [
                                     testCase "recordDeletionSingleElem" testRecordDeletionSingleElem,
@@ -244,6 +203,29 @@ testToVariant01 = do
     -- same as the order of the cases.
     assertEqual "T" 'T' (eliminateSubset cases variant)
 
+data Variant02Unit = 
+      Variant02A 
+    | Variant02B Char 
+    | Variant02C deriving (Generic,Eq,Show)
+
+instance ToVariant Variant02Unit
+instance FromVariant Variant02Unit
+
+testToVariant02Units :: Assertion
+testToVariant02Units = do
+    let cases = addCaseI @"Variant02A" (const 'a')
+              . addCaseI @"Variant02B" id
+              . addCaseI @"Variant02C" (const 'c')
+              $ unit
+        variantA = toVariant Variant02A
+        variantB = toVariant (Variant02B 'b')
+        variantC = toVariant Variant02C
+    -- Eliminate would also work because the order of the eliminators is the
+    -- same as the order of the cases.
+    assertEqual "a" 'a' (eliminateSubset cases variantA)
+    assertEqual "b" 'b' (eliminateSubset cases variantB)
+    assertEqual "c" 'c' (eliminateSubset cases variantC)
+
 testFromVariant01 :: IO ()
 testFromVariant01 = do
     let val1 = fromVariant (injectI @"Variant01A" 1)
@@ -255,6 +237,15 @@ testFromVariant01 = do
     assertEqual "Variant01C" val3 (Variant01C True)
     assertEqual "Variant01D" val4 (Variant01D False)
  
+testFromVariant02Units :: IO ()
+testFromVariant02Units = do
+    let val1 = fromVariant (injectI @"Variant02A" ())
+        val2 = fromVariant (injectI @"Variant02B" 'b')
+        val3 = fromVariant (injectI @"Variant02C" ())
+    assertEqual "Variant02A" val1 Variant02A
+    assertEqual "Variant02B" val2 (Variant02B 'b')
+    assertEqual "Variant02C" val3 Variant02C
+
 testRecordDeletionSingleElem :: IO ()
 testRecordDeletionSingleElem = do
     let r = insertI @"bar" False
@@ -472,4 +463,46 @@ type Actions04 = [Act In "ef1" Bool,
 testInTandem04 :: IO ()
 testInTandem04 = assertEqual "" (demoteMap (Proxy @(Perform Actions04))) (perform (demoteActions (Proxy @Actions04)))
 
+
+-- sequences of actions for tests
+--
+--
+data InsertOrDelete = In
+                    | De 
+                    deriving (Show, Eq)
+
+class DemotableInsertOrDelete (iod :: InsertOrDelete) where
+    demoteIoD :: Proxy iod -> InsertOrDelete
+
+instance DemotableInsertOrDelete 'In where
+    demoteIoD _ = In
+
+instance DemotableInsertOrDelete 'De where
+    demoteIoD _ = De
+
+data Action s t = Act InsertOrDelete s t deriving (Show, Eq)
+
+class DemotableAction (a :: Action Symbol Type) where 
+    demoteAction :: Proxy a -> Action String TypeRep
+
+instance (DemotableInsertOrDelete iod, KnownSymbol s, Typeable t) => DemotableAction (Act iod s t) where
+    demoteAction _ = Act (demoteIoD (Proxy @iod)) 
+                         (symbolVal (Proxy @s)) 
+                         (typeRep (Proxy @t))
+
+demoteActions :: forall as. All DemotableAction as => Proxy (as :: [Action Symbol Type]) -> [Action String TypeRep] 
+demoteActions _ = collapse_NP $ cpure_NP @_ @as (Proxy @DemotableAction) conjure
+    where 
+    conjure :: forall a. DemotableAction a => K (Action String TypeRep) a
+    conjure = K (demoteAction (Proxy @a))
+
+type family Perform (as :: [Action Symbol Type]) :: Map Symbol Type where
+    Perform (Act In s v ': as) = Insert s v (Perform as)
+    Perform (Act De s v ': as) = Delete s v (Perform as)
+    Perform '[]                = Empty
+
+perform :: [Action String TypeRep] -> Map String TypeRep
+perform = foldr (\(Act iod s v) t -> case iod of In -> t_insert s v t
+                                                 De -> t_delete s t) 
+                emptyMap
 

@@ -1062,6 +1062,7 @@ type family VariantCode' (acc :: Map Symbol Type) (g :: Type -> Type) :: Map Sym
     VariantCode' acc (D1 meta fields) = VariantCode' acc fields
     VariantCode' acc (t1 G.:+: t2) = VariantCode' (VariantCode' acc t2) t1
     VariantCode' acc (C1 (G.MetaCons k _ _) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v))) = Insert k v acc
+    VariantCode' acc (C1 (G.MetaCons k _ _) G.U1) = Insert k () acc
      
 class FromVariant (s :: Type) where
     fromVariant :: Variant I (VariantCode s) -> s
@@ -1081,6 +1082,13 @@ instance (Key k t, Value k t ~ v)
   where
     fromVariant' v = case matchI @k @t v of
         Just x -> Just (M1 (M1 (K1 x)) )
+        Nothing -> Nothing
+
+instance (Key k t, Value k t ~ ()) 
+         => FromVariantHelper t (C1 (G.MetaCons k x y) G.U1)
+  where
+    fromVariant' v = case matchI @k @t v of
+        Just x -> Just (M1 G.U1)
         Nothing -> Nothing
 
 instance ( FromVariantHelper t t1,
@@ -1111,6 +1119,10 @@ instance (Key k t, Value k t ~ v) =>
     ToVariantHelper t (C1 (G.MetaCons k x y) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v))) 
   where
     toVariant' (M1 (M1 (K1 v))) = injectI @k v
+
+instance (Key k t, Value k t ~ ()) =>
+    ToVariantHelper t (C1 (G.MetaCons k x y) G.U1) where
+    toVariant' (M1 G.U1) = injectI @k ()
 
 instance ( ToVariantHelper t t1,
            ToVariantHelper t t2 
