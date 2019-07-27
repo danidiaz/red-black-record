@@ -1,5 +1,10 @@
 # Revision history for red-black-record
 
+## 2.0.3.0
+
+- Issue #7: FromVariant & ToVariant instances for sum types with branches with
+  no arguments.
+
 ## 2.0.2.2
 
 - Improved compilation times for type-level deletion.
