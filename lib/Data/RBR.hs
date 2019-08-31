@@ -1,5 +1,5 @@
 module Data.RBR (
-        -- * Type-level Red-Black tree
+        -- * Type-level map
         -- $typelevel
        Map,
        Empty,
@@ -109,10 +109,10 @@ import Data.SOP (I(..),K(..),NP(..),NS(..))
 
 {- $typelevel
  
-   A Red-Black tree that is used at the type level, with @DataKinds@. The tree
-   keeps track of what keys are present and to what types they correspond.
- 
+   A type-level map that keeps track of which keys are present, and to which
+   types they correspond.
 
+   Implemented as a red-black tree, and used as a kind by means of @DataKinds@. 
 -} 
 
 {- $nominal
