@@ -58,9 +58,6 @@ data Map k v = E
 -- | A map without entries. See also 'unit' and 'impossible'.
 type Empty = E
 
-{-# DEPRECATED EmptyMap "Use Empty instead." #-}
-type EmptyMap = E
-
 --
 --
 -- This code has been copied and adapted from the corresponding Data.SOP code (the All constraint).
