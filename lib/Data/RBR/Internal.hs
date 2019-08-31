@@ -73,12 +73,11 @@ type family
   KeysValuesAllF  c (N color left k v right) = (c k v, KeysValuesAll c left, KeysValuesAll c right)
 
 {- | Require a constraint for every key-value pair in a tree. This is a generalization of 'Data.SOP.All' from "Data.SOP".
- 
-     'cpara_Map' constructs a 'Record' by means of a constraint for producing
-     the nodes of the tree. The constraint is passed as a 'Data.Proxy.Proxy'.
-     
 -}
 class KeysValuesAllF c t => KeysValuesAll (c :: k -> v -> Constraint) (t :: Map k v) where
+
+  --  'cpara_Map' constructs a 'Record' by means of a constraint for producing
+  --  the nodes of the tree. The constraint is passed as a 'Data.Proxy.Proxy'.
   cpara_Map ::
        proxy c
     -> r E
@@ -166,7 +165,7 @@ instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v
 
      See also 'insert', 'delete' and 'project'.
 -}
-data Record (f :: k -> Type) (t :: Map Symbol k)  where
+data Record (f :: q -> Type) (t :: Map Symbol q)  where
     Empty :: Record f E 
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
@@ -216,7 +215,7 @@ unit = Empty
 
      See also 'widen', 'winnow' and 'inject'.
 -}
-data Variant (f :: k -> Type) (t :: Map Symbol k)  where
+data Variant (f :: q -> Type) (t :: Map Symbol q)  where
     Here       :: f v -> Variant f (N color left k v right)
     LookRight  :: Variant f t -> Variant f (N color' left' k' v' t)
     LookLeft   :: Variant f t -> Variant f (N color' t k' v' right')
@@ -255,17 +254,25 @@ prettyShowVariantI v = prettyShowVariant (show . unI) v
 
 {- | Insert a list of type level key / value pairs into a type-level map. 
 -}
-type family InsertAll (es :: [(Symbol,k)]) (t :: Map Symbol k) :: Map Symbol k where
+type family InsertAll (es :: [(Symbol,q)]) (t :: Map Symbol q) :: Map Symbol q where
     InsertAll '[] t = t
     InsertAll ( '(name,fieldType) ': es ) t = Insert name fieldType (InsertAll es t)
 
 {- | Build a type-level map out of a list of type level key / value pairs. 
 -}
-type FromList (es :: [(Symbol,k)]) = InsertAll es Empty
+type FromList (es :: [(Symbol,q)]) = InsertAll es Empty
 
+
+{- |
+     Adds a new field to a 'Record'.
+ -}
 insert :: forall k v t f. Insertable k v t => f v -> Record f t -> Record f (Insert k v t)
 insert = _insert @_ @k @v @t @f
 
+{- |
+     Lets you use a 'Variant' in a bigger context
+     than the one in which is was defined. 
+ -}
 widen :: forall k v t f. Insertable k v t => Variant f t -> Variant f (Insert k v t)
 widen = _widen @_ @k @v @t @f
 
@@ -284,7 +291,7 @@ insertI = insert @k @v @t . I
 addFieldI :: forall k v t . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
 addFieldI = insertI @k @v @t
 
-{- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
+{- | Class that determines if the pair of a 'Symbol' key and a type can
      be inserted into a type-level map.
  
      The associated type family 'Insert' produces the resulting map.
@@ -294,7 +301,7 @@ addFieldI = insertI @k @v @t
      than the one in which is was defined. 'insert' tends to be more useful in
      practice.
 
-     If the map already has the key but with a /different/ 'Type', the
+     If the map already has the key but with a /different/ type, the
      insertion fails to compile.
  -}
 class Insertable (k :: Symbol) (v :: q) (t :: Map Symbol q) where
@@ -578,22 +585,24 @@ type family Branch (f :: q -> Type) (t :: Map Symbol q) (v :: q) where
      map.
 
      The 'Value' type family gives the 'Type' corresponding to the key.
-
-     'field' takes a field name (given through @TypeApplications@) and a
-     'Record', and returns a pair of a setter for the field and the original
-     value of the field.
-     
-     'branch' takes a branch name (given through @TypeApplications@) and
-     returns a pair of a match function and a constructor.
 -} 
 class Key (k :: Symbol) (t :: Map Symbol q) where
     type Value k t :: q
     _field  :: Field  f t (Value k t)
     _branch :: Branch f t (Value k t)
 
+{- |
+     Takes a field name (given through @TypeApplications@) and a
+     'Record', and returns a pair of a setter for the field and the original
+     value of the field.
+-}
 field  :: forall k t f. Key k t => Field f t (Value k t)
 field = _field @_ @k @t
 
+{- |
+     Takes a branch name (given through @TypeApplications@) and
+     returns a pair of a match function and a constructor.
+-}
 branch :: forall k t f. Key k t => Branch f t (Value k t)
 branch = _branch @_ @k @t
 
@@ -895,9 +904,15 @@ instance (Productlike start right middle,
             (right, start) = _breakNP @_ @start @right middle
          in (Node left fv right, start)
 
+{- | 
+     Flattens a 'Record' and adds it to the initial part of the product.
+-}
 prefixNP:: forall start t result f. Productlike start t result => Record f t -> NP f start -> NP f result
 prefixNP = _prefixNP @_ @start @t @result
 
+{- | 
+     Reconstructs a 'Record' from the initial part of the product and returns the unconsumed part.
+-}
 breakNP :: forall start t result f. Productlike start t result => NP f result -> (Record f t, NP f start)
 breakNP = _breakNP @_ @start @t @result
 
@@ -982,9 +997,16 @@ instance Sumlike start (N colorR leftR kR vR rightR) middle
             Left  ns     -> Left ns
             Right v      -> Right (LookRight v)
 
+{- | 
+    
+     Flattens a 'Variant' and adds it to the initial part of the sum.
+-}
 prefixNS :: forall start t result f. Sumlike start t result => Either (NS f start) (Variant f t) -> NS f result 
 prefixNS = _prefixNS @_ @start @t @result
 
+{- | 
+     Reconstructs a 'Variant' from the initial part of the sum and returns the unconsumed part.
+-}
 breakNS :: forall start t result f. Sumlike start t result => NS f result -> Either (NS f start) (Variant f t)
 breakNS = _breakNS @_ @start @t @result
 
@@ -1662,7 +1684,7 @@ instance DelableR k v left kx vx right => DelableHelper LT k v left kx vx right 
     del' = delR @_ @k @v @left @kx @vx @right  
     win' = winR @_ @k @v @left @kx @vx @right  
 
-{- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
+{- | Class that determines if the pair of a 'Symbol' key and a type can
      be deleted from a type-level map.
  
      The associated type family 'Delete' produces the resulting map.
@@ -1673,7 +1695,7 @@ instance DelableR k v left kx vx right => DelableHelper LT k v left kx vx right 
      reduced 'Variant' if there isn't. 'winnow' tends to be more useful in
      practice.
 
-     If the map already has the key but with a /different/ 'Type', the deletion
+     If the map already has the key but with a /different/ type, the deletion
      fails to compile.
  -}
 class Deletable (k :: Symbol) (v :: q) (t :: Map Symbol q) where
@@ -1686,9 +1708,16 @@ instance (Delable k v t, Del k v t ~ deleted, CanMakeBlack deleted) => Deletable
     _delete r = makeBlackR (del @_ @k @v r) 
     _winnow v = first makeBlackV (win @_ @k @v v)
 
+{- | 
+     Removes a field from a 'Record'.
+ -}
 delete :: forall k v t f . Deletable k v t => Record f t -> Record f (Delete k v t)
 delete = _delete @_ @k @v @t
 
+{- | 
+     Checks if a 'Variant' is of a given branch and returns the value in the
+     branch if there's a match, or a reduced 'Variant' if there isn't. 
+ -}
 winnow :: forall k v t f . Deletable k v t => Variant f t -> Either (Variant f (Delete k v t)) (f v)
 winnow = _winnow @_ @k @v @t 
 

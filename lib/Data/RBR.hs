@@ -3,10 +3,10 @@ module Data.RBR (
         -- $typelevel
        Map,
        Empty,
-       KeysValuesAll,
-       KnownKey,
+       KeysValuesAll(),
+       KnownKey(),
        demoteKeys,
-       KnownKeyTypeableValue,
+       KnownKeyTypeableValue(),
        demoteEntries,
        -- * Records and Variants
        Record,
@@ -36,8 +36,8 @@ module Data.RBR (
        -- ** Projecting and injecting
        Key (Value),
        Field,
-       Branch,
        field,
+       Branch,
        branch,
        project,
        projectI,
@@ -78,9 +78,13 @@ module Data.RBR (
        FromVariant(..),
        -- * Interfacing with Data.SOP
        Productlike (..),
+       prefixNP,
+       breakNP,
        fromNP,
        toNP,
        Sumlike (..),
+       prefixNS,
+       breakNS,
        fromNS,
        toNS,
        -- * Data.SOP re-exports

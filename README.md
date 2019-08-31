@@ -4,12 +4,13 @@
 
 A library that provides extensible records and variants, both indexed by a
 type-level [red-black](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
-tree that maps `Symbol` keys to `Type`s. The keys correspond to fields names in
-records, and to branch names in variants. Many record functions have their
-variant mirror-images and viceversa.
+tree that maps `Symbol` keys to value types of any kind. The keys correspond to
+field names in records, and to branch names in variants. Many record functions
+have their variant mirror-images and viceversa.
 
-Each value type in a field or branch comes wrapped in a type constructor of
-kind `Type -> Type`. Typically, it will be an [identity
+At the term level, value types come wrapped in a type constructor of kind `q ->
+Type`, where `q` is the kind of value types. Typically, the type constructor
+will be an [identity
 functor](http://hackage.haskell.org/package/sop-core-0.4.0.0/docs/Data-SOP.html#t:I),
 but it can also be `Maybe` or some other `Applicative` for parsing, validation
 and so on.
@@ -92,9 +93,6 @@ implement of `widen` for `Variant`. One solution is to explicitly delete the
 field and then insert it again.
 
 ### The library doesn't use Proxy and relies on type application instead. But what’s the order of the type parameters?
-
-For typeclass methods, it's the order in which the type variables appear in the
-typeclass declaration.
 
 For standalone functions, it’s the order in which the type variables appear in
 the `forall`.

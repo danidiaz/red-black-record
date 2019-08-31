@@ -5,13 +5,14 @@ synopsis:            Extensible records and variants indexed by a type-level Red
 
 description:         A library that provides extensible records and variants,
                      both indexed by a type-level red-black tree that maps
-                     Symbol keys to value Types. 
+                     Symbol keys to value types of any kind. 
                      .
                      The keys correspond to fields
                      names in records, and to branch names in variants.
                      . 
-                     Each value type in a field or branch comes wrapped in a
-                     type constructor of kind @Type -> Type@. 
+                     At the term level, value types come wrapped in a type
+                     constructor of kind `q -> Type`, where `q` is the kind of
+                     value types.
                      .
                      The records and variants can be converted to and from
                      regular Haskell datatypes; also to and from the unlabelled

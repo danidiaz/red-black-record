@@ -1,5 +1,11 @@
 # Revision history for red-black-record
 
+## 2.1.0.0
+
+- Made the type-level map poly-kinded in the values, as there wasn't a real
+  reason to force them to the  Type kind. 
+- Removed deprecated EmptyMap (use Empty instead).
+
 ## 2.0.4.0
 
 - Compatibility with sop-core 0.5.0.0.
