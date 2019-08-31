@@ -61,8 +61,6 @@ type Empty = E
 {-# DEPRECATED EmptyMap "Use Empty instead." #-}
 type EmptyMap = E
 
-type KindOf (a :: k) = k
-
 --
 --
 -- This code has been copied and adapted from the corresponding Data.SOP code (the All constraint).
@@ -254,308 +252,308 @@ prettyShowVariantI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t
                    => Variant I t -> String
 prettyShowVariantI v = prettyShowVariant (show . unI) v 
 
---   --
---   --
---   -- Insertion
---   
---   {- | Insert a list of type level key / value pairs into a type-level map. 
---   -}
---   type family InsertAll (es :: [(Symbol,k)]) (t :: Map Symbol k) :: Map Symbol k where
---       InsertAll '[] t = t
---       InsertAll ( '(name,fieldType) ': es ) t = Insert name fieldType (InsertAll es t)
---   
---   {- | Build a type-level map out of a list of type level key / value pairs. 
---   -}
---   type FromList (es :: [(Symbol,k)]) = InsertAll es Empty
---   
---   insert :: forall k v t (f :: KindOf v -> Type). Insertable k v t => f v -> Record f t -> Record f (Insert k v t)
---   insert = _insert @(KindOf v) @k @v @t @f
---   
---   widen :: forall k v t (f :: KindOf v -> Type). Insertable k v t => Variant f t -> Variant f (Insert k v t)
---   widen = _widen @(KindOf v) @k @v @t @f
---   
---   {- | Alias for 'insert'. 
---   -}
---   addField :: forall k v t (f :: KindOf v -> Type). Insertable k v t => f v -> Record f t -> Record f (Insert k v t)
---   addField = insert @k @v @t @f
---   
---   {- | Like 'insert' but specialized to pure 'Record's.
---   -}
---   insertI :: forall k v t . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
---   insertI = insert @k @v @t . I
---   
---   {- | Like 'addField' but specialized to pure 'Record's.
---   -}
---   addFieldI :: forall k v t . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
---   addFieldI = insertI @k @v @t
---   
---   {- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
---        be inserted into a type-level map.
---    
---        The associated type family 'Insert' produces the resulting map.
---   
---        At the term level, this manifests in 'insert', which adds a new field to a
---        record, and in 'widen', which lets you use a 'Variant' in a bigger context
---        than the one in which is was defined. 'insert' tends to be more useful in
---        practice.
---   
---        If the map already has the key but with a /different/ 'Type', the
---        insertion fails to compile.
---    -}
---   class Insertable (k :: Symbol) (v :: Type) (t :: Map Symbol Type) where
---       type Insert k v t :: Map Symbol Type
---       _insert :: f v -> Record f t -> Record f (Insert k v t)
---       _widen :: Variant f t -> Variant f (Insert k v t)
---   
---   -- insert x s =
---   --  T B a z b
---   --  where
---   --  T _ a z b = ins s
---   instance (InsertableHelper1 k v t, Insert1 k v t ~ inserted, CanMakeBlack inserted) => Insertable k v t where
---       type Insert k v t = MakeBlack (Insert1 k v t)
---       _insert fv r = makeBlackR (insert1 @k @v fv r) 
---       _widen v = makeBlackV (widen1 @k @v v)
---   
---   class CanMakeBlack (t :: Map Symbol Type) where
---       type MakeBlack t :: Map Symbol Type
---       makeBlackR :: Record f t -> Record f (MakeBlack t)
---       makeBlackV :: Variant f t -> Variant f (MakeBlack t)
---   
---   instance CanMakeBlack (N color left k v right) where
---       type MakeBlack (N color left k v right) = N B left k v right
---       makeBlackR (Node left fv right) = Node left fv right
---       makeBlackV v = case v of
---           LookLeft l -> LookLeft l
---           Here v -> Here v
---           LookRight r -> LookRight r
---   
---   instance CanMakeBlack E where
---       type MakeBlack E = E
---       makeBlackR Empty = Empty
---       makeBlackV = impossible
---   
---   class InsertableHelper1 (k :: Symbol) 
---                           (v :: Type) 
---                           (t :: Map Symbol Type) where
---       type Insert1 k v t :: Map Symbol Type 
---       insert1 :: f v -> Record f t -> Record f (Insert1 k v t)
---       widen1 :: Variant f t -> Variant f (Insert1 k v t)
---   
---   instance InsertableHelper1 k v E where
---       type Insert1 k v E = N R E k v E
---       insert1 fv Empty = Node Empty fv Empty 
---       widen1 = impossible 
---    
---   instance (CmpSymbol k k' ~ ordering, 
---             InsertableHelper2 ordering k v color left k' v' right
---            )
---            => InsertableHelper1 k v (N color left k' v' right) where
---       -- FIXME possible duplicate work with CmpSymbol: both in constraint and in associated type family. 
---       -- Is that bad? How to avoid it?
---       type Insert1 k v (N color left k' v' right) = Insert2 (CmpSymbol k k') k v color left k' v' right  
---       insert1 = insert2 @ordering @k @v @color @left @k' @v' @right
---       widen1  = widen2 @ordering @k @v @color @left @k' @v' @right
---   
---   class InsertableHelper2 (ordering :: Ordering) 
---                           (k :: Symbol) 
---                           (v :: Type) 
---                           (color :: Color) 
---                           (left :: Map Symbol Type) 
---                           (k' :: Symbol) 
---                           (v' :: Type) 
---                           (right :: Map Symbol Type) where
---       type Insert2 ordering k v color left k' v' right :: Map Symbol Type 
---       insert2 :: f v -> Record f (N color left k' v' right) -> Record f (Insert2 ordering k v color left k' v' right)
---       widen2 :: Variant f (N color left k' v' right) -> Variant f (Insert2 ordering k v color left k' v' right)
---   
---   --  ins s@(T B a y b)
---   --      | x<y = balance (ins a) y b
---   instance (InsertableHelper1 k v left, Insert1 k v left ~ inserted,
---             Balanceable inserted k' v' right 
---            )
---            => InsertableHelper2 LT k v B left k' v' right where
---       type Insert2              LT k v B left k' v' right = Balance (Insert1 k v left) k' v' right
---       insert2 fv (Node left fv' right) = balanceR @_ @k' @v' @right (Node (insert1 @k @v fv left) fv' right) 
---       widen2 v = balanceV @(Insert1 k v left) @k' @v' @right $ case v of
---           Here x -> Here x
---           LookLeft x -> LookLeft (widen1 @k @v x)
---           LookRight x -> LookRight x
---   
---   --  ins s@(T B a y b)
---   --      | x<y = balance (ins a) y b
---   instance (InsertableHelper1 k v left, Insert1 k v left ~ inserted,
---             Balanceable inserted k' v' right
---            )
---            => InsertableHelper2 LT k v R left k' v' right where
---       type Insert2              LT k v R left k' v' right = N R (Insert1 k v left) k' v' right
---       insert2 fv (Node left fv' right) = Node (insert1 @k @v fv left) fv' right 
---       widen2 v = case v of
---           Here x -> Here x
---           LookLeft x -> LookLeft (widen1 @k @v x)
---           LookRight x -> LookRight x
---   
---   
---   -- This instance implies that we can't change the type associated to an
---   -- existing key. If we did that, we wouldn't be able to widen Variants that
---   -- happen to match that key!
---   instance InsertableHelper2 EQ k v color left k v right where
---       type Insert2           EQ k v color left k v right = N color left k v right
---       insert2 fv (Node left _ right) = Node left fv right
---       widen2 = id
---   
---   --  ins s@(T B a y b)
---   --      | ...
---   --      | x>y = balance a y (ins b)
---   instance (InsertableHelper1 k v right, Insert1 k v right ~ inserted,
---             Balanceable left  k' v' inserted
---            )
---            => InsertableHelper2 GT k v B left k' v' right where
---       type Insert2              GT k v B left k' v' right = Balance left  k' v' (Insert1 k v right)
---       insert2 fv (Node left fv' right) = balanceR @left @k' @v' @_ (Node left  fv' (insert1 @k @v fv right)) 
---       widen2 v = balanceV @left @k' @v' @(Insert1 k v right) $ case v of
---           Here x -> Here x
---           LookLeft x -> LookLeft x
---           LookRight x -> LookRight (widen1 @k @v x)
---   
---   --  ins s@(T R a y b)
---   --      | ...
---   --      | x>y = T R a y (ins b)
---   instance (InsertableHelper1 k v right, Insert1 k v right ~ inserted,
---             Balanceable left  k' v' inserted
---            )
---            => InsertableHelper2 GT k v R left k' v' right where
---       type Insert2              GT k v R left k' v' right = N R left k' v' (Insert1 k v right)
---       insert2 fv (Node left fv' right) = Node left fv' (insert1 @k @v fv right) 
---       widen2 v = case v of
---           Here x -> Here x
---           LookLeft x -> LookLeft x
---           LookRight x -> LookRight (widen1 @k @v x)
---   
---   data BalanceAction = BalanceSpecial
---                      | BalanceLL
---                      | BalanceLR
---                      | BalanceRL
---                      | BalanceRR
---                      | DoNotBalance
---                      deriving Show
---   
---   type family ShouldBalance (left :: Map k' v') (right :: Map k' v') :: BalanceAction where
---       ShouldBalance (N R _ _ _ _) (N R _ _ _ _) = BalanceSpecial
---       ShouldBalance (N R (N R _ _ _ _) _ _ _) _ = BalanceLL
---       ShouldBalance (N R _ _ _ (N R _ _ _ _)) _ = BalanceLR
---       ShouldBalance _ (N R (N R _ _ _ _) _ _ _) = BalanceRL
---       ShouldBalance _ (N R _ _ _ (N R _ _ _ _)) = BalanceRR
---       ShouldBalance _ _                         = DoNotBalance
---   
---   class Balanceable (left :: Map Symbol Type) (k :: Symbol) (v :: Type) (right :: Map Symbol Type) where
---       type Balance left k v right :: Map Symbol Type
---       balanceR :: Record f (N color left k v right) -> Record f (Balance left k v right)
---       balanceV :: Variant f (N color left k v right) -> Variant f (Balance left k v right)
---   
---   instance (ShouldBalance left right ~ action, 
---             BalanceableHelper action left k v right
---            ) 
---            => Balanceable left k v right where
---       -- FIXME possible duplicate work with ShouldBalance: both in constraint and in associated type family. 
---       -- Is that bad? How to avoid it?
---       type Balance left k v right = Balance' (ShouldBalance left right) left k v right
---       balanceR = balanceR' @action @left @k @v @right
---       balanceV = balanceV' @action @left @k @v @right
---       
---   class BalanceableHelper (action :: BalanceAction) 
---                           (left :: Map Symbol Type) 
---                           (k :: Symbol) 
---                           (v :: Type) 
---                           (right :: Map Symbol Type) where
---       type Balance' action left k v right :: Map Symbol Type
---       balanceR' :: Record f (N color left k v right) -> Record f (Balance' action left k v right)
---       balanceV' :: Variant f (N color left k v right) -> Variant f (Balance' action left k v right)
---   
---   -- balance (T R a x b) y (T R c z d) = T R (T B a x b) y (T B c z d)
---   instance BalanceableHelper BalanceSpecial (N R left1 k1 v1 right1) kx vx (N R left2 k2 v2 right2) where
---       type Balance'          BalanceSpecial (N R left1 k1 v1 right1) kx vx (N R left2 k2 v2 right2) = 
---                                         N R (N B left1 k1 v1 right1) kx vx (N B left2 k2 v2 right2)
---       balanceR' (Node (Node left1 v1 right1) vx (Node left2 v2 right2)) = 
---                 (Node (Node left1 v1 right1) vx (Node left2 v2 right2))
---       balanceV' v = case v of
---           LookLeft (LookLeft x)   -> LookLeft (LookLeft x)
---           LookLeft (Here x)       -> LookLeft (Here x)
---           LookLeft (LookRight x)  -> LookLeft (LookRight x)
---           Here x -> Here x
---           LookRight (LookLeft x)  -> LookRight (LookLeft x)
---           LookRight (Here x)      -> LookRight (Here x)
---           LookRight (LookRight x) -> LookRight (LookRight x)
---   
---   -- balance (T R (T R a x b) y c) z d = T R (T B a x b) y (T B c z d)
---   instance BalanceableHelper BalanceLL (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d where
---       type Balance'          BalanceLL (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = 
---                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d)
---       balanceR' (Node (Node (Node a fv1 b) fv2 c) fv3 d) = 
---                  Node (Node a fv1 b) fv2 (Node c fv3 d)
---       balanceV' v = case v of
---           LookLeft (LookLeft x)  -> LookLeft (case x of LookLeft y  -> LookLeft y
---                                                         Here y      -> Here y
---                                                         LookRight y -> LookRight y)
---           LookLeft (Here x)      -> Here x
---           LookLeft (LookRight x) -> LookRight (LookLeft x)
---           Here x                 -> LookRight (Here x)
---           LookRight x            -> LookRight (LookRight x)
---   
---   -- balance (T R a x (T R b y c)) z d = T R (T B a x b) y (T B c z d)
---   instance BalanceableHelper BalanceLR (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d where
---       type Balance'          BalanceLR (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d = 
---                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
---       balanceR' (Node (Node a fv1 (Node b fv2 c)) fv3 d) = 
---                  Node (Node a fv1 b) fv2 (Node c fv3 d)
---       balanceV' v = case v of
---           LookLeft (LookLeft x)   -> LookLeft (LookLeft x)
---           LookLeft (Here x)       -> LookLeft (Here x) 
---           LookLeft (LookRight x)  -> case x of LookLeft y  -> LookLeft (LookRight y)
---                                                Here y      -> Here y
---                                                LookRight y -> LookRight (LookLeft y)
---           Here x                  -> LookRight (Here x)
---           LookRight x             -> LookRight (LookRight x)
---   
---   -- balance a x (T R (T R b y c) z d) = T R (T B a x b) y (T B c z d)
---   instance BalanceableHelper BalanceRL a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) where
---       type Balance'          BalanceRL a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = 
---                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
---       balanceR' (Node a fv1 (Node (Node b fv2 c) fv3 d)) = 
---                  Node (Node a fv1 b) fv2 (Node c fv3 d)
---       balanceV' v = case v of
---           LookLeft x              -> LookLeft (LookLeft x)
---           Here x                  -> LookLeft (Here x)
---           LookRight (LookLeft x)  -> case x of LookLeft y  -> LookLeft (LookRight y)
---                                                Here y      -> Here y
---                                                LookRight y -> LookRight (LookLeft y)
---           LookRight (Here x)      -> LookRight (Here x) 
---           LookRight (LookRight x) -> LookRight (LookRight x)
---   
---   
---   -- balance a x (T R b y (T R c z d)) = T R (T B a x b) y (T B c z d)
---   instance BalanceableHelper BalanceRR a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) where
---       type Balance'          BalanceRR a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = 
---                                    N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
---       balanceR' (Node a fv1 (Node b fv2 (Node c fv3 d))) = 
---                  Node (Node a fv1 b) fv2 (Node c fv3 d)
---       balanceV' v = case v of
---           LookLeft x              -> LookLeft (LookLeft x)
---           Here x                  -> LookLeft (Here x)
---           LookRight (LookLeft x)  -> LookLeft (LookRight x)    
---           LookRight (Here x)      -> Here x
---           LookRight (LookRight x) -> LookRight (case x of LookLeft y  -> LookLeft y
---                                                           Here y      -> Here y
---                                                           LookRight y -> LookRight y)
---   
---   -- balance a x b = T B a x b
---   instance BalanceableHelper DoNotBalance a k v b where
---       type Balance'          DoNotBalance a k v b = N B a k v b 
---       balanceR' (Node left v right) = (Node left v right)
---       balanceV' v = case v of
---           LookLeft l -> LookLeft l
---           Here v -> Here v
---           LookRight r -> LookRight r
---   
+--
+--
+-- Insertion
+
+{- | Insert a list of type level key / value pairs into a type-level map. 
+-}
+type family InsertAll (es :: [(Symbol,k)]) (t :: Map Symbol k) :: Map Symbol k where
+    InsertAll '[] t = t
+    InsertAll ( '(name,fieldType) ': es ) t = Insert name fieldType (InsertAll es t)
+
+{- | Build a type-level map out of a list of type level key / value pairs. 
+-}
+type FromList (es :: [(Symbol,k)]) = InsertAll es Empty
+
+insert :: forall k v t f. Insertable k v t => f v -> Record f t -> Record f (Insert k v t)
+insert = _insert @_ @k @v @t @f
+
+widen :: forall k v t f. Insertable k v t => Variant f t -> Variant f (Insert k v t)
+widen = _widen @_ @k @v @t @f
+
+{- | Alias for 'insert'. 
+-}
+addField :: forall k v t f. Insertable k v t => f v -> Record f t -> Record f (Insert k v t)
+addField = insert @k @v @t @f
+
+{- | Like 'insert' but specialized to pure 'Record's.
+-}
+insertI :: forall k v t . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
+insertI = insert @k @v @t . I
+
+{- | Like 'addField' but specialized to pure 'Record's.
+-}
+addFieldI :: forall k v t . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
+addFieldI = insertI @k @v @t
+
+{- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
+     be inserted into a type-level map.
+ 
+     The associated type family 'Insert' produces the resulting map.
+
+     At the term level, this manifests in 'insert', which adds a new field to a
+     record, and in 'widen', which lets you use a 'Variant' in a bigger context
+     than the one in which is was defined. 'insert' tends to be more useful in
+     practice.
+
+     If the map already has the key but with a /different/ 'Type', the
+     insertion fails to compile.
+ -}
+class Insertable (k :: Symbol) (v :: vk) (t :: Map Symbol vk) where
+    type Insert k v t :: Map Symbol vk
+    _insert :: f v -> Record f t -> Record f (Insert k v t)
+    _widen :: Variant f t -> Variant f (Insert k v t)
+
+-- insert x s =
+--  T B a z b
+--  where
+--  T _ a z b = ins s
+instance (InsertableHelper1 k v t, Insert1 k v t ~ inserted, CanMakeBlack inserted) => Insertable k v t where
+    type Insert k v t = MakeBlack (Insert1 k v t)
+    _insert fv r = makeBlackR @_ (insert1 @_ @k @v fv r) 
+    _widen v = makeBlackV @_ (widen1 @_ @k @v v)
+
+class CanMakeBlack (t :: Map Symbol k) where
+    type MakeBlack t :: Map Symbol k
+    makeBlackR :: Record f t -> Record f (MakeBlack t)
+    makeBlackV :: Variant f t -> Variant f (MakeBlack t)
+
+instance CanMakeBlack (N color left k v right) where
+    type MakeBlack (N color left k v right) = N B left k v right
+    makeBlackR (Node left fv right) = Node left fv right
+    makeBlackV v = case v of
+        LookLeft l -> LookLeft l
+        Here v -> Here v
+        LookRight r -> LookRight r
+
+instance CanMakeBlack E where
+    type MakeBlack E = E
+    makeBlackR Empty = Empty
+    makeBlackV = impossible
+
+class InsertableHelper1 (k :: Symbol) 
+                        (v :: vk) 
+                        (t :: Map Symbol vk) where
+    type Insert1 k v t :: Map Symbol vk 
+    insert1 :: f v -> Record f t -> Record f (Insert1 k v t)
+    widen1 :: Variant f t -> Variant f (Insert1 k v t)
+
+instance InsertableHelper1 k v E where
+    type Insert1 k v E = N R E k v E
+    insert1 fv Empty = Node Empty fv Empty 
+    widen1 = impossible 
+ 
+instance (CmpSymbol k k' ~ ordering, 
+          InsertableHelper2 ordering k v color left k' v' right
+         )
+         => InsertableHelper1 k v (N color left k' v' right) where
+    -- FIXME possible duplicate work with CmpSymbol: both in constraint and in associated type family. 
+    -- Is that bad? How to avoid it?
+    type Insert1 k v (N color left k' v' right) = Insert2 (CmpSymbol k k') k v color left k' v' right  
+    insert1 = insert2 @_ @ordering @k @v @color @left @k' @v' @right
+    widen1  = widen2 @_ @ordering @k @v @color @left @k' @v' @right
+
+class InsertableHelper2 (ordering :: Ordering) 
+                        (k :: Symbol) 
+                        (v :: vk) 
+                        (color :: Color) 
+                        (left :: Map Symbol vk) 
+                        (k' :: Symbol) 
+                        (v' :: vk) 
+                        (right :: Map Symbol vk) where
+    type Insert2 ordering k v color left k' v' right :: Map Symbol vk 
+    insert2 :: f v -> Record f (N color left k' v' right) -> Record f (Insert2 ordering k v color left k' v' right)
+    widen2 :: Variant f (N color left k' v' right) -> Variant f (Insert2 ordering k v color left k' v' right)
+
+--  ins s@(T B a y b)
+--      | x<y = balance (ins a) y b
+instance (InsertableHelper1 k v left, Insert1 k v left ~ inserted,
+          Balanceable inserted k' v' right 
+         )
+         => InsertableHelper2 LT k v B left k' v' right where
+    type Insert2              LT k v B left k' v' right = Balance (Insert1 k v left) k' v' right
+    insert2 fv (Node left fv' right) = balanceR @_ @_ @k' @v' @right (Node (insert1 @_ @k @v fv left) fv' right) 
+    widen2 v = balanceV @_ @(Insert1 k v left) @k' @v' @right $ case v of
+        Here x -> Here x
+        LookLeft x -> LookLeft (widen1 @_ @k @v x)
+        LookRight x -> LookRight x
+
+--  ins s@(T B a y b)
+--      | x<y = balance (ins a) y b
+instance (InsertableHelper1 k v left, Insert1 k v left ~ inserted,
+          Balanceable inserted k' v' right
+         )
+         => InsertableHelper2 LT k v R left k' v' right where
+    type Insert2              LT k v R left k' v' right = N R (Insert1 k v left) k' v' right
+    insert2 fv (Node left fv' right) = Node (insert1 @_ @k @v fv left) fv' right 
+    widen2 v = case v of
+        Here x -> Here x
+        LookLeft x -> LookLeft (widen1 @_ @k @v x)
+        LookRight x -> LookRight x
+
+
+-- This instance implies that we can't change the type associated to an
+-- existing key. If we did that, we wouldn't be able to widen Variants that
+-- happen to match that key!
+instance InsertableHelper2 EQ k v color left k v right where
+    type Insert2           EQ k v color left k v right = N color left k v right
+    insert2 fv (Node left _ right) = Node left fv right
+    widen2 = id
+
+--  ins s@(T B a y b)
+--      | ...
+--      | x>y = balance a y (ins b)
+instance (InsertableHelper1 k v right, Insert1 k v right ~ inserted,
+          Balanceable left  k' v' inserted
+         )
+         => InsertableHelper2 GT k v B left k' v' right where
+    type Insert2              GT k v B left k' v' right = Balance left  k' v' (Insert1 k v right)
+    insert2 fv (Node left fv' right) = balanceR @_ @left @k' @v' @_ (Node left  fv' (insert1 @_ @k @v fv right)) 
+    widen2 v = balanceV @_ @left @k' @v' @(Insert1 k v right) $ case v of
+        Here x -> Here x
+        LookLeft x -> LookLeft x
+        LookRight x -> LookRight (widen1 @_ @k @v x)
+
+--  ins s@(T R a y b)
+--      | ...
+--      | x>y = T R a y (ins b)
+instance (InsertableHelper1 k v right, Insert1 k v right ~ inserted,
+          Balanceable left  k' v' inserted
+         )
+         => InsertableHelper2 GT k v R left k' v' right where
+    type Insert2              GT k v R left k' v' right = N R left k' v' (Insert1 k v right)
+    insert2 fv (Node left fv' right) = Node left fv' (insert1 @_ @k @v fv right) 
+    widen2 v = case v of
+        Here x -> Here x
+        LookLeft x -> LookLeft x
+        LookRight x -> LookRight (widen1 @_ @k @v x)
+
+data BalanceAction = BalanceSpecial
+                   | BalanceLL
+                   | BalanceLR
+                   | BalanceRL
+                   | BalanceRR
+                   | DoNotBalance
+                   deriving Show
+
+type family ShouldBalance (left :: Map k' v') (right :: Map k' v') :: BalanceAction where
+    ShouldBalance (N R _ _ _ _) (N R _ _ _ _) = BalanceSpecial
+    ShouldBalance (N R (N R _ _ _ _) _ _ _) _ = BalanceLL
+    ShouldBalance (N R _ _ _ (N R _ _ _ _)) _ = BalanceLR
+    ShouldBalance _ (N R (N R _ _ _ _) _ _ _) = BalanceRL
+    ShouldBalance _ (N R _ _ _ (N R _ _ _ _)) = BalanceRR
+    ShouldBalance _ _                         = DoNotBalance
+
+class Balanceable (left :: Map Symbol vk) (k :: Symbol) (v :: vk) (right :: Map Symbol vk) where
+    type Balance left k v right :: Map Symbol vk
+    balanceR :: Record f (N color left k v right) -> Record f (Balance left k v right)
+    balanceV :: Variant f (N color left k v right) -> Variant f (Balance left k v right)
+
+instance (ShouldBalance left right ~ action, 
+          BalanceableHelper action left k v right
+         ) 
+         => Balanceable left k v right where
+    -- FIXME possible duplicate work with ShouldBalance: both in constraint and in associated type family. 
+    -- Is that bad? How to avoid it?
+    type Balance left k v right = Balance' (ShouldBalance left right) left k v right
+    balanceR = balanceR' @action @left @k @v @right
+    balanceV = balanceV' @action @left @k @v @right
+    
+class BalanceableHelper (action :: BalanceAction) 
+                        (left :: Map Symbol Type) 
+                        (k :: Symbol) 
+                        (v :: Type) 
+                        (right :: Map Symbol Type) where
+    type Balance' action left k v right :: Map Symbol Type
+    balanceR' :: Record f (N color left k v right) -> Record f (Balance' action left k v right)
+    balanceV' :: Variant f (N color left k v right) -> Variant f (Balance' action left k v right)
+
+-- balance (T R a x b) y (T R c z d) = T R (T B a x b) y (T B c z d)
+instance BalanceableHelper BalanceSpecial (N R left1 k1 v1 right1) kx vx (N R left2 k2 v2 right2) where
+    type Balance'          BalanceSpecial (N R left1 k1 v1 right1) kx vx (N R left2 k2 v2 right2) = 
+                                      N R (N B left1 k1 v1 right1) kx vx (N B left2 k2 v2 right2)
+    balanceR' (Node (Node left1 v1 right1) vx (Node left2 v2 right2)) = 
+              (Node (Node left1 v1 right1) vx (Node left2 v2 right2))
+    balanceV' v = case v of
+        LookLeft (LookLeft x)   -> LookLeft (LookLeft x)
+        LookLeft (Here x)       -> LookLeft (Here x)
+        LookLeft (LookRight x)  -> LookLeft (LookRight x)
+        Here x -> Here x
+        LookRight (LookLeft x)  -> LookRight (LookLeft x)
+        LookRight (Here x)      -> LookRight (Here x)
+        LookRight (LookRight x) -> LookRight (LookRight x)
+
+-- balance (T R (T R a x b) y c) z d = T R (T B a x b) y (T B c z d)
+instance BalanceableHelper BalanceLL (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d where
+    type Balance'          BalanceLL (N R (N R a k1 v1 b) k2 v2 c) k3 v3 d = 
+                                 N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d)
+    balanceR' (Node (Node (Node a fv1 b) fv2 c) fv3 d) = 
+               Node (Node a fv1 b) fv2 (Node c fv3 d)
+    balanceV' v = case v of
+        LookLeft (LookLeft x)  -> LookLeft (case x of LookLeft y  -> LookLeft y
+                                                      Here y      -> Here y
+                                                      LookRight y -> LookRight y)
+        LookLeft (Here x)      -> Here x
+        LookLeft (LookRight x) -> LookRight (LookLeft x)
+        Here x                 -> LookRight (Here x)
+        LookRight x            -> LookRight (LookRight x)
+
+-- balance (T R a x (T R b y c)) z d = T R (T B a x b) y (T B c z d)
+instance BalanceableHelper BalanceLR (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d where
+    type Balance'          BalanceLR (N R a k1 v1 (N R b k2 v2 c)) k3 v3 d = 
+                                 N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
+    balanceR' (Node (Node a fv1 (Node b fv2 c)) fv3 d) = 
+               Node (Node a fv1 b) fv2 (Node c fv3 d)
+    balanceV' v = case v of
+        LookLeft (LookLeft x)   -> LookLeft (LookLeft x)
+        LookLeft (Here x)       -> LookLeft (Here x) 
+        LookLeft (LookRight x)  -> case x of LookLeft y  -> LookLeft (LookRight y)
+                                             Here y      -> Here y
+                                             LookRight y -> LookRight (LookLeft y)
+        Here x                  -> LookRight (Here x)
+        LookRight x             -> LookRight (LookRight x)
+
+-- balance a x (T R (T R b y c) z d) = T R (T B a x b) y (T B c z d)
+instance BalanceableHelper BalanceRL a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) where
+    type Balance'          BalanceRL a k1 v1 (N R (N R b k2 v2 c) k3 v3 d) = 
+                                 N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
+    balanceR' (Node a fv1 (Node (Node b fv2 c) fv3 d)) = 
+               Node (Node a fv1 b) fv2 (Node c fv3 d)
+    balanceV' v = case v of
+        LookLeft x              -> LookLeft (LookLeft x)
+        Here x                  -> LookLeft (Here x)
+        LookRight (LookLeft x)  -> case x of LookLeft y  -> LookLeft (LookRight y)
+                                             Here y      -> Here y
+                                             LookRight y -> LookRight (LookLeft y)
+        LookRight (Here x)      -> LookRight (Here x) 
+        LookRight (LookRight x) -> LookRight (LookRight x)
+
+
+-- balance a x (T R b y (T R c z d)) = T R (T B a x b) y (T B c z d)
+instance BalanceableHelper BalanceRR a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) where
+    type Balance'          BalanceRR a k1 v1 (N R b k2 v2 (N R c k3 v3 d)) = 
+                                 N R (N B a k1 v1 b) k2 v2 (N B c k3 v3 d) 
+    balanceR' (Node a fv1 (Node b fv2 (Node c fv3 d))) = 
+               Node (Node a fv1 b) fv2 (Node c fv3 d)
+    balanceV' v = case v of
+        LookLeft x              -> LookLeft (LookLeft x)
+        Here x                  -> LookLeft (Here x)
+        LookRight (LookLeft x)  -> LookLeft (LookRight x)    
+        LookRight (Here x)      -> Here x
+        LookRight (LookRight x) -> LookRight (case x of LookLeft y  -> LookLeft y
+                                                        Here y      -> Here y
+                                                        LookRight y -> LookRight y)
+
+-- balance a x b = T B a x b
+instance BalanceableHelper DoNotBalance a k v b where
+    type Balance'          DoNotBalance a k v b = N B a k v b 
+    balanceR' (Node left v right) = (Node left v right)
+    balanceV' v = case v of
+        LookLeft l -> LookLeft l
+        Here v -> Here v
+        LookRight r -> LookRight r
+
 --   
 --   --
 --   --
