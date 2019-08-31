@@ -45,6 +45,18 @@ import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.
 import           Data.SOP.NP (collapse_NP,liftA_NP,liftA2_NP,cliftA_NP,cliftA2_NP,pure_NP)
 import           Data.SOP.NS (collapse_NS,ap_NS,injections,Injection)
 
+
+{- $setup
+ 
+>>> :set -XDataKinds -XTypeApplications -XPartialTypeSignatures -XFlexibleContexts -XTypeFamilies -XDeriveGeneric 
+>>> :set -Wno-partial-type-signatures  
+>>> import Data.RBR
+>>> import Data.SOP
+>>> import GHC.Generics
+
+-}
+
+
 -- | The color of a node.
 data Color = R
            | B
@@ -265,6 +277,13 @@ type FromList (es :: [(Symbol,q)]) = InsertAll es Empty
 
 {- |
      Adds a new field to a 'Record'.
+
+>>> project @"foo" (insert @"foo" (I 'a') unit)
+I 'a'
+
+>>> project @"foo" (insert @"foo" @Char Nothing unit)
+Nothing
+
  -}
 insert :: forall k v t f. Insertable k v t => f v -> Record f t -> Record f (Insert k v t)
 insert = _insert @_ @k @v @t @f
@@ -282,6 +301,10 @@ addField :: forall k v t f. Insertable k v t => f v -> Record f t -> Record f (I
 addField = insert @k @v @t @f
 
 {- | Like 'insert' but specialized to pure 'Record's.
+ 
+>>> projectI @"foo" (insertI @"foo" 'a' unit)
+'a'
+
 -}
 insertI :: forall k v t . Insertable k v t => v -> Record I t -> Record I (Insert k v t)
 insertI = insert @k @v @t . I
@@ -672,6 +695,10 @@ modifyField :: forall k t f . Key k t => (f (Value k t) -> f (Value k t)) -> Rec
 modifyField f r = uncurry ($) (fmap f (field @k @t @f r))
 
 {- | Put a value into the branch of a 'Variant'.
+
+>>> match @"foo" (inject @"foo" (I 'a') :: Variant I (Insert "foo" Char Empty))
+Just (I 'a')
+
 -}
 inject :: forall k t f. Key k t => f (Value k t) -> Variant f t
 inject = snd (branch @k @t)
@@ -702,6 +729,10 @@ modifyFieldI :: forall k t . Key k t => (Value k t -> Value k t) -> Record I t -
 modifyFieldI f = modifyField @k @t (I . f . unI)
 
 {- | Like 'inject' but specialized to pure 'Variant's.
+ 
+>>> matchI @"foo" (injectI @"foo" 'a' :: Variant I (Insert "foo" Char Empty))
+Just 'a'
+
 -}
 injectI :: forall k t. Key k t => Value k t -> Variant I t
 injectI = snd (branch @k @t) . I
