@@ -64,7 +64,8 @@ tests = testGroup "Tests" [ testCase "recordGetSet01" testRecordGetSet01,
                                     testCase "tandem04" testInTandem04
                             ],
                             testGroup "polyKindedMap" [
-                                    testCase "polyKinded01" polyKinded01
+                                    testCase "polyKinded01" polyKinded01,
+                                    testCase "polyKinded02" polyKinded02
                             ]
                           ]
 
@@ -543,4 +544,12 @@ polyKinded01 = do
         proxy :: Proxy "v2"
         proxy = getField @"abb" r
     return ()
+
+polyKinded02 :: Assertion
+polyKinded02 = do
+    let r = demoteEntries @PolyKinded01
+        K (_,trep) = getField @"eee" r
+    assertEqual "" trep (typeRep (Proxy @"v5"))
+    return ()
+
 
