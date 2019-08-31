@@ -1,3 +1,23 @@
+{-| 
+    This module provides extensible 'Record' and 'Variant' types, which are
+    indexed by a type-level 'Map'.
+
+    Many functions in this module require the use of @TypeApplications@ to
+    avoid ambiguity. The order of the applications is the order of the type
+    variables in the function signature's @forall@. The first type variable is
+    usually the field/branch name and it's always required. The other type
+    variables can often be inferred.
+
+    Meaning of commonly used type and kind variables:
+
+        - @t@: A type-level 'Map', usually of kind @Map Symbol q@.
+        - @k@: A key of kind 'Symbol' in a type-level 'Map'. 
+        - @v@: A type value of kind @q@ in a type-level 'Map'.
+        - @q@: The kind of the type value @v@.
+        - @f@: A type constructor of kind @q -> Type@ that wraps the type @v@. 
+        - @flat@: A type-level list of kind @[q]@ whose elements correspond to values in a type-level 'Map'.
+        
+-}
 module Data.RBR (
         -- * Type-level map
         -- $typelevel
@@ -80,13 +100,13 @@ module Data.RBR (
        Productlike (..),
        prefixNP,
        breakNP,
-       fromNP,
        toNP,
+       fromNP,
        Sumlike (..),
        prefixNS,
        breakNS,
-       fromNS,
        toNS,
+       fromNS,
        -- * Data.SOP re-exports
        I(..),
        K(..),
