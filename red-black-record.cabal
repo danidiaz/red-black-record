@@ -1,6 +1,6 @@
 cabal-version:       2.0
 name:                red-black-record
-version:             2.1.0.1
+version:             2.1.0.2
 synopsis:            Extensible records and variants indexed by a type-level Red-Black tree.
 
 description:         A library that provides extensible records and variants,
@@ -11,7 +11,7 @@ description:         A library that provides extensible records and variants,
                      names in records, and to branch names in variants.
                      . 
                      At the term level, value types come wrapped in a type
-                     constructor of kind `q -> Type`, where `q` is the kind of
+                     constructor of kind @q -> Type@, where @q@ is the kind of
                      value types.
                      .
                      The records and variants can be converted to and from

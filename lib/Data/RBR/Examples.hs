@@ -31,6 +31,9 @@ module Data.RBR.Examples (
     
     -- * Ensuring all branches of a sum type are parsed from JSON
     -- $json4sum
+
+    -- * External examples
+    -- $externalexamples
     ) where
 
 import Data.RBR
@@ -331,6 +334,15 @@ Person {name = "Mark", age = 70, whatever = True}
      in s
     :}
 That 70
+
+-}
+
+{- $externalexamples
+ 
+    * [Is there a canonical way of comparing/changing one/two records in haskell? (SO)](https://stackoverflow.com/a/57574731/1364288)
+    * [Help with Generics. (Reddit)](https://www.reddit.com/r/haskell/comments/cteemj/help_with_generics/expyjfk)
+    * [Adventures assembling records of capabilities. (Discourse)](https://discourse.haskell.org/t/adventures-assembling-records-of-capabilities/623)
+    * [Resources on sop-core and generics-sop. (GitHub)](https://github.com/well-typed/generics-sop/issues/47)
 
 -}
 
