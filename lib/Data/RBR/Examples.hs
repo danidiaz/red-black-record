@@ -188,8 +188,8 @@ Just 5
               -> Parser r
         parseSpecial transform = 
             let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
-                pr = transform $ fromNP @c (cpure_NP (Proxy @FromJSON) (Star parseJSON))
-                Star parser = fromNP <$> sequence_NP (liftA2_NP mapKSS (toNP @c demoteKeys) (toNP pr))
+                fieldParsers = transform $ fromNP @c (cpure_NP (Proxy @FromJSON) (Star parseJSON))
+                Star parser = fromNP <$> sequence_NP (liftA2_NP mapKSS (toNP @c demoteKeys) (toNP fieldParsers))
              in withObject "someobj" $ \o -> fromRecord <$> parser o
     :}
 
@@ -226,8 +226,8 @@ Right (Person {name = "foo", age = 50})
               -> Parser r
         parseWithAliases aliases = 
             let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
-                pr = fromNP @c (cpure_NP (Proxy @FromJSON) (Star parseJSON))
-                Star parser = fromNP <$> sequence_NP (liftA2_NP mapKSS (toNP @c aliases) (toNP pr))
+                fieldParsers = cpure_NP (Proxy @FromJSON) (Star parseJSON)
+                Star parser = fromNP <$> sequence_NP (liftA2_NP mapKSS (toNP @c aliases) fieldParsers)
              in withObject "someobj" $ \o -> fromRecord <$> parser o
     :}
 
@@ -317,8 +317,8 @@ Person {name = "Mark", age = 70, whatever = True}
               -> Parser r
         parseAll = 
             let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
-                pnp = liftA2_NP mapKSS (toNP @c demoteKeys) (cpure_NP (Proxy @FromJSON) (Star parseJSON))
-                injected = liftA2_NP (\f star -> K (unK . apFn f . I <$> star)) (injections @flat) pnp 
+                branchParsers = liftA2_NP mapKSS (toNP @c demoteKeys) (cpure_NP (Proxy @FromJSON) (Star parseJSON))
+                injected = liftA2_NP (\f star -> K (unK . apFn f . I <$> star)) (injections @flat) branchParsers 
                 Star parser = asum $ collapse_NP injected
              in withObject "someobj" (\o -> fromVariant @r . fromNS <$> parser o)
     :}
