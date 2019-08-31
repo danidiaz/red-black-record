@@ -3,7 +3,6 @@ module Data.RBR (
         -- $typelevel
        Map,
        Empty,
-       EmptyMap,
        KeysValuesAll,
        KnownKey,
        demoteKeys,
