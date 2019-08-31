@@ -153,7 +153,7 @@ demoteEntries = cpara_Map (Proxy @KnownKeyTypeableValue) unit go
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
-class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) (v :: Type)
+class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) v
 instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v 
 
 -- class KeyValueTop (k :: Symbol) (v :: z)
