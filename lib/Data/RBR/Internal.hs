@@ -554,312 +554,318 @@ instance BalanceableHelper DoNotBalance a k v b where
         Here v -> Here v
         LookRight r -> LookRight r
 
---   
---   --
---   --
---   -- Accessing fields
---   
---   --
---   -- These two type families exist to avoid duplicating expensive type-level
---   -- computations, in particular the Value' computations.
---   --
---   -- Record accessors are compiled WAY slower without them!
---   --
---   {- | Auxiliary type family to avoid repetition and help improve compilation times.
---    -}
---   type family Field (f :: Type -> Type) (t :: Map Symbol Type) (v :: Type) where
---       Field f t v = Record f t -> (f v -> Record f t, f v)
---   
---   {- | Auxiliary type family to avoid repetition and help improve compilation times.
---    -}
---   type family Branch (f :: Type -> Type) (t :: Map Symbol Type) (v :: Type) where
---       Branch f t v = (Variant f t -> Maybe (f v), f v -> Variant f t)
---   
---   --
---   {- | 
---        Class that determines if a given 'Symbol' key is present in a type-level
---        map.
---   
---        The 'Value' type family gives the 'Type' corresponding to the key.
---   
---        'field' takes a field name (given through @TypeApplications@) and a
---        'Record', and returns a pair of a setter for the field and the original
---        value of the field.
---        
---        'branch' takes a branch name (given through @TypeApplications@) and
---        returns a pair of a match function and a constructor.
---   -} 
---   class Key (k :: Symbol) (t :: Map Symbol Type) where
---       type Value k t :: Type
---       field  :: Field  f t (Value k t)
---       branch :: Branch f t (Value k t)
---   
---   -- member :: Ord a => a -> RB a -> Bool
---   class KeyHelper (ordering :: Ordering) (k :: Symbol) (left :: Map Symbol Type) (v :: Type) (right :: Map Symbol Type) where 
---       type Value' ordering k left v right :: Type
---       field'  :: Field  f (N colorx left kx v right) (Value' ordering k left v right)
---       branch' :: Branch f (N colorx left kx v right) (Value' ordering k left v right)
---   
---   instance (CmpSymbol k' k ~ ordering, KeyHelper ordering k left v' right) => Key k (N color left k' v' right) where
---       type Value k (N color left k' v' right) = Value' (CmpSymbol k' k) k left v' right
---       field = field' @ordering @k @left @v' @right
---       branch = branch' @ordering @k @left @v' @right
---   
---   --  | x<y = member x a
---   instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2) 
---         => KeyHelper LT k left v (N color2 left2 k2 v2 right2) where
---       type Value'    LT k left v (N color2 left2 k2 v2 right2) = Value' (CmpSymbol k2 k) k left2 v2 right2
---       field' (Node left fv right) = 
---           let (setter,x) = field' @ordering @k @left2 @v2 @right2 right
---            in (\z -> Node left fv (setter z),x)
---       branch' = 
---           let (match,inj) = branch' @ordering @k @left2 @v2 @right2 
---            in (\case LookRight x -> match x
---                      _ -> Nothing,
---                \fv -> LookRight (inj fv))
---   
---   --  | x>y = member x b
---   instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2) 
---         => KeyHelper GT k (N color2 left2 k2 v2 right2) v' right where
---       type    Value' GT k (N color2 left2 k2 v2 right2) v' right = Value' (CmpSymbol k2 k) k left2 v2 right2
---       field' (Node left fv right) = 
---           let (setter,x) = field' @ordering @k @left2 @v2 @right2 left
---            in (\z -> Node (setter z) fv right,x)
---       branch' =
---           let (match,inj) = branch' @ordering @k @left2 @v2 @right2 
---            in (\case LookLeft x -> match x
---                      _ -> Nothing,
---                \fv -> LookLeft (inj fv))
---   
---   --  | otherwise = True
---   instance KeyHelper EQ k left v right where
---       type Value'    EQ k left v right = v
---       field' (Node left fv right) = (\x -> Node left x right, fv)
---       branch' = (\case Here x -> Just x
---                        _ -> Nothing,
---                  Here)
---   
---   {- | Get the value of a field for a 'Record'. 
---   -}
---   project :: forall k t f . Key k t => Record f t -> f (Value k t)
---   project = snd . field @k @t
---   
---   {- | Alias for 'project'.
---   -}
---   getField :: forall k t f . Key k t => Record f t -> f (Value k t)
---   getField = project @k @t @f
---   
---   {- | Set the value of a field for a 'Record'. 
---   -}
---   setField :: forall k t f . Key k t => f (Value k t) -> Record f t -> Record f t
---   setField fv r = fst (field @k @t @f r) fv
---   
---   {- | Modify the value of a field for a 'Record'. 
---   -}
---   modifyField :: forall k t f . Key k t => (f (Value k t) -> f (Value k t)) -> Record f t -> Record f t
---   modifyField f r = uncurry ($) (fmap f (field @k @t @f r))
---   
---   {- | Put a value into the branch of a 'Variant'.
---   -}
---   inject :: forall k t f. Key k t => f (Value k t) -> Variant f t
---   inject = snd (branch @k @t)
---   
---   {- | Check if a 'Variant' value is the given branch.
---   -}
---   match :: forall k t f. Key k t => Variant f t -> Maybe (f (Value k t))
---   match = fst (branch @k @t)
---   
---   {- | Like 'project' but specialized to pure 'Record's.
---   -}
---   projectI :: forall k t . Key k t => Record I t -> Value k t
---   projectI = unI . snd . field @k @t
---   
---   {- | Like 'getField' but specialized to pure 'Record's.
---   -}
---   getFieldI :: forall k t . Key k t => Record I t -> Value k t
---   getFieldI = projectI @k @t
---   
---   {- | Like 'setField' but specialized to pure 'Record's.
---   -}
---   setFieldI :: forall k t . Key k t => Value k t -> Record I t -> Record I t
---   setFieldI v r = fst (field @k @t r) (I v)
---   
---   {- | Like 'modifyField' but specialized to pure 'Record's.
---   -}
---   modifyFieldI :: forall k t . Key k t => (Value k t -> Value k t) -> Record I t -> Record I t
---   modifyFieldI f = modifyField @k @t (I . f . unI)
---   
---   {- | Like 'inject' but specialized to pure 'Variant's.
---   -}
---   injectI :: forall k t. Key k t => Value k t -> Variant I t
---   injectI = snd (branch @k @t) . I
---   
---   {- | Like 'match' but specialized to pure 'Variants's.
---   -}
---   matchI :: forall k t . Key k t => Variant I t ->  Maybe (Value k t)
---   matchI v = unI <$> fst (branch @k @t) v
---   
---   {- | Process a 'Variant' using a eliminator 'Record' that carries
---        handlers for each possible branch of the 'Variant'.
---   -}
---   eliminate :: (Productlike '[] t result, Sumlike '[] t result, SListI result) => Record (Case f r) t -> Variant f t -> r
---   eliminate cases variant = 
---       let adapt (Case e) = Fn (\fv -> K (e fv))
---        in collapse_NS (ap_NS (liftA_NP adapt (toNP cases)) (toNS variant)) 
---   
---   {- | Represents a handler for a branch of a 'Variant'.  
---   -}
---   newtype Case f a b = Case (f b -> a)
---   
---   instance Functor f => Contravariant (Case f a) where
---       contramap g (Case c) = Case (c . fmap g)
---   
---   {- | A form of 'addField' for creating eliminators for 'Variant's.
---   -}
---   addCase :: forall k v t f a. Insertable k v t => (f v -> a) -> Record (Case f a) t -> Record (Case f a) (Insert k v t)
---   addCase f = addField @k @v @t (Case f)
---   
---   {- | A pure version of 'addCase'.
---   -}
---   addCaseI :: forall k v t a. Insertable k v t => (v -> a) -> Record (Case I a) t -> Record (Case I a) (Insert k v t)
---   addCaseI f = addField @k @v @t (Case (f . unI))
---   
---   --
---   --
---   -- Subsetting
---   
---   newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
---    
---   -- this odd trick again...
---   class (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol Type) (k :: Symbol) (v :: Type) 
---   instance (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol Type) (k :: Symbol) (v :: Type)
---   
---   {- | Constraint for maps that represent subsets of fields of 'Record'-like types.
---   -}
---   type ProductlikeSubset (subset :: Map Symbol Type) (whole :: Map Symbol Type) (flat :: [Type]) = 
---                          (KeysValuesAll (PresentIn whole) subset,
---                           Productlike '[] subset flat,
---                           SListI flat)
---   
---   {- | Like 'field', but targets multiple fields at the same time 
---   -}
---   fieldSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat) 
---               => Record f whole -> (Record f subset -> Record f whole, Record f subset)
---   fieldSubset r = 
---       (,)
---       (let goset :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
---                                                                        KeysValuesAll (PresentIn whole) right) 
---                  => Record (SetField f (Record f whole)) left 
---                  -> Record (SetField f (Record f whole)) right 
---                  -> Record (SetField f (Record f whole)) (N color left k v right)
---            goset left right = Node left (SetField (\v w -> fst (field @k @whole w) v)) right
---            setters = toNP @subset @_ @(SetField f (Record f whole)) (cpara_Map (Proxy @(PresentIn whole)) unit goset)
---            appz (SetField func) fv = K (Endo (func fv))
---         in \toset -> appEndo (mconcat (collapse_NP (liftA2_NP appz setters (toNP toset)))) r)
---       (let goget :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
---                                                                        KeysValuesAll (PresentIn whole) right) 
---                  => Record f left 
---                  -> Record f right 
---                  -> Record f (N color left k v right)
---            goget left right = Node left (project @k @whole r) right
---         in cpara_Map (Proxy @(PresentIn whole)) unit goget)
---   
---   {- | Like 'project', but extracts multiple fields at the same time.
---    
---        Can also be used to convert between 'Record's with structurally dissimilar
---        type-level maps that nevertheless hold the same entries. 
---   -}
---   projectSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat) 
---                 => Record f whole 
---                 -> Record f subset
---   projectSubset =  snd . fieldSubset
---   
---   {- | Alias for 'projectSubset'.
---   -}
---   getFieldSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat)  
---                  => Record f whole 
---                  -> Record f subset
---   getFieldSubset = projectSubset
---   
---   {- | Like 'setField', but sets multiple fields at the same time.
---    
---   -}
---   setFieldSubset :: forall subset whole flat f.  (ProductlikeSubset subset whole flat) 
---                  => Record f subset
---                  -> Record f whole 
---                  -> Record f whole
---   setFieldSubset subset whole = fst (fieldSubset whole) subset 
---   
---   {- | Like 'modifyField', but modifies multiple fields at the same time.
---    
---   -}
---   modifyFieldSubset :: forall subset whole flat f.  (ProductlikeSubset subset whole flat) 
---                     => (Record f subset -> Record f subset)
---                     -> Record f whole 
---                     -> Record f whole
---   modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
---   
---   
---   {- | Constraint for maps that represent subsets of branches of 'Variant'-like types.
---   -}
---   type SumlikeSubset (subset :: Map Symbol Type) (whole :: Map Symbol Type) (subflat :: [Type]) (wholeflat :: [Type]) = 
---                      (KeysValuesAll (PresentIn whole) subset,
---                       Productlike '[] whole  wholeflat,
---                       Sumlike '[] whole  wholeflat,
---                       SListI wholeflat,
---                       Productlike '[] subset subflat,
---                       Sumlike '[] subset subflat,
---                       SListI subflat)
---   
---   {- | Like 'branch', but targets multiple branches at the same time.
---   -}
---   branchSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
---                => (Variant f whole -> Maybe (Variant f subset), Variant f subset -> Variant f whole)
---   branchSubset = 
---       let inj2case :: forall t flat f v. Sumlike '[] t flat => (_ -> _) -> Injection _ flat v -> Case _ _ v
---           inj2case = \adapt -> \fn -> Case (\fv -> adapt (fromNS @t (unK (apFn fn fv))))
---           -- The intuition is that getting the setter and the getter together might be faster at compile-time.
---           -- The intuition might be wrong.
---           subs :: forall f. Record f whole -> (Record f subset -> Record f whole, Record f subset)
---           subs = fieldSubset @subset @whole
---        in
---        (,)
---        (let injs :: Record (Case f (Maybe (Variant f subset))) subset 
---             injs = fromNP @subset (liftA_NP (inj2case Just) (injections @subflat))
---             wholeinjs :: Record (Case f (Maybe (Variant f subset))) whole 
---             wholeinjs = fromNP @whole (pure_NP (Case (\_ -> Nothing)))
---             mixedinjs = fst (subs wholeinjs) injs
---          in eliminate mixedinjs)
---        (let wholeinjs :: Record (Case f (Variant f whole)) whole
---             wholeinjs = fromNP @whole (liftA_NP (inj2case id) (injections @wholeflat))
---             injs = snd (subs wholeinjs)
---          in eliminate injs)
---   
---   {- | Like 'inject', but injects one of several possible branches.
---    
---        Can also be used to convert between 'Variant's with structurally
---        dissimilar type-level maps that nevertheless hold the same entries. 
---   -}
---   injectSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
---                => Variant f subset -> Variant f whole
---   injectSubset = snd (branchSubset @subset @whole @subflat @wholeflat)
---   
---   {- | Like 'match', but matches more than one branch.
---   -}
---   matchSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
---               => Variant f whole -> Maybe (Variant f subset)
---   matchSubset = fst (branchSubset @subset @whole @subflat @wholeflat)
---   
---   {- | 
---        Like 'eliminate', but allows the eliminator 'Record' to have more fields
---        than there are branches in the 'Variant'.
---   -}
---   eliminateSubset :: forall subset whole subflat wholeflat f r. (SumlikeSubset subset whole subflat wholeflat)
---                   => Record (Case f r) whole -> Variant f subset -> r
---   eliminateSubset cases = 
---       let reducedCases = getFieldSubset @subset @whole cases
---        in eliminate reducedCases 
---   
+
+--
+--
+-- Accessing fields
+
+--
+-- These two type families exist to avoid duplicating expensive type-level
+-- computations, in particular the Value' computations.
+--
+-- Record accessors are compiled WAY slower without them!
+--
+{- | Auxiliary type family to avoid repetition and help improve compilation times.
+ -}
+type family Field (f :: vk -> Type) (t :: Map Symbol vk) (v :: vk) where
+    Field f t v = Record f t -> (f v -> Record f t, f v)
+
+{- | Auxiliary type family to avoid repetition and help improve compilation times.
+ -}
+type family Branch (f :: vk -> Type) (t :: Map Symbol vk) (v :: vk) where
+    Branch f t v = (Variant f t -> Maybe (f v), f v -> Variant f t)
+
+--
+{- | 
+     Class that determines if a given 'Symbol' key is present in a type-level
+     map.
+
+     The 'Value' type family gives the 'Type' corresponding to the key.
+
+     'field' takes a field name (given through @TypeApplications@) and a
+     'Record', and returns a pair of a setter for the field and the original
+     value of the field.
+     
+     'branch' takes a branch name (given through @TypeApplications@) and
+     returns a pair of a match function and a constructor.
+-} 
+class Key (k :: Symbol) (t :: Map Symbol vk) where
+    type Value k t :: vk
+    _field  :: Field  f t (Value k t)
+    _branch :: Branch f t (Value k t)
+
+field  :: forall k t f. Key k t => Field f t (Value k t)
+field = _field @_ @k @t
+
+branch :: forall k t f. Key k t => Branch f t (Value k t)
+branch = _branch @_ @k @t
+
+-- member :: Ord a => a -> RB a -> Bool
+class KeyHelper (ordering :: Ordering) (k :: Symbol) (left :: Map Symbol vk) (v :: vk) (right :: Map Symbol vk) where 
+    type Value' ordering k left v right :: vk
+    field'  :: Field  f (N colorx left kx v right) (Value' ordering k left v right)
+    branch' :: Branch f (N colorx left kx v right) (Value' ordering k left v right)
+
+instance (CmpSymbol k' k ~ ordering, KeyHelper ordering k left v' right) => Key k (N color left k' v' right) where
+    type Value k (N color left k' v' right) = Value' (CmpSymbol k' k) k left v' right
+    _field = field' @_ @ordering @k @left @v' @right
+    _branch = branch' @_ @ordering @k @left @v' @right
+
+--  | x<y = member x a
+instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2) 
+      => KeyHelper LT k left v (N color2 left2 k2 v2 right2) where
+    type Value'    LT k left v (N color2 left2 k2 v2 right2) = Value' (CmpSymbol k2 k) k left2 v2 right2
+    field' (Node left fv right) = 
+        let (setter,x) = field' @_ @ordering @k @left2 @v2 @right2 right
+         in (\z -> Node left fv (setter z),x)
+    branch' = 
+        let (match,inj) = branch' @_ @ordering @k @left2 @v2 @right2 
+         in (\case LookRight x -> match x
+                   _ -> Nothing,
+             \fv -> LookRight (inj fv))
+
+--  | x>y = member x b
+instance (CmpSymbol k2 k ~ ordering, KeyHelper ordering k left2 v2 right2) 
+      => KeyHelper GT k (N color2 left2 k2 v2 right2) v' right where
+    type    Value' GT k (N color2 left2 k2 v2 right2) v' right = Value' (CmpSymbol k2 k) k left2 v2 right2
+    field' (Node left fv right) = 
+        let (setter,x) = field' @_ @ordering @k @left2 @v2 @right2 left
+         in (\z -> Node (setter z) fv right,x)
+    branch' =
+        let (match,inj) = branch' @_ @ordering @k @left2 @v2 @right2 
+         in (\case LookLeft x -> match x
+                   _ -> Nothing,
+             \fv -> LookLeft (inj fv))
+
+--  | otherwise = True
+instance KeyHelper EQ k left v right where
+    type Value'    EQ k left v right = v
+    field' (Node left fv right) = (\x -> Node left x right, fv)
+    branch' = (\case Here x -> Just x
+                     _ -> Nothing,
+               Here)
+
+{- | Get the value of a field for a 'Record'. 
+-}
+project :: forall k t f . Key k t => Record f t -> f (Value k t)
+project = snd . field @k @t
+
+{- | Alias for 'project'.
+-}
+getField :: forall k t f . Key k t => Record f t -> f (Value k t)
+getField = project @k @t @f
+
+{- | Set the value of a field for a 'Record'. 
+-}
+setField :: forall k t f . Key k t => f (Value k t) -> Record f t -> Record f t
+setField fv r = fst (field @k @t @f r) fv
+
+{- | Modify the value of a field for a 'Record'. 
+-}
+modifyField :: forall k t f . Key k t => (f (Value k t) -> f (Value k t)) -> Record f t -> Record f t
+modifyField f r = uncurry ($) (fmap f (field @k @t @f r))
+
+{- | Put a value into the branch of a 'Variant'.
+-}
+inject :: forall k t f. Key k t => f (Value k t) -> Variant f t
+inject = snd (branch @k @t)
+
+{- | Check if a 'Variant' value is the given branch.
+-}
+match :: forall k t f. Key k t => Variant f t -> Maybe (f (Value k t))
+match = fst (branch @k @t)
+
+{- | Like 'project' but specialized to pure 'Record's.
+-}
+projectI :: forall k t . Key k t => Record I t -> Value k t
+projectI = unI . snd . field @k @t
+
+{- | Like 'getField' but specialized to pure 'Record's.
+-}
+getFieldI :: forall k t . Key k t => Record I t -> Value k t
+getFieldI = projectI @k @t
+
+{- | Like 'setField' but specialized to pure 'Record's.
+-}
+setFieldI :: forall k t . Key k t => Value k t -> Record I t -> Record I t
+setFieldI v r = fst (field @k @t r) (I v)
+
+{- | Like 'modifyField' but specialized to pure 'Record's.
+-}
+modifyFieldI :: forall k t . Key k t => (Value k t -> Value k t) -> Record I t -> Record I t
+modifyFieldI f = modifyField @k @t (I . f . unI)
+
+{- | Like 'inject' but specialized to pure 'Variant's.
+-}
+injectI :: forall k t. Key k t => Value k t -> Variant I t
+injectI = snd (branch @k @t) . I
+
+{- | Like 'match' but specialized to pure 'Variants's.
+-}
+matchI :: forall k t . Key k t => Variant I t ->  Maybe (Value k t)
+matchI v = unI <$> fst (branch @k @t) v
+
+{- | Process a 'Variant' using a eliminator 'Record' that carries
+     handlers for each possible branch of the 'Variant'.
+-}
+eliminate :: (Productlike '[] t result, Sumlike '[] t result, SListI result) => Record (Case f r) t -> Variant f t -> r
+eliminate cases variant = 
+    let adapt (Case e) = Fn (\fv -> K (e fv))
+     in collapse_NS (ap_NS (liftA_NP adapt (toNP cases)) (toNS variant)) 
+
+{- | Represents a handler for a branch of a 'Variant'.  
+-}
+newtype Case f a b = Case (f b -> a)
+
+instance Functor f => Contravariant (Case f a) where
+    contramap g (Case c) = Case (c . fmap g)
+
+{- | A form of 'addField' for creating eliminators for 'Variant's.
+-}
+addCase :: forall k v t f a. Insertable k v t => (f v -> a) -> Record (Case f a) t -> Record (Case f a) (Insert k v t)
+addCase f = addField @k @v @t (Case f)
+
+{- | A pure version of 'addCase'.
+-}
+addCaseI :: forall k v t a. Insertable k v t => (v -> a) -> Record (Case I a) t -> Record (Case I a) (Insert k v t)
+addCaseI f = addField @k @v @t (Case (f . unI))
+
+--
+--
+-- Subsetting
+
+newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
+ 
+-- this odd trick again...
+class (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol Type) (k :: Symbol) (v :: Type) 
+instance (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol Type) (k :: Symbol) (v :: Type)
+
+{- | Constraint for maps that represent subsets of fields of 'Record'-like types.
+-}
+type ProductlikeSubset (subset :: Map Symbol Type) (whole :: Map Symbol Type) (flat :: [Type]) = 
+                       (KeysValuesAll (PresentIn whole) subset,
+                        Productlike '[] subset flat,
+                        SListI flat)
+
+{- | Like 'field', but targets multiple fields at the same time 
+-}
+fieldSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat) 
+            => Record f whole -> (Record f subset -> Record f whole, Record f subset)
+fieldSubset r = 
+    (,)
+    (let goset :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
+                                                                     KeysValuesAll (PresentIn whole) right) 
+               => Record (SetField f (Record f whole)) left 
+               -> Record (SetField f (Record f whole)) right 
+               -> Record (SetField f (Record f whole)) (N color left k v right)
+         goset left right = Node left (SetField (\v w -> fst (field @k @whole w) v)) right
+         setters = toNP @subset @_ @(SetField f (Record f whole)) (cpara_Map (Proxy @(PresentIn whole)) unit goset)
+         appz (SetField func) fv = K (Endo (func fv))
+      in \toset -> appEndo (mconcat (collapse_NP (liftA2_NP appz setters (toNP toset)))) r)
+    (let goget :: forall left k v right color. (PresentIn whole k v, KeysValuesAll (PresentIn whole) left, 
+                                                                     KeysValuesAll (PresentIn whole) right) 
+               => Record f left 
+               -> Record f right 
+               -> Record f (N color left k v right)
+         goget left right = Node left (project @k @whole r) right
+      in cpara_Map (Proxy @(PresentIn whole)) unit goget)
+
+{- | Like 'project', but extracts multiple fields at the same time.
+ 
+     Can also be used to convert between 'Record's with structurally dissimilar
+     type-level maps that nevertheless hold the same entries. 
+-}
+projectSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat) 
+              => Record f whole 
+              -> Record f subset
+projectSubset =  snd . fieldSubset
+
+{- | Alias for 'projectSubset'.
+-}
+getFieldSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat)  
+               => Record f whole 
+               -> Record f subset
+getFieldSubset = projectSubset
+
+{- | Like 'setField', but sets multiple fields at the same time.
+ 
+-}
+setFieldSubset :: forall subset whole flat f.  (ProductlikeSubset subset whole flat) 
+               => Record f subset
+               -> Record f whole 
+               -> Record f whole
+setFieldSubset subset whole = fst (fieldSubset whole) subset 
+
+{- | Like 'modifyField', but modifies multiple fields at the same time.
+ 
+-}
+modifyFieldSubset :: forall subset whole flat f.  (ProductlikeSubset subset whole flat) 
+                  => (Record f subset -> Record f subset)
+                  -> Record f whole 
+                  -> Record f whole
+modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
+
+
+{- | Constraint for maps that represent subsets of branches of 'Variant'-like types.
+-}
+type SumlikeSubset (subset :: Map Symbol Type) (whole :: Map Symbol Type) (subflat :: [Type]) (wholeflat :: [Type]) = 
+                   (KeysValuesAll (PresentIn whole) subset,
+                    Productlike '[] whole  wholeflat,
+                    Sumlike '[] whole  wholeflat,
+                    SListI wholeflat,
+                    Productlike '[] subset subflat,
+                    Sumlike '[] subset subflat,
+                    SListI subflat)
+
+{- | Like 'branch', but targets multiple branches at the same time.
+-}
+branchSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
+             => (Variant f whole -> Maybe (Variant f subset), Variant f subset -> Variant f whole)
+branchSubset = 
+    let inj2case :: forall t flat f v. Sumlike '[] t flat => (_ -> _) -> Injection _ flat v -> Case _ _ v
+        inj2case = \adapt -> \fn -> Case (\fv -> adapt (fromNS @t (unK (apFn fn fv))))
+        -- The intuition is that getting the setter and the getter together might be faster at compile-time.
+        -- The intuition might be wrong.
+        subs :: forall f. Record f whole -> (Record f subset -> Record f whole, Record f subset)
+        subs = fieldSubset @subset @whole
+     in
+     (,)
+     (let injs :: Record (Case f (Maybe (Variant f subset))) subset 
+          injs = fromNP @subset (liftA_NP (inj2case Just) (injections @subflat))
+          wholeinjs :: Record (Case f (Maybe (Variant f subset))) whole 
+          wholeinjs = fromNP @whole (pure_NP (Case (\_ -> Nothing)))
+          mixedinjs = fst (subs wholeinjs) injs
+       in eliminate mixedinjs)
+     (let wholeinjs :: Record (Case f (Variant f whole)) whole
+          wholeinjs = fromNP @whole (liftA_NP (inj2case id) (injections @wholeflat))
+          injs = snd (subs wholeinjs)
+       in eliminate injs)
+
+{- | Like 'inject', but injects one of several possible branches.
+ 
+     Can also be used to convert between 'Variant's with structurally
+     dissimilar type-level maps that nevertheless hold the same entries. 
+-}
+injectSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
+             => Variant f subset -> Variant f whole
+injectSubset = snd (branchSubset @subset @whole @subflat @wholeflat)
+
+{- | Like 'match', but matches more than one branch.
+-}
+matchSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
+            => Variant f whole -> Maybe (Variant f subset)
+matchSubset = fst (branchSubset @subset @whole @subflat @wholeflat)
+
+{- | 
+     Like 'eliminate', but allows the eliminator 'Record' to have more fields
+     than there are branches in the 'Variant'.
+-}
+eliminateSubset :: forall subset whole subflat wholeflat f r. (SumlikeSubset subset whole subflat wholeflat)
+                => Record (Case f r) whole -> Variant f subset -> r
+eliminateSubset cases = 
+    let reducedCases = getFieldSubset @subset @whole cases
+     in eliminate reducedCases 
+
 --
 
 -- Interaction with Data.SOP
@@ -996,166 +1002,166 @@ fromNS :: forall t result f. Sumlike '[] t result => NS f result -> Variant f t
 fromNS ns = case breakNS ns of 
     Left _ -> error "this never happens"
     Right x -> x
---   
---   --
---   --
---   -- Interfacing with normal records
---   
---   class ToRecord (r :: Type) where
---       type RecordCode r :: Map Symbol Type
---       -- https://stackoverflow.com/questions/22087549/defaultsignatures-and-associated-type-families/22088808
---       type RecordCode r = RecordCode' E (G.Rep r)
---       toRecord :: r -> Record I (RecordCode r)
---       default toRecord :: (G.Generic r,ToRecordHelper E (G.Rep r),RecordCode r ~ RecordCode' E (G.Rep r)) => r -> Record I (RecordCode r)
---       toRecord r = toRecord' unit (G.from r)
---   
---   class ToRecordHelper (start :: Map Symbol Type) (g :: Type -> Type) where
---       type RecordCode' start g :: Map Symbol Type
---       toRecord' :: Record I start -> g x -> Record I (RecordCode' start g)
---   
---   instance ToRecordHelper E fields => ToRecordHelper E (D1 meta (C1 metacons fields)) where
---       type RecordCode' E (D1 meta (C1 metacons fields)) = RecordCode' E fields
---       toRecord' r (M1 (M1 g)) = toRecord' @E @fields r g
---   
---   instance (Insertable k v start) =>
---            ToRecordHelper start
---                           (S1 ('G.MetaSel ('Just k)
---                                           unpackedness
---                                           strictness
---                                           laziness)
---                               (Rec0 v)) 
---     where
---       type RecordCode'    start
---                           (S1 ('G.MetaSel ('Just k)
---                                           unpackedness
---                                           strictness
---                                           laziness)
---                               (Rec0 v))                           = Insert k v start
---       toRecord' start (M1 (K1 v)) = insertI @k v start
---   
---   instance ( ToRecordHelper start  t2,
---              RecordCode'    start  t2 ~ middle,
---              ToRecordHelper middle t1 
---            ) =>
---            ToRecordHelper start (t1 G.:*: t2)
---     where
---       type RecordCode'    start (t1 G.:*: t2) = RecordCode' (RecordCode' start t2) t1 
---       toRecord'           start (t1 G.:*: t2) = toRecord' @middle (toRecord' @start start t2) t1 
---   
---   --
---   --
---   class ToRecord r => FromRecord (r :: Type) where
---       fromRecord :: Record I (RecordCode r) -> r
---       default fromRecord :: (G.Generic r, FromRecordHelper (RecordCode r) (G.Rep r)) => Record I (RecordCode r) -> r
---       fromRecord r = G.to (fromRecord' @(RecordCode r) @(G.Rep r) r)
---   
---   class FromRecordHelper (t :: Map Symbol Type) (g :: Type -> Type) where
---       fromRecord' :: Record I t -> g x
---   
---   instance FromRecordHelper t fields => FromRecordHelper t (D1 meta (C1 metacons fields)) where
---       fromRecord' r = M1 (M1 (fromRecord' @t @fields r))
---   
---   instance (Key k t, Value k t ~ v) =>
---            FromRecordHelper t
---                             (S1 ('G.MetaSel ('Just k)
---                                             unpackedness
---                                             strictness
---                                             laziness)
---                                 (Rec0 v)) 
---    where
---      fromRecord' r = let v = projectI @k r in M1 (K1 v)
---   
---   instance ( FromRecordHelper t t1,
---              FromRecordHelper t t2
---            ) => 
---            FromRecordHelper t (t1 G.:*: t2) 
---     where 
---      fromRecord' r = 
---           let v1 = fromRecord' @_ @t1 r
---               v2 = fromRecord' @_ @t2 r
---            in v1 G.:*: v2
---   
---   --
---   --
---   --
---   type family VariantCode (s :: Type) :: Map Symbol Type where
---       VariantCode s = VariantCode' E (G.Rep s)
---   
---   type family VariantCode' (acc :: Map Symbol Type) (g :: Type -> Type) :: Map Symbol Type where
---       VariantCode' acc (D1 meta fields) = VariantCode' acc fields
---       VariantCode' acc (t1 G.:+: t2) = VariantCode' (VariantCode' acc t2) t1
---       VariantCode' acc (C1 (G.MetaCons k _ _) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v))) = Insert k v acc
---       VariantCode' acc (C1 (G.MetaCons k _ _) G.U1) = Insert k () acc
---        
---   class FromVariant (s :: Type) where
---       fromVariant :: Variant I (VariantCode s) -> s
---       default fromVariant :: (G.Generic s, FromVariantHelper (VariantCode s) (G.Rep s)) => Variant I (VariantCode s) -> s
---       fromVariant v = case fromVariant' @(VariantCode s) v of
---           Just x -> G.to x
---           Nothing -> error "fromVariant match fail. Should not happen."
---   
---   class FromVariantHelper (t :: Map Symbol Type) (g :: Type -> Type) where
---       fromVariant' :: Variant I t -> Maybe (g x)
---   
---   instance FromVariantHelper t fields => FromVariantHelper t (D1 meta fields) where
---       fromVariant' v = M1 <$> fromVariant' @t v
---   
---   instance (Key k t, Value k t ~ v) 
---            => FromVariantHelper t (C1 (G.MetaCons k x y) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v)))
---     where
---       fromVariant' v = case matchI @k @t v of
---           Just x -> Just (M1 (M1 (K1 x)) )
---           Nothing -> Nothing
---   
---   instance (Key k t, Value k t ~ ()) 
---            => FromVariantHelper t (C1 (G.MetaCons k x y) G.U1)
---     where
---       fromVariant' v = case matchI @k @t v of
---           Just x -> Just (M1 G.U1)
---           Nothing -> Nothing
---   
---   instance ( FromVariantHelper t t1,
---              FromVariantHelper t t2 
---            ) =>
---            FromVariantHelper t (t1 G.:+: t2)
---     where
---       fromVariant' v = case fromVariant' @t @t1 v of
---           Just x1 -> Just (G.L1 x1)
---           Nothing -> case fromVariant' @t @t2 v of
---               Just x2 -> Just (G.R1 x2)
---               Nothing -> Nothing
---   
---   --
---   --
---   class ToVariant (s :: Type) where
---       toVariant :: s -> Variant I (VariantCode s)
---       default toVariant :: (G.Generic s, ToVariantHelper (VariantCode s) (G.Rep s)) => s -> Variant I (VariantCode s)
---       toVariant s = toVariant' @(VariantCode s) @(G.Rep s) (G.from s)
---   
---   class ToVariantHelper (t :: Map Symbol Type) (g :: Type -> Type) where
---       toVariant' :: g x -> Variant I t 
---   
---   instance ToVariantHelper t fields => ToVariantHelper t (D1 meta fields) where
---       toVariant' (M1 fields) = toVariant' @t fields
---   
---   instance (Key k t, Value k t ~ v) =>
---       ToVariantHelper t (C1 (G.MetaCons k x y) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v))) 
---     where
---       toVariant' (M1 (M1 (K1 v))) = injectI @k v
---   
---   instance (Key k t, Value k t ~ ()) =>
---       ToVariantHelper t (C1 (G.MetaCons k x y) G.U1) where
---       toVariant' (M1 G.U1) = injectI @k ()
---   
---   instance ( ToVariantHelper t t1,
---              ToVariantHelper t t2 
---            ) =>
---            ToVariantHelper t (t1 G.:+: t2)
---     where
---       toVariant' = \case
---           G.L1 l -> toVariant' @t l
---           G.R1 r -> toVariant' @t r
---   
+
+--
+--
+-- Interfacing with normal records
+
+class ToRecord (r :: Type) where
+    type RecordCode r :: Map Symbol Type
+    -- https://stackoverflow.com/questions/22087549/defaultsignatures-and-associated-type-families/22088808
+    type RecordCode r = RecordCode' E (G.Rep r)
+    toRecord :: r -> Record I (RecordCode r)
+    default toRecord :: (G.Generic r,ToRecordHelper E (G.Rep r),RecordCode r ~ RecordCode' E (G.Rep r)) => r -> Record I (RecordCode r)
+    toRecord r = toRecord' unit (G.from r)
+
+class ToRecordHelper (start :: Map Symbol Type) (g :: Type -> Type) where
+    type RecordCode' start g :: Map Symbol Type
+    toRecord' :: Record I start -> g x -> Record I (RecordCode' start g)
+
+instance ToRecordHelper E fields => ToRecordHelper E (D1 meta (C1 metacons fields)) where
+    type RecordCode' E (D1 meta (C1 metacons fields)) = RecordCode' E fields
+    toRecord' r (M1 (M1 g)) = toRecord' @E @fields r g
+
+instance (Insertable k v start) =>
+         ToRecordHelper start
+                        (S1 ('G.MetaSel ('Just k)
+                                        unpackedness
+                                        strictness
+                                        laziness)
+                            (Rec0 v)) 
+  where
+    type RecordCode'    start
+                        (S1 ('G.MetaSel ('Just k)
+                                        unpackedness
+                                        strictness
+                                        laziness)
+                            (Rec0 v))                           = Insert k v start
+    toRecord' start (M1 (K1 v)) = insertI @k v start
+
+instance ( ToRecordHelper start  t2,
+           RecordCode'    start  t2 ~ middle,
+           ToRecordHelper middle t1 
+         ) =>
+         ToRecordHelper start (t1 G.:*: t2)
+  where
+    type RecordCode'    start (t1 G.:*: t2) = RecordCode' (RecordCode' start t2) t1 
+    toRecord'           start (t1 G.:*: t2) = toRecord' @middle (toRecord' @start start t2) t1 
+
+--
+--
+class ToRecord r => FromRecord (r :: Type) where
+    fromRecord :: Record I (RecordCode r) -> r
+    default fromRecord :: (G.Generic r, FromRecordHelper (RecordCode r) (G.Rep r)) => Record I (RecordCode r) -> r
+    fromRecord r = G.to (fromRecord' @(RecordCode r) @(G.Rep r) r)
+
+class FromRecordHelper (t :: Map Symbol Type) (g :: Type -> Type) where
+    fromRecord' :: Record I t -> g x
+
+instance FromRecordHelper t fields => FromRecordHelper t (D1 meta (C1 metacons fields)) where
+    fromRecord' r = M1 (M1 (fromRecord' @t @fields r))
+
+instance (Key k t, Value k t ~ v) =>
+         FromRecordHelper t
+                          (S1 ('G.MetaSel ('Just k)
+                                          unpackedness
+                                          strictness
+                                          laziness)
+                              (Rec0 v)) 
+ where
+   fromRecord' r = let v = projectI @k r in M1 (K1 v)
+
+instance ( FromRecordHelper t t1,
+           FromRecordHelper t t2
+         ) => 
+         FromRecordHelper t (t1 G.:*: t2) 
+  where 
+   fromRecord' r = 
+        let v1 = fromRecord' @_ @t1 r
+            v2 = fromRecord' @_ @t2 r
+         in v1 G.:*: v2
+
+--
+--
+--
+type family VariantCode (s :: Type) :: Map Symbol Type where
+    VariantCode s = VariantCode' E (G.Rep s)
+
+type family VariantCode' (acc :: Map Symbol Type) (g :: Type -> Type) :: Map Symbol Type where
+    VariantCode' acc (D1 meta fields) = VariantCode' acc fields
+    VariantCode' acc (t1 G.:+: t2) = VariantCode' (VariantCode' acc t2) t1
+    VariantCode' acc (C1 (G.MetaCons k _ _) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v))) = Insert k v acc
+    VariantCode' acc (C1 (G.MetaCons k _ _) G.U1) = Insert k () acc
+     
+class FromVariant (s :: Type) where
+    fromVariant :: Variant I (VariantCode s) -> s
+    default fromVariant :: (G.Generic s, FromVariantHelper (VariantCode s) (G.Rep s)) => Variant I (VariantCode s) -> s
+    fromVariant v = case fromVariant' @(VariantCode s) v of
+        Just x -> G.to x
+        Nothing -> error "fromVariant match fail. Should not happen."
+
+class FromVariantHelper (t :: Map Symbol Type) (g :: Type -> Type) where
+    fromVariant' :: Variant I t -> Maybe (g x)
+
+instance FromVariantHelper t fields => FromVariantHelper t (D1 meta fields) where
+    fromVariant' v = M1 <$> fromVariant' @t v
+
+instance (Key k t, Value k t ~ v) 
+         => FromVariantHelper t (C1 (G.MetaCons k x y) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v)))
+  where
+    fromVariant' v = case matchI @k @t v of
+        Just x -> Just (M1 (M1 (K1 x)) )
+        Nothing -> Nothing
+
+instance (Key k t, Value k t ~ ()) 
+         => FromVariantHelper t (C1 (G.MetaCons k x y) G.U1)
+  where
+    fromVariant' v = case matchI @k @t v of
+        Just x -> Just (M1 G.U1)
+        Nothing -> Nothing
+
+instance ( FromVariantHelper t t1,
+           FromVariantHelper t t2 
+         ) =>
+         FromVariantHelper t (t1 G.:+: t2)
+  where
+    fromVariant' v = case fromVariant' @t @t1 v of
+        Just x1 -> Just (G.L1 x1)
+        Nothing -> case fromVariant' @t @t2 v of
+            Just x2 -> Just (G.R1 x2)
+            Nothing -> Nothing
+
+--
+--
+class ToVariant (s :: Type) where
+    toVariant :: s -> Variant I (VariantCode s)
+    default toVariant :: (G.Generic s, ToVariantHelper (VariantCode s) (G.Rep s)) => s -> Variant I (VariantCode s)
+    toVariant s = toVariant' @(VariantCode s) @(G.Rep s) (G.from s)
+
+class ToVariantHelper (t :: Map Symbol Type) (g :: Type -> Type) where
+    toVariant' :: g x -> Variant I t 
+
+instance ToVariantHelper t fields => ToVariantHelper t (D1 meta fields) where
+    toVariant' (M1 fields) = toVariant' @t fields
+
+instance (Key k t, Value k t ~ v) =>
+    ToVariantHelper t (C1 (G.MetaCons k x y) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v))) 
+  where
+    toVariant' (M1 (M1 (K1 v))) = injectI @k v
+
+instance (Key k t, Value k t ~ ()) =>
+    ToVariantHelper t (C1 (G.MetaCons k x y) G.U1) where
+    toVariant' (M1 G.U1) = injectI @k ()
+
+instance ( ToVariantHelper t t1,
+           ToVariantHelper t t2 
+         ) =>
+         ToVariantHelper t (t1 G.:+: t2)
+  where
+    toVariant' = \case
+        G.L1 l -> toVariant' @t l
+        G.R1 r -> toVariant' @t r
+
 --   --
 --   --
 --   -- deletion
