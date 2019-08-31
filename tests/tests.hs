@@ -18,8 +18,8 @@ import Data.RBR.Demoted (emptyMap,DemotableMap(demoteMap),t_insert,t_delete)
 import Data.SOP
 import Data.SOP.NP (cpure_NP,collapse_NP)
 import Data.Typeable
-import GHC.TypeLits
 import Data.Proxy
+import GHC.TypeLits
 import Data.Kind
 import GHC.Generics (Generic)
 
@@ -62,6 +62,9 @@ tests = testGroup "Tests" [ testCase "recordGetSet01" testRecordGetSet01,
                                     testCase "tandem02" testInTandem02,
                                     testCase "tandem03" testInTandem03,
                                     testCase "tandem04" testInTandem04
+                            ],
+                            testGroup "polyKindedMap" [
+                                    testCase "polyKinded01" polyKinded01
                             ]
                           ]
 
@@ -505,4 +508,39 @@ perform :: [Action String TypeRep] -> Map String TypeRep
 perform = foldr (\(Act iod s v) t -> case iod of In -> t_insert s v t
                                                  De -> t_delete s t) 
                 emptyMap
+
+--
+--
+--
+
+type PolyKinded01 = FromList '[ '("aaa","v1"),
+                                '("bbb","v2"), 
+                                '("ccc","v3"), 
+                                '("ddd","v4"), 
+                                '("eee","v5")  ]
+
+polyKindedRecord01 :: Record Proxy PolyKinded01
+polyKindedRecord01 = 
+               insert @"aaa" (Proxy @"v1")
+             . insert @"bbb" (Proxy @"v2")
+             . insert @"ccc" (Proxy @"v3")
+             . insert @"ddd" (Proxy @"v4")
+             . insert @"eee" (Proxy @"v5")
+             $ unit
+
+polyKinded01 :: Assertion
+polyKinded01 = do
+    let r = insert @"aaa" (Proxy @"v1")
+          . insert @"bbb" (Proxy @"v2")
+          . insert @"ccc" (Proxy @"v3")
+          . insert @"ddd" (Proxy @"v4")
+          . insert @"eee" (Proxy @"v5")
+          . insert @"abb" (Proxy @"v2")
+          . insert @"acc" (Proxy @"v3")
+          . insert @"add" (Proxy @"v4")
+          . insert @"aee" (Proxy @"v5")
+          $ unit
+        proxy :: Proxy "v2"
+        proxy = getField @"abb" r
+    return ()
 
