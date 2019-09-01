@@ -123,6 +123,10 @@ cpure_Record _ fpure = cpara_Map (Proxy @c) unit go
      The names are represented by a constant functor 'K' carrying an annotation
      of type 'String'. This means that there aren't actually any values of the
      type that corresponds to each field, only the 'String' annotations.
+
+>>> putStrLn $ prettyShowRecord show $ demoteKeys @(Insert "foo" Char (Insert "bar" Bool Empty))
+{bar = K "bar", foo = K "foo"}
+
 -} 
 demoteKeys :: forall t. KeysValuesAll KnownKey t => Record (K String) t
 demoteKeys = cpara_Map (Proxy @KnownKey) unit go
@@ -144,6 +148,9 @@ instance KnownSymbol k => KnownKey k v
 {- | 
   Create a record containing the names of each field along with a term-level
   representation of each type.
+
+>>> putStrLn $ prettyShowRecord show $ demoteEntries @(Insert "foo" Char (Insert "bar" Bool Empty))
+{bar = K ("bar",Bool), foo = K ("foo",Char)}
 
   See also 'collapse_Record' for getting the entries as a list.
 -}
@@ -187,6 +194,12 @@ instance (Productlike '[] t result, Show (NP f result)) => Show (Record f t) whe
 
 {- | Collapse a 'Record' composed of 'K' annotations.
     
+>>> collapse_Record unit
+[]
+
+>>> collapse_Record (insert @"bar" (K False) unit)
+[False]
+
      The naming scheme follows that of 'Data.SOP.NP.collapse_NP'.
 
 -}
@@ -675,6 +688,8 @@ instance KeyHelper EQ k left v right where
                Here)
 
 {- | Get the value of a field for a 'Record'. 
+
+
 -}
 project :: forall k t f . Key k t => Record f t -> f (Value k t)
 project = snd . field @k @t
@@ -709,6 +724,10 @@ match :: forall k t f. Key k t => Variant f t -> Maybe (f (Value k t))
 match = fst (branch @k @t)
 
 {- | Like 'project' but specialized to pure 'Record's.
+
+>>> projectI @"foo" (insertI @"foo" 'a' (insertI @"bar" False unit))
+'a'
+
 -}
 projectI :: forall k t . Key k t => Record I t -> Value k t
 projectI = unI . snd . field @k @t
@@ -744,6 +763,10 @@ matchI v = unI <$> fst (branch @k @t) v
 
 {- | Process a 'Variant' using a eliminator 'Record' that carries
      handlers for each possible branch of the 'Variant'.
+
+>>> eliminate (addCaseI @"foo" @Int succ (addCaseI @"bar" pred unit)) (injectI @"bar" 33)
+32
+
 -}
 eliminate :: (Productlike '[] t result, Sumlike '[] t result, SListI result) => Record (Case f r) t -> Variant f t -> r
 eliminate cases variant = 
@@ -785,6 +808,7 @@ type ProductlikeSubset (subset :: Map Symbol q) (whole :: Map Symbol q) (flat ::
                        SListI flat)
 
 {- | Like 'field', but targets multiple fields at the same time 
+
 -}
 fieldSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat) 
             => Record f whole -> (Record f subset -> Record f whole, Record f subset)
@@ -808,7 +832,12 @@ fieldSubset r =
       in cpara_Map (Proxy @(PresentIn whole)) unit goget)
 
 {- | Like 'project', but extracts multiple fields at the same time.
+
+     The types in the subset tree can often be inferred and left as wildcards in type signature.
  
+>>> prettyShowRecordI $ projectSubset @(Insert "foo" _ (Insert "bar" _ Empty)) (insertI @"foo" 'a' (insertI @"bar" True (insertI @"baz" (Just ()) unit)))
+"{bar = True, foo = 'a'}"
+
      Can also be used to convert between 'Record's with structurally dissimilar
      type-level maps that nevertheless hold the same entries. 
 -}
@@ -947,12 +976,21 @@ prefixNP = _prefixNP @_ @start @t @result
 breakNP :: forall start t result f. Productlike start t result => NP f result -> (Record f t, NP f start)
 breakNP = _breakNP @_ @start @t @result
 
-{- | Convert a 'Record' into a n-ary product. 
+{- | Convert a 'Record' into a n-ary product. The order of the elements in the
+     product is not the order of insertion in the record.
+
+>>> toNP (insertI @"foo" 'a' (insertI @"bar" True unit))
+I True :* I 'a' :* Nil 
+
 -}
 toNP :: forall t result f. Productlike '[] t result => Record f t -> NP f result
 toNP r = prefixNP r Nil
 
-{- | Convert a n-ary product into a compatible 'Record'. 
+{- | Convert a n-ary product into a compatible 'Record'. Usually follows an invocation of 'toNP'. 
+
+>>> prettyShowRecordI . fromNP @(Insert "foo" _ (Insert "bar" _ Empty)) . toNP $ insertI @"foo" 'a' (insertI @"bar" True unit)
+"{bar = True, foo = 'a'}"
+
 -}
 fromNP :: forall t result f. Productlike '[] t result => NP f result -> Record f t
 fromNP np = let (r,Nil) = breakNP np in r
@@ -1042,11 +1080,19 @@ breakNS :: forall start t result f. Sumlike start t result => NS f result -> Eit
 breakNS = _breakNS @_ @start @t @result
 
 {- | Convert a 'Variant' into a n-ary sum. 
+ 
+>>> toNS (injectI @"foo" 'a' :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+S (Z (I 'a')) 
+
 -}
 toNS :: forall t result f. Sumlike '[] t result => Variant f t -> NS f result
 toNS = prefixNS . Right
 
 {- | Convert a n-ary sum into a compatible 'Variant'. 
+ 
+>>> prettyShowVariantI $ fromNS @(Insert "foo" _ (Insert "bar" _ Empty)) . toNS $ (injectI @"foo" 'a' :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+"foo ('a')"
+
 -}
 fromNS :: forall t result f. Sumlike '[] t result => NS f result -> Variant f t
 fromNS ns = case breakNS ns of 
@@ -1753,6 +1799,13 @@ winnow :: forall k v t f . Deletable k v t => Variant f t -> Either (Variant f (
 winnow = _winnow @_ @k @v @t 
 
 {- | Like 'winnow' but specialized to pure 'Variant's.
+ 
+>>> winnow @"bar" @Bool (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+Right (I False)
+
+>>> prettyShowVariantI `first` winnow @"foo" @Char (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+Left "bar (False)" 
+
 -}
 winnowI :: forall k v t . Deletable k v t => Variant I t -> Either (Variant I (Delete k v t)) v
 winnowI = fmap unI . winnow @k @v @t
