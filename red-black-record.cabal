@@ -33,8 +33,9 @@ source-repository head
 
 library
   exposed-modules:     Data.RBR
-                       Data.RBR.Internal
+                       Data.RBR.Levels
                        Data.RBR.Examples
+                       Data.RBR.Internal
   build-depends:       base                 >= 4.10.0.0 && < 5,
                        sop-core             >= 0.4.0.0 && < 0.6
   hs-source-dirs:      lib
