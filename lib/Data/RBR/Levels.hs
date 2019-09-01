@@ -23,12 +23,21 @@
 {-#  OPTIONS_GHC -Wno-partial-type-signatures  #-}
 module Data.RBR.Levels where
 
-import Data.RBR.Internal
+import           Data.Proxy
+import           Data.Kind
+import           GHC.TypeLits
 
-data Levels k v = Product (Map k (Levels k v))
-                | Sum (Map k (Levels k v))
-                | Leaf v
+import           Data.RBR.Internal
+
+data Levels s q = Product (Map s (Levels s q))
+                | Sum (Map s (Levels s q))
+                | Leaf q
                 deriving (Show,Eq)
 
--- data Multilevel (levels : Levels Symbol Type)  where
---     Record I (Map k (Multilevel levelsbelow)) -> Multilevel (Product   
+-- class Stuff  (start :: Map Symbol Type)
+--              (result :: Map Symbol (Levels Symbol Type)) | start -> result, result -> start where
+
+data Multilevel (levels :: Levels Symbol Type)  where
+    Atom :: v -> Multilevel (Leaf v)
+    -- Record :: Record I t -> 
+    --Record I t -> Multilevel (Product (Map k levelsbelow))
