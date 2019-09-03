@@ -35,19 +35,21 @@ data Levels s q = Product (Map s (Levels s q))
                 | Leaf q
                 deriving (Show,Eq)
 
-class Peel (start :: Map Symbol Type)
-           (result :: Map Symbol (Levels Symbol Type)) | start -> result, result -> start where
+type family Leaven (levels :: Map s (Levels symbol Type)) :: (leavened :: Map s (Multilevel (Levels Symbol Type))) | levels -> leavened where
 
-instance Peel E E
-
-instance (Peel left' left, Peel right' right) =>
-         Peel (N color left' k (Multilevel sublevel) right')
-              (N color left  k sublevel              right )
+-- class Peel (start :: Map Symbol Type)
+--            (result :: Map Symbol (Levels Symbol Type)) | start -> result, result -> start where
+-- 
+-- instance Peel E E
+-- 
+-- instance (Peel left' left, Peel right' right) =>
+--          Peel (N color left' k (Multilevel sublevel) right')
+--               (N color left  k sublevel              right )
 
 data Multilevel (levels :: Levels Symbol Type)  where
     Atom :: v -> Multilevel (Leaf v)
-    Record :: Peel t' t => Record I t' -> Multilevel (Product t)
-    Variant :: Peel t' t => Variant I t' -> Multilevel (Sum t)
+    Record :: Record I (Leaven t) -> Multilevel (Product t)
+    Variant :: Variant I (Leaven t) -> Multilevel (Sum t)
 
 
 foo :: Multilevel (Product (FromList '[ '("foo", Leaf Char) ]))
@@ -57,5 +59,5 @@ foo = Record $ insertI @"foo" (Atom 'a')
 -- This doesn't work. 
 -- foodo :: Char
 -- foodo = case foo of
---     Record thefoo -> case getFieldI @"foo" thefoo of
+--     Record thefoo -> case (getFieldI @"foo"  thefoo :: Multilevel ('Leaf Char) )of
 --         Atom c -> c
