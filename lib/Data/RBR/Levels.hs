@@ -35,29 +35,22 @@ data Levels s q = Product (Map s (Levels s q))
                 | Leaf q
                 deriving (Show,Eq)
 
-type family Leaven (levels :: Map s (Levels symbol Type)) :: (leavened :: Map s (Multilevel (Levels Symbol Type))) | levels -> leavened where
-
--- class Peel (start :: Map Symbol Type)
---            (result :: Map Symbol (Levels Symbol Type)) | start -> result, result -> start where
--- 
--- instance Peel E E
--- 
--- instance (Peel left' left, Peel right' right) =>
---          Peel (N color left' k (Multilevel sublevel) right')
---               (N color left  k sublevel              right )
+newtype Y (levelz :: Levels Symbol Type) = Y (Multilevel levelz) 
 
 data Multilevel (levels :: Levels Symbol Type)  where
     Atom :: v -> Multilevel (Leaf v)
-    Record :: Record I (Leaven t) -> Multilevel (Product t)
-    Variant :: Variant I (Leaven t) -> Multilevel (Sum t)
+    Record :: Record Y t -> Multilevel (Product t)
+    Variant :: Variant Y t -> Multilevel (Sum t)
 
-
-foo :: Multilevel (Product (FromList '[ '("foo", Leaf Char) ]))
-foo = Record $ insertI @"foo" (Atom 'a') 
+foo :: Multilevel (Product (FromList '[ '("foo", Leaf Char),
+                                        '("bar", Sum (FromList '[ '("sub1", Leaf Char),
+                                                                  '("sub2", Sum (FromList '[ '("subsub1", Leaf Int), 
+                                                                                             '("subsub2", Leaf Char) ]))]))]))
+foo = Record $ insert @"foo" (Y (Atom 'a'))
+             . insert @"bar" (Y (Variant $ inject @"sub1" (Y (Atom 'a'))))
              $ unit
 
--- This doesn't work. 
--- foodo :: Char
--- foodo = case foo of
---     Record thefoo -> case (getFieldI @"foo"  thefoo :: Multilevel ('Leaf Char) )of
---         Atom c -> c
+foodo :: Char
+foodo = case foo of
+    Record thefoo -> case (getField @"foo"  thefoo) of
+        Y (Atom c) -> c
