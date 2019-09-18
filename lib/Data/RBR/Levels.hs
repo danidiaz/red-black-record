@@ -27,59 +27,56 @@ import           Data.Proxy
 import           Data.Kind
 import           GHC.TypeLits
 
-import           Data.SOP (I(..))
-import           Data.RBR.Internal
+import           Data.SOP (I(..),(:.:)(..))
+import           Data.RBR.Internal hiding (Node)
 
-data Levels s q = Product (Map s (Levels s q))
-                | Sum (Map s (Levels s q))
-                | Leaf q
-                deriving (Show,Eq)
+data Levels o s q = Node o (Map s (Levels o s q))
+                  | Leaf q
+                  deriving (Show,Eq)
 
-newtype Y (levelz :: Levels Symbol Type) = Y (Multilevel levelz) 
+data Operation = Product
+               | Sum
+               deriving (Show,Eq)
 
-data Multilevel (levels :: Levels Symbol Type)  where
-    Atom :: v -> Multilevel (Leaf v)
-    Record :: Record Y t -> Multilevel (Product t)
-    Variant :: Variant Y t -> Multilevel (Sum t)
+newtype Y (f :: Type -> Type) (g :: Type -> Type) (ls :: Levels Operation Symbol Type) = Y (Multilevel f g ls) 
 
-type family ProductFromList (input :: [(Symbol,Levels Symbol q)]) :: Levels Symbol q where
-    ProductFromList pairs = Product (FromList pairs)
+data Multilevel (f :: Type -> Type) (g :: Type -> Type) (levels :: Levels Operation Symbol Type)  where
+    Atom ::    g v                      -> Multilevel f g (Leaf v)
+    Record ::  Record  (f :.: Y f g) t  -> Multilevel f g (Node Product t)
+    Variant :: Variant (f :.: Y f g) t  -> Multilevel f g (Node Sum t)
 
-type (::>) a b = '(a, b)
-type (::*) a b = '(a, ProductFromList b)
-type (::+) a b = '(a, SumFromList b)
+type Of o pairs = Node o (FromList pairs)
+
 type (::.) a b = '(a, Leaf b)
+infixr 0 ::.
+type (::>) a b = '(a, b)
+infixr 0 ::>
 
-type family SumFromList (input :: [(Symbol,Levels Symbol q)]) :: Levels Symbol q where
-    SumFromList pairs = Sum (FromList pairs)
-
-foo :: Multilevel (Product (FromList '[ '("foo", Leaf Char),
-                                        '("bar", Sum (FromList '[ '("sub1", Leaf Char),
-                                                                  '("sub2", Sum (FromList '[ '("subsub1", Leaf Int), 
-                                                                                             '("subsub2", Leaf Char) ]))]))]))
-foo = Record $ insert @"foo" (Y (Atom 'a'))
-             . insert @"bar" (Y (Variant $ inject @"sub1" (Y (Atom 'a'))))
+foo :: Multilevel I I (Node Product (FromList '[ '("foo", Leaf Char),
+                                                 '("bar", Node Sum (FromList '[ '("sub1", Leaf Char),
+                                                                                '("sub2", Node Sum (FromList '[ '("subsub1", Leaf Int), 
+                                                                                                                '("subsub2", Leaf Char) ]))]))]))
+foo = Record $ insert @"foo" (Comp (I (Y (Atom (I 'a')))))
+             . insert @"bar" (Comp (I (Y (Variant $ inject @"sub1" (Comp (I (Y (Atom (I 'a')))))))))
              $ unit
 
-
-bar :: Multilevel (ProductFromList [
-                        "foo" ::. Char,
-                        "bar" ::+
-                            [
-                                "sub1" ::. Char,
-                                "sub2" ::+
-                                    [
-                                        "subsub1" ::. Int,
-                                        "subsub2" ::. Char
-                                    ]
-                            ]
-                  ])
-bar = Record $ insert @"foo" (Y (Atom 'a'))
-             . insert @"bar" (Y (Variant $ inject @"sub1" (Y (Atom 'a'))))
+bar :: Multilevel I I (Product `Of` [
+                            "foo" ::. Char,
+                            "bar" ::> Sum `Of`
+                                [
+                                    "sub1" ::. Char,
+                                    "sub2" ::> Sum `Of`
+                                        [
+                                            "subsub1" ::. Int,
+                                            "subsub2" ::. Char
+                                        ]
+                                ]
+                      ])
+bar = Record $ insert @"foo" (Comp (I (Y (Atom (I 'a')))))
+             . insert @"bar" (Comp (I (Y (Variant $ inject @"sub1" (Comp (I (Y (Atom (I 'a')))))))))
              $ unit
-
 
 foodo :: Char
 foodo = case foo of
     Record thefoo -> case (getField @"foo"  thefoo) of
-        Y (Atom c) -> c
+        Comp (I (Y (Atom (I c)))) -> c
