@@ -60,17 +60,20 @@ infixr 0 ::.
 type (::>) a b = '(a, b)
 infixr 0 ::>
 
+-- 
+type IYI = I :.: Y I I
+
 -- syntactic sugar for the term level
 -- https://stackoverflow.com/questions/56821863/writing-a-complete-pragma-for-a-polymorphic-pattern-synonym
-pattern PureAtom :: x -> (I :.: Y I I) (Leaf x)
+pattern PureAtom :: x -> IYI (Leaf x)
 pattern PureAtom v = Comp (I (Y (Atom (I v))))
 {-# COMPLETE PureAtom #-}
 
-pattern PureRecord :: Record (I :.: Y I g) t -> (I :.: Y I g) (Node Product t)
+pattern PureRecord :: Record IYI t -> IYI (Node Product t)
 pattern PureRecord r = Comp (I (Y (Record r)))
 {-# COMPLETE PureRecord #-}
 
-pattern PureVariant :: Variant (I :.: Y I g) t -> (I :.: Y I g) (Node Sum t)
+pattern PureVariant :: Variant IYI t -> IYI (Node Sum t)
 pattern PureVariant r = Comp (I (Y (Variant r)))
 {-# COMPLETE PureVariant #-}
 
