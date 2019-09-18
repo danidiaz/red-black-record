@@ -31,16 +31,21 @@ import           GHC.TypeLits
 import           Data.SOP (I(I),(:.:)(Comp))
 import           Data.RBR.Internal hiding (Node)
 
+-- To be used as a kind
 data Levels o s q = Node o (Map s (Levels o s q))
                   | Leaf q
                   deriving (Show,Eq)
 
+-- To be used as a kind
 data Operation = Product
                | Sum
                deriving (Show,Eq)
 
+-- Newtype trick
 newtype Y (f :: Type -> Type) (g :: Type -> Type) (ls :: Levels Operation Symbol Type) = Y (Multilevel f g ls) 
 
+-- f wraps every named field
+-- g wraps every atomic value
 data Multilevel (f :: Type -> Type) (g :: Type -> Type) (levels :: Levels Operation Symbol Type)  where
     Atom ::    g v                      -> Multilevel f g (Leaf v)
     Record ::  Record  (f :.: Y f g) t  -> Multilevel f g (Node Product t)
@@ -58,10 +63,10 @@ infixr 0 ::>
 pattern AtomField :: x -> (I :.: Y I I) (Leaf x)
 pattern AtomField v = Comp (I (Y (Atom (I v))))
 
-pattern RecordField :: Record (I :.: Y I I) t -> (I :.: Y I I) (Node Product t)
+pattern RecordField :: Record (I :.: Y I g) t -> (I :.: Y I g) (Node Product t)
 pattern RecordField r = Comp (I (Y (Record r)))
 
-pattern VariantField :: Variant (I :.: Y I I) t -> (I :.: Y I I) (Node Sum t)
+pattern VariantField :: Variant (I :.: Y I g) t -> (I :.: Y I g) (Node Sum t)
 pattern VariantField r = Comp (I (Y (Variant r)))
 
 bar :: Multilevel I I (Product `Of` [
