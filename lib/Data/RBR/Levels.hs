@@ -18,7 +18,8 @@
              DefaultSignatures,
              PartialTypeSignatures,
              LambdaCase,
-             EmptyCase 
+             EmptyCase,
+             PatternSynonyms 
 #-}
 {-#  OPTIONS_GHC -Wno-partial-type-signatures  #-}
 module Data.RBR.Levels where
@@ -27,7 +28,7 @@ import           Data.Proxy
 import           Data.Kind
 import           GHC.TypeLits
 
-import           Data.SOP (I(..),(:.:)(..))
+import           Data.SOP (I(I),(:.:)(Comp))
 import           Data.RBR.Internal hiding (Node)
 
 data Levels o s q = Node o (Map s (Levels o s q))
@@ -45,6 +46,7 @@ data Multilevel (f :: Type -> Type) (g :: Type -> Type) (levels :: Levels Operat
     Record ::  Record  (f :.: Y f g) t  -> Multilevel f g (Node Product t)
     Variant :: Variant (f :.: Y f g) t  -> Multilevel f g (Node Sum t)
 
+-- syntactic sugar for the type level
 type Of o pairs = Node o (FromList pairs)
 
 type (::.) a b = '(a, Leaf b)
@@ -52,13 +54,15 @@ infixr 0 ::.
 type (::>) a b = '(a, b)
 infixr 0 ::>
 
-foo :: Multilevel I I (Node Product (FromList '[ '("foo", Leaf Char),
-                                                 '("bar", Node Sum (FromList '[ '("sub1", Leaf Char),
-                                                                                '("sub2", Node Sum (FromList '[ '("subsub1", Leaf Int), 
-                                                                                                                '("subsub2", Leaf Char) ]))]))]))
-foo = Record $ insert @"foo" (Comp (I (Y (Atom (I 'a')))))
-             . insert @"bar" (Comp (I (Y (Variant $ inject @"sub1" (Comp (I (Y (Atom (I 'a')))))))))
-             $ unit
+-- syntactic sugar for the term level
+pattern AtomField :: x -> (I :.: Y I I) (Leaf x)
+pattern AtomField v = Comp (I (Y (Atom (I v))))
+
+pattern RecordField :: Record (I :.: Y I I) t -> (I :.: Y I I) (Node Product t)
+pattern RecordField r = Comp (I (Y (Record r)))
+
+pattern VariantField :: Variant (I :.: Y I I) t -> (I :.: Y I I) (Node Sum t)
+pattern VariantField r = Comp (I (Y (Variant r)))
 
 bar :: Multilevel I I (Product `Of` [
                             "foo" ::. Char,
@@ -72,11 +76,12 @@ bar :: Multilevel I I (Product `Of` [
                                         ]
                                 ]
                       ])
-bar = Record $ insert @"foo" (Comp (I (Y (Atom (I 'a')))))
-             . insert @"bar" (Comp (I (Y (Variant $ inject @"sub1" (Comp (I (Y (Atom (I 'a')))))))))
+bar = Record $ insert @"foo" (AtomField 'a')
+             . insert @"bar" (VariantField $ inject @"sub1" (AtomField 'a'))
              $ unit
 
-foodo :: Char
-foodo = case foo of
-    Record thefoo -> case (getField @"foo"  thefoo) of
-        Comp (I (Y (Atom (I c)))) -> c
+barz :: Char
+barz = case bar of
+    Record thebar -> case (getField @"foo" thebar) of
+        AtomField c -> c
+
