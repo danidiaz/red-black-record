@@ -22,6 +22,7 @@
              PatternSynonyms 
 #-}
 {-#  OPTIONS_GHC -Wno-partial-type-signatures  #-}
+{-#  OPTIONS_GHC -fwarn-incomplete-patterns  #-}
 module Data.RBR.Levels where
 
 import           Data.Proxy
@@ -60,14 +61,18 @@ type (::>) a b = '(a, b)
 infixr 0 ::>
 
 -- syntactic sugar for the term level
-pattern SimpleAtom :: x -> (I :.: Y I I) (Leaf x)
-pattern SimpleAtom v = Comp (I (Y (Atom (I v))))
+-- https://stackoverflow.com/questions/56821863/writing-a-complete-pragma-for-a-polymorphic-pattern-synonym
+pattern PureAtom :: x -> (I :.: Y I I) (Leaf x)
+pattern PureAtom v = Comp (I (Y (Atom (I v))))
+{-# COMPLETE PureAtom #-}
 
-pattern SimpleRecord :: Record (I :.: Y I g) t -> (I :.: Y I g) (Node Product t)
-pattern SimpleRecord r = Comp (I (Y (Record r)))
+pattern PureRecord :: Record (I :.: Y I g) t -> (I :.: Y I g) (Node Product t)
+pattern PureRecord r = Comp (I (Y (Record r)))
+{-# COMPLETE PureRecord #-}
 
-pattern SimpleVariant :: Variant (I :.: Y I g) t -> (I :.: Y I g) (Node Sum t)
-pattern SimpleVariant r = Comp (I (Y (Variant r)))
+pattern PureVariant :: Variant (I :.: Y I g) t -> (I :.: Y I g) (Node Sum t)
+pattern PureVariant r = Comp (I (Y (Variant r)))
+{-# COMPLETE PureVariant #-}
 
 bar :: Multilevel I I (Product `Of` [
                             "foo" ::. Char,
@@ -81,8 +86,8 @@ bar :: Multilevel I I (Product `Of` [
                                         ]
                                 ]
                       ])
-bar = Record $ insert @"foo" (SimpleAtom 'a')
-             . insert @"bar" (SimpleVariant $ inject @"sub1" (SimpleAtom 'a'))
+bar = Record $ insert @"foo" (PureAtom 'a')
+             . insert @"bar" (PureVariant $ inject @"sub1" (PureAtom 'a'))
              $ unit
 
 -- These didn't work so well
@@ -98,5 +103,5 @@ bar = Record $ insert @"foo" (SimpleAtom 'a')
 barz :: Char
 barz = case bar of
     Record thebar -> case (project @"foo" thebar) of
-        SimpleAtom c -> c
+        PureAtom c -> c
 
