@@ -60,14 +60,14 @@ type (::>) a b = '(a, b)
 infixr 0 ::>
 
 -- syntactic sugar for the term level
-pattern AtomField :: x -> (I :.: Y I I) (Leaf x)
-pattern AtomField v = Comp (I (Y (Atom (I v))))
+pattern SimpleAtom :: x -> (I :.: Y I I) (Leaf x)
+pattern SimpleAtom v = Comp (I (Y (Atom (I v))))
 
-pattern RecordField :: Record (I :.: Y I g) t -> (I :.: Y I g) (Node Product t)
-pattern RecordField r = Comp (I (Y (Record r)))
+pattern SimpleRecord :: Record (I :.: Y I g) t -> (I :.: Y I g) (Node Product t)
+pattern SimpleRecord r = Comp (I (Y (Record r)))
 
-pattern VariantField :: Variant (I :.: Y I g) t -> (I :.: Y I g) (Node Sum t)
-pattern VariantField r = Comp (I (Y (Variant r)))
+pattern SimpleVariant :: Variant (I :.: Y I g) t -> (I :.: Y I g) (Node Sum t)
+pattern SimpleVariant r = Comp (I (Y (Variant r)))
 
 bar :: Multilevel I I (Product `Of` [
                             "foo" ::. Char,
@@ -81,12 +81,22 @@ bar :: Multilevel I I (Product `Of` [
                                         ]
                                 ]
                       ])
-bar = Record $ insert @"foo" (AtomField 'a')
-             . insert @"bar" (VariantField $ inject @"sub1" (AtomField 'a'))
+bar = Record $ insert @"foo" (SimpleAtom 'a')
+             . insert @"bar" (SimpleVariant $ inject @"sub1" (SimpleAtom 'a'))
              $ unit
+
+-- These didn't work so well
+-- insertIc :: forall k t' t g. Insertable k t' t => Multilevel I g t' -> Record (I :.: Y I g) t -> Record (I :.: Y I g) (Insert k t' t)
+-- insertIc v = insert @k @t' @t (Comp (I (Y v)))
+-- 
+-- projectIc :: forall k t g. Key k t => Record (I :.: Y I g) t -> Multilevel I g (Value k t)
+-- projectIc = unY . unI . unComp . project @k
+-- 
+-- injectIc :: forall k t g. Key k t => Multilevel I g (Value k t) -> Variant (I :.: Y I g) t
+-- injectIc = inject @k @t . Comp . I . Y
 
 barz :: Char
 barz = case bar of
-    Record thebar -> case (getField @"foo" thebar) of
-        AtomField c -> c
+    Record thebar -> case (project @"foo" thebar) of
+        SimpleAtom c -> c
 
