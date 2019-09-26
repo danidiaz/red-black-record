@@ -43,14 +43,14 @@ data Operation = Product
                deriving (Show,Eq)
 
 -- Newtype trick
-newtype Y (f :: Type -> Type) (g :: Type -> Type) (ls :: Levels Operation Symbol Type) = Y (Multilevel f g ls) 
+newtype Y (f :: Type -> Type) (g :: Type -> Type) (ls :: Levels Operation Symbol Type) = Y (Multi f g ls) 
 
 -- f wraps every named field
 -- g wraps every atomic value
-data Multilevel (f :: Type -> Type) (g :: Type -> Type) (levels :: Levels Operation Symbol Type)  where
-    Atom ::    g v                      -> Multilevel f g (Leaf v)
-    Record ::  Record  (f :.: Y f g) t  -> Multilevel f g (Node Product t)
-    Variant :: Variant (f :.: Y f g) t  -> Multilevel f g (Node Sum t)
+data Multi (f :: Type -> Type) (g :: Type -> Type) (levels :: Levels Operation Symbol Type)  where
+    Atom ::    g v                      -> Multi f g (Leaf v)
+    Record ::  Record  (f :.: Y f g) t  -> Multi f g (Node Product t)
+    Variant :: Variant (f :.: Y f g) t  -> Multi f g (Node Sum t)
 
 -- syntactic sugar for the type level
 type Of o pairs = Node o (FromList pairs)
@@ -61,23 +61,23 @@ type (::>) a b = '(a, b)
 infixr 0 ::>
 
 -- 
-type IYI = I :.: Y I I
+type IY = I :.: Y I I
 
 -- syntactic sugar for the term level
 -- https://stackoverflow.com/questions/56821863/writing-a-complete-pragma-for-a-polymorphic-pattern-synonym
-pattern PureAtom :: x -> IYI (Leaf x)
+pattern PureAtom :: x -> IY (Leaf x)
 pattern PureAtom v = Comp (I (Y (Atom (I v))))
 {-# COMPLETE PureAtom #-}
 
-pattern PureRecord :: Record IYI t -> IYI (Node Product t)
+pattern PureRecord :: Record IY t -> IY (Node Product t)
 pattern PureRecord r = Comp (I (Y (Record r)))
 {-# COMPLETE PureRecord #-}
 
-pattern PureVariant :: Variant IYI t -> IYI (Node Sum t)
+pattern PureVariant :: Variant IY t -> IY (Node Sum t)
 pattern PureVariant r = Comp (I (Y (Variant r)))
 {-# COMPLETE PureVariant #-}
 
-bar :: Multilevel I I (Product `Of` [
+bar :: Multi I I (Product `Of` [
                             "foo" ::. Char,
                             "bar" ::> Sum `Of`
                                 [
@@ -94,13 +94,13 @@ bar = Record $ insert @"foo" (PureAtom 'a')
              $ unit
 
 -- These didn't work so well
--- insertIc :: forall k t' t g. Insertable k t' t => Multilevel I g t' -> Record (I :.: Y I g) t -> Record (I :.: Y I g) (Insert k t' t)
+-- insertIc :: forall k t' t g. Insertable k t' t => Multi I g t' -> Record (I :.: Y I g) t -> Record (I :.: Y I g) (Insert k t' t)
 -- insertIc v = insert @k @t' @t (Comp (I (Y v)))
 -- 
--- projectIc :: forall k t g. Key k t => Record (I :.: Y I g) t -> Multilevel I g (Value k t)
+-- projectIc :: forall k t g. Key k t => Record (I :.: Y I g) t -> Multi I g (Value k t)
 -- projectIc = unY . unI . unComp . project @k
 -- 
--- injectIc :: forall k t g. Key k t => Multilevel I g (Value k t) -> Variant (I :.: Y I g) t
+-- injectIc :: forall k t g. Key k t => Multi I g (Value k t) -> Variant (I :.: Y I g) t
 -- injectIc = inject @k @t . Comp . I . Y
 
 barz :: Char
