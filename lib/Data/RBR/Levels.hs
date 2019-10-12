@@ -29,7 +29,7 @@ import           Data.Proxy
 import           Data.Kind
 import           GHC.TypeLits
 
-import           Data.SOP (I(I),(:.:)(Comp))
+import           Data.SOP (I(I),unI,(:.:)(Comp),unComp)
 import           Data.RBR.Internal hiding (Node)
 
 -- To be used as a kind
@@ -43,7 +43,7 @@ data Operation = Product
                deriving (Show,Eq)
 
 -- Newtype trick
-newtype Y (f :: Type -> Type) (g :: Type -> Type) (ls :: Levels Operation Symbol Type) = Y (Multi f g ls) 
+newtype Y (f :: Type -> Type) (g :: Type -> Type) (ls :: Levels Operation Symbol Type) = Y { unY :: Multi f g ls }
 
 -- f wraps every named field
 -- g wraps every atomic value
@@ -61,23 +61,47 @@ type (::>) a b = '(a, b)
 infixr 0 ::>
 
 -- 
-type IY = I :.: Y I I
+type IY g = I :.: Y I g
 
 -- syntactic sugar for the term level
 -- https://stackoverflow.com/questions/56821863/writing-a-complete-pragma-for-a-polymorphic-pattern-synonym
-pattern PureAtom :: x -> IY (Leaf x)
-pattern PureAtom v = Comp (I (Y (Atom (I v))))
+pattern PureAtom :: x -> Multi f I (Leaf x)
+pattern PureAtom v = Atom (I v)
 {-# COMPLETE PureAtom #-}
 
-pattern PureRecord :: Record IY t -> IY (Node Product t)
-pattern PureRecord r = Comp (I (Y (Record r)))
-{-# COMPLETE PureRecord #-}
+-- type IY = I :.: Y I I
 
-pattern PureVariant :: Variant IY t -> IY (Node Sum t)
-pattern PureVariant r = Comp (I (Y (Variant r)))
-{-# COMPLETE PureVariant #-}
+-- -- syntactic sugar for the term level
+-- -- https://stackoverflow.com/questions/56821863/writing-a-complete-pragma-for-a-polymorphic-pattern-synonym
+-- pattern PureAtom :: x -> IY (Leaf x)
+-- pattern PureAtom v = Comp (I (Y (Atom (I v))))
+-- {-# COMPLETE PureAtom #-}
+-- pattern PureRecord :: Record IY t -> IY (Node Product t)
+-- pattern PureRecord r = Comp (I (Y (Record r)))
+-- {-# COMPLETE PureRecord #-}
+-- 
+-- pattern PureVariant :: Variant IY t -> IY (Node Sum t)
+-- pattern PureVariant r = Comp (I (Y (Variant r)))
+-- {-# COMPLETE PureVariant #-}
+-- 
+-- bar :: Multi I I (Product `Of` [
+--                             "foo" ::. Char,
+--                             "bar" ::> Sum `Of`
+--                                 [
+--                                     "sub1" ::. Char,
+--                                     "sub2" ::> Sum `Of`
+--                                         [
+--                                             "subsub1" ::. Int,
+--                                             "subsub2" ::. Char
+--                                         ]
+--                                 ]
+--                       ])
+-- bar = Record $ insert @"foo" (PureAtom 'a')
+--              . insert @"bar" (PureVariant $ inject @"sub1" (PureAtom 'a'))
+--              $ unit
 
-bar :: Multi I I (Product `Of` [
+
+baz :: Multi I I (Product `Of` [
                             "foo" ::. Char,
                             "bar" ::> Sum `Of`
                                 [
@@ -89,22 +113,23 @@ bar :: Multi I I (Product `Of` [
                                         ]
                                 ]
                       ])
-bar = Record $ insert @"foo" (PureAtom 'a')
-             . insert @"bar" (PureVariant $ inject @"sub1" (PureAtom 'a'))
+baz = Record $ insertIY @"foo" (PureAtom 'a')
+             . insertIY @"bar" (Variant $ injectIY @"sub1" (PureAtom 'a'))
              $ unit
 
+
 -- These didn't work so well
--- insertIc :: forall k t' t g. Insertable k t' t => Multi I g t' -> Record (I :.: Y I g) t -> Record (I :.: Y I g) (Insert k t' t)
--- insertIc v = insert @k @t' @t (Comp (I (Y v)))
--- 
--- projectIc :: forall k t g. Key k t => Record (I :.: Y I g) t -> Multi I g (Value k t)
--- projectIc = unY . unI . unComp . project @k
--- 
--- injectIc :: forall k t g. Key k t => Multi I g (Value k t) -> Variant (I :.: Y I g) t
--- injectIc = inject @k @t . Comp . I . Y
+insertIY :: forall k t' t g. Insertable k t' t => Multi I g t' -> Record (IY g) t -> Record (IY g) (Insert k t' t)
+insertIY v = insert @k @t' @t (Comp (I (Y v)))
+
+projectIY :: forall k t g. Key k t => Record (IY g) t -> Multi I g (Value k t)
+projectIY = unY . unI . unComp . project @k
+
+injectIY :: forall k t g. Key k t => Multi I g (Value k t) -> Variant (IY g) t
+injectIY = inject @k @t . Comp . I . Y
 
 barz :: Char
-barz = case bar of
-    Record thebar -> case (project @"foo" thebar) of
+barz = case baz of
+    Record thebaz -> case (projectIY @"foo" thebaz) of
         PureAtom c -> c
 
