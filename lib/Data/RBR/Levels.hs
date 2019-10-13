@@ -71,8 +71,18 @@ type IY g = I :.: Y I g
 -- https://stackoverflow.com/questions/56821863/writing-a-complete-pragma-for-a-polymorphic-pattern-synonym
 pattern PureAtom :: x -> Multi f I (Leaf x)
 pattern PureAtom v = Atom (I v)
-
 {-# COMPLETE PureAtom #-}
+
+--
+class OnlyProducts (levels :: Levels Operation Symbol q)
+
+instance OnlyProducts (Leaf q)
+
+instance KeysValuesAll KnownKeyOnlyProducts t => OnlyProducts (Node Product t)
+
+class (KnownSymbol k, OnlyProducts v) => KnownKeyOnlyProducts (k :: Symbol) v
+
+instance (KnownSymbol k, OnlyProducts v) => KnownKeyOnlyProducts k v
 
 -- type IY = I :.: Y I I
 
