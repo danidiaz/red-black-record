@@ -192,7 +192,7 @@ down compilation as well.
 
 * [Coxswain](https://ghc.haskell.org/trac/ghc/wiki/Plugins/TypeChecker/RowTypes/Coxswain).
 
-* [higgledy](http://hackage.haskell.org/package/higgledy) Provides you with HKD
+* [higgledy](http://hackage.haskell.org/package/higgledy). Provides you with HKD
   versions of normal records.
 
 
