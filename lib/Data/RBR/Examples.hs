@@ -340,6 +340,7 @@ That 70
 {- $externalexamples
  
     * [Is there a canonical way of comparing/changing one/two records in haskell? (SO)](https://stackoverflow.com/a/57574731/1364288)
+    * [Given a record of functions, and a record of data of the types acted on by the functions, how to generically apply the function record? (SO)](https://stackoverflow.com/a/58890226/1364288) 
     * [Help with Generics. (Reddit)](https://www.reddit.com/r/haskell/comments/cteemj/help_with_generics/expyjfk)
     * [Adventures assembling records of capabilities. (Discourse)](https://discourse.haskell.org/t/adventures-assembling-records-of-capabilities/623)
     * [Resources on sop-core and generics-sop. (GitHub)](https://github.com/well-typed/generics-sop/issues/47)

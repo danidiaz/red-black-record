@@ -140,7 +140,7 @@ down compilation as well.
   [this post](https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html).
 
 * Besides depending on sop-core, I have copied and adapted code from it. In
-  particular the `KeysValuessAll` typeclass is a version of the `All` typeclass
+  particular the `KeysValuesAll` typeclass is a version of the `All` typeclass
   from sop-core. 
 
 * [Surgery for data
@@ -191,4 +191,8 @@ down compilation as well.
   representation.
 
 * [Coxswain](https://ghc.haskell.org/trac/ghc/wiki/Plugins/TypeChecker/RowTypes/Coxswain).
+
+* [higgledy](http://hackage.haskell.org/package/higgledy) Provides you with HKD
+  versions of normal records.
+
 

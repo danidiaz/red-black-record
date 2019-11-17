@@ -63,8 +63,8 @@ data Color = R
     deriving (Show,Eq)
 
 -- | A Red-Black tree. It will be used as a kind, to index the 'Record' and 'Variant' types.
-data Map k v = E 
-             | N Color (Map k v) k v (Map k v)
+data Map symbol q = E 
+             | N Color (Map symbol q) symbol q (Map symbol q)
     deriving (Show,Eq)
 
 -- | A map without entries. See also 'unit' and 'impossible'.
@@ -80,13 +80,13 @@ type Empty = E
 --
 -- UndecidableSuperClasses and RankNTypes seem to be required by KeysValuesAllF.
 type family
-  KeysValuesAllF (c :: k -> v -> Constraint) (t :: Map k v) :: Constraint where
+  KeysValuesAllF (c :: symbol -> q -> Constraint) (t :: Map symbol q) :: Constraint where
   KeysValuesAllF  _ E                        = ()
   KeysValuesAllF  c (N color left k v right) = (c k v, KeysValuesAll c left, KeysValuesAll c right)
 
 {- | Require a constraint for every key-value pair in a tree. This is a generalization of 'Data.SOP.All' from "Data.SOP".
 -}
-class KeysValuesAllF c t => KeysValuesAll (c :: k -> v -> Constraint) (t :: Map k v) where
+class KeysValuesAllF c t => KeysValuesAll (c :: symbol -> q -> Constraint) (t :: Map symbol q) where
 
   --  'cpara_Map' constructs a 'Record' by means of a constraint for producing
   --  the nodes of the tree. The constraint is passed as a 'Data.Proxy.Proxy'.
@@ -142,7 +142,7 @@ demoteKeys = cpara_Map (Proxy @KnownKey) unit go
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
-class KnownSymbol k => KnownKey (k :: Symbol) (v :: z)
+class KnownSymbol k => KnownKey (k :: Symbol) (v :: q)
 instance KnownSymbol k => KnownKey k v 
 
 {- | 
@@ -168,7 +168,7 @@ demoteEntries = cpara_Map (Proxy @KnownKeyTypeableValue) unit go
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
-class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) v
+class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) (v :: q)
 instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v 
 
 -- class KeyValueTop (k :: Symbol) (v :: z)
