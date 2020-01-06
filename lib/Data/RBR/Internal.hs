@@ -1265,6 +1265,14 @@ instance ( ToVariantHelper t t1,
 --
 --
 
+type DeleteResult q = (Map Symbol q,q)
+
+type family Deletion (f :: q -> Type) (t :: Map Symbol q) (result :: DeleteResult q) :: Type where
+    Deletion f t '(t',_) = Record f t -> Record f t'
+
+type family Winnowing (f :: q -> Type) (t :: Map Symbol q) (result :: DeleteResult q) :: Type where
+    Winnowing f t '(t',v) = Variant f t -> Either (Variant f t') (f v) 
+
 type family DiscriminateBalL (l :: Map k v) (r :: Map k v) :: Bool where
     DiscriminateBalL (N R _ _ _ _) _ = False
     DiscriminateBalL _             _ = True
