@@ -97,6 +97,28 @@ class KeysValuesAllF c t => KeysValuesAll (c :: symbol -> q -> Constraint) (t ::
                                    => r left -> r right -> r (N color left k v right))
     -> r t
 
+class MapSequence (t :: Map Symbol Type) where
+    {- | 
+         Pulls out an 'Applicative' that wraps each field, resulting in an 'Applicative' containing a pure record.
+
+         The naming scheme follows that of 'Data.SOP.NP.sequence_NP'.
+    -}
+    sequence_Record :: Applicative f => Record f t -> f (Record I t)
+    {- | 
+         Like 'sequence_Record', but only pulls out the outer 'Applicative' from a composed 'Applicative' that wraps each field.
+
+         The naming scheme follows that of 'Data.SOP.NP.sequence'_NP'.
+    -}
+    sequence'_Record :: Applicative f => Record (f :.: g) t -> f (Record g t)
+
+instance MapSequence E where
+    sequence_Record Empty = pure Empty
+    sequence'_Record Empty = pure Empty
+
+instance (MapSequence left, MapSequence right) => MapSequence (N color left k v right) where
+    sequence_Record (Node left v right) = (\l x r -> Node l (I x) r) <$> sequence_Record left <*> v <*> sequence_Record right
+    sequence'_Record (Node left (Comp v) right) = (\l x r -> Node l x r) <$> sequence'_Record left <*> v <*> sequence'_Record right
+
 instance KeysValuesAll c E where
   cpara_Map _p nil _step = nil
 
@@ -126,22 +148,6 @@ cpure'_Record _ fpure = cpara_Map (Proxy @(KeyValueConstraints KnownSymbol c)) u
        -> Record f right
        -> Record f (N color left k' v' right)
     go left right = Node left (fpure @v' (symbolVal (Proxy @k'))) right 
-
-{- | 
-     Pulls out an 'Applicative' that wraps each field, resulting in an 'Applicative' containing a pure record.
-
-     The naming scheme follows that of 'Data.SOP.NP.sequence_NP'.
--}
-sequence_Record :: forall t f flat. (Productlike '[] t flat, SListI flat, Applicative f) => Record f t -> f (Record I t)
-sequence_Record r = fromNP @t <$> sequence_NP (toNP r)
-
-{- | 
-     Like 'sequence_Record', but only pulls out the outer 'Applicative' from a composed 'Applicative' that wraps each field.
-
-     The naming scheme follows that of 'Data.SOP.NP.sequence'_NP'.
--}
-sequence'_Record :: forall t f g flat. (Productlike '[] t flat, SListI flat, Applicative f) => Record (f :.: g) t -> f (Record g t)
-sequence'_Record r = fromNP @t <$> sequence'_NP (toNP r)
 
 {- | Apply a transformation to the type constructor which wraps the fields of a 'Record'.
  
