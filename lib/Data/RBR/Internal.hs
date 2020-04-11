@@ -41,8 +41,8 @@ import           GHC.TypeLits
 import           GHC.Generics (D1,C1,S1(..),M1(..),K1(..),Rec0(..))
 import qualified GHC.Generics as G
 
-import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.->)(Fn,apFn),mapKIK)
-import           Data.SOP.NP (collapse_NP,liftA_NP,liftA2_NP,cliftA_NP,cliftA2_NP,pure_NP)
+import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.->)(Fn,apFn),mapKIK,(:.:)(..))
+import           Data.SOP.NP (collapse_NP,liftA_NP,liftA2_NP,cliftA_NP,cliftA2_NP,pure_NP,sequence_NP,sequence'_NP)
 import           Data.SOP.NS (collapse_NS,ap_NS,injections,Injection)
 
 
@@ -118,13 +118,25 @@ cpure_Record _ fpure = cpara_Map (Proxy @c) unit go
        -> Record f (N color left k' v' right)
     go left right = Node left (fpure @k' @v') right 
 
+sequence_Record :: forall t f flat. (Productlike '[] t flat, SListI flat, Applicative f) => Record f t -> f (Record I t)
+sequence_Record r = fromNP @t <$> sequence_NP (toNP r)
+
+sequence'_Record :: forall t f g flat. (Productlike '[] t flat, SListI flat, Applicative f) => Record (f :.: g) t -> f (Record g t)
+sequence'_Record r = fromNP @t <$> sequence'_NP (toNP r)
+
+liftA_Record :: forall t f g flat. (Productlike '[] t flat, SListI flat) => (forall a. f a -> g a) -> Record f t -> Record g t 
+liftA_Record trans r = fromNP @t $ liftA_NP trans (toNP r)
+
+liftA2_Record :: forall t f g h flat. (Productlike '[] t flat, SListI flat) => (forall a. f a -> g a -> h a) -> Record f t -> Record g t -> Record h t
+liftA2_Record trans ra rb  = fromNP @t $ liftA2_NP trans (toNP ra) (toNP rb)
+
 {- | Create a 'Record' containing the names of each field. 
     
      The names are represented by a constant functor 'K' carrying an annotation
      of type 'String'. This means that there aren't actually any values of the
      type that corresponds to each field, only the 'String' annotations.
 
->>> putStrLn $ prettyShowRecord show $ demoteKeys @(Insert "foo" Char (Insert "bar" Bool Empty))
+>>> putStrLn $ prettyShow_Record show $ demoteKeys @(Insert "foo" Char (Insert "bar" Bool Empty))
 {bar = K "bar", foo = K "foo"}
 
 -} 
@@ -144,6 +156,7 @@ demoteKeys = cpara_Map (Proxy @KnownKey) unit go
 -}
 class KnownSymbol k => KnownKey (k :: Symbol) (v :: q)
 instance KnownSymbol k => KnownKey k v 
+
 
 {- | 
   Create a record containing the names of each field along with a term-level
@@ -170,6 +183,12 @@ demoteEntries = cpara_Map (Proxy @KnownKeyTypeableValue) unit go
 -}
 class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) (v :: q)
 instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v 
+
+class KeyValueConstraints (kc :: Symbol -> Constraint) (vc :: q -> Constraint) (k :: Symbol) (v :: q)
+instance (kc k, vc v) => KeyValueConstraints kc vc k v
+
+class ValueConstraint (vc :: q -> Constraint) (k :: Symbol) (v :: q)
+instance (vc v) => ValueConstraint vc k v
 
 -- class KeyValueTop (k :: Symbol) (v :: z)
 -- instance KeyValueTop k v
@@ -210,6 +229,19 @@ collapse_Record = collapse_NP . toNP
      function argument will usually be 'show', but it can be used to unwrap the
      value of each field before showing it.
 -}
+prettyShow_Record :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) 
+                 => (forall x. Show x => f x -> String) 
+                 -> Record f t 
+                 -> String
+prettyShow_Record showf r = 
+    let keysflat = toNP @t (demoteKeys @t)
+        valuesflat = toNP @t r
+        entries = cliftA2_NP (Proxy @Show) (\(K key) fv -> K (key ++ " = " ++ showf fv))
+                                           keysflat 
+                                           valuesflat
+     in "{" ++ mconcat (intersperse ", " (collapse_NP entries)) ++ "}"
+
+{-# DEPRECATED prettyShowRecord "Use prettyShow_Record instead" #-}
 prettyShowRecord :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) 
                  => (forall x. Show x => f x -> String) 
                  -> Record f t 
@@ -225,6 +257,10 @@ prettyShowRecord showf r =
 
 {- | Like 'prettyShowRecord' but specialized to pure records.
 -}
+prettyShow_RecordI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) => Record I t -> String
+prettyShow_RecordI r = prettyShow_Record (show . unI) r 
+
+{-# DEPRECATED prettyShowRecordI "Use prettyShow_RecordI instead" #-}
 prettyShowRecordI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) => Record I t -> String
 prettyShowRecordI r = prettyShowRecord (show . unI) r 
 
@@ -257,6 +293,17 @@ impossible v = case v of
      function argument will usually be 'show', but it can be used to unwrap the
      value of the branch before showing it.
 -}
+prettyShow_Variant :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat)
+                  => (forall x. Show x => f x -> String) 
+                  -> Variant f t 
+                  -> String
+prettyShow_Variant showf v = 
+    let keysflat = toNP @t (demoteKeys @t)
+        eliminators = cliftA_NP (Proxy @Show) (\(K k) -> Fn (\fv -> (K (k ++ " (" ++ showf fv ++ ")")))) keysflat
+        valuesflat = toNS @t v
+     in collapse_NS (ap_NS eliminators valuesflat)
+
+{-# DEPRECATED prettyShowVariant "Use prettyShow_Variant instead" #-}
 prettyShowVariant :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat)
                   => (forall x. Show x => f x -> String) 
                   -> Variant f t 
@@ -269,6 +316,11 @@ prettyShowVariant showf v =
 
 {- | Like 'prettyShowVariant' but specialized to pure variants.
 -}
+prettyShow_VariantI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) 
+                   => Variant I t -> String
+prettyShow_VariantI v = prettyShow_Variant (show . unI) v 
+
+{-# DEPRECATED prettyShowVariantI "Use prettyShow_VariantI instead" #-}
 prettyShowVariantI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) 
                    => Variant I t -> String
 prettyShowVariantI v = prettyShowVariant (show . unI) v 
@@ -835,7 +887,7 @@ fieldSubset r =
 
      The types in the subset tree can often be inferred and left as wildcards in type signature.
  
->>> prettyShowRecordI $ projectSubset @(Insert "foo" _ (Insert "bar" _ Empty)) (insertI @"foo" 'a' (insertI @"bar" True (insertI @"baz" (Just ()) unit)))
+>>> prettyShow_RecordI $ projectSubset @(Insert "foo" _ (Insert "bar" _ Empty)) (insertI @"foo" 'a' (insertI @"bar" True (insertI @"baz" (Just ()) unit)))
 "{bar = True, foo = 'a'}"
 
      Can also be used to convert between 'Record's with structurally dissimilar
@@ -988,7 +1040,7 @@ toNP r = prefixNP r Nil
 
 {- | Convert a n-ary product into a compatible 'Record'. Usually follows an invocation of 'toNP'. 
 
->>> prettyShowRecordI . fromNP @(Insert "foo" _ (Insert "bar" _ Empty)) . toNP $ insertI @"foo" 'a' (insertI @"bar" True unit)
+>>> prettyShow_RecordI . fromNP @(Insert "foo" _ (Insert "bar" _ Empty)) . toNP $ insertI @"foo" 'a' (insertI @"bar" True unit)
 "{bar = True, foo = 'a'}"
 
 -}
@@ -1090,7 +1142,7 @@ toNS = prefixNS . Right
 
 {- | Convert a n-ary sum into a compatible 'Variant'. 
  
->>> prettyShowVariantI $ fromNS @(Insert "foo" _ (Insert "bar" _ Empty)) . toNS $ (injectI @"foo" 'a' :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+>>> prettyShow_VariantI $ fromNS @(Insert "foo" _ (Insert "bar" _ Empty)) . toNS $ (injectI @"foo" 'a' :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
 "foo ('a')"
 
 -}
@@ -1803,7 +1855,7 @@ winnow = _winnow @_ @k @v @t
 >>> winnow @"bar" @Bool (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
 Right (I False)
 
->>> prettyShowVariantI `first` winnow @"foo" @Char (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+>>> prettyShow_VariantI `first` winnow @"foo" @Char (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
 Left "bar (False)" 
 
 -}

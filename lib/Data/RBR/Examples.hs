@@ -89,7 +89,7 @@ Because here the types of each field can be inferred, we can use a wildcard
           . addFieldI @"whatever"  'x'
           $ unit
         s = getFieldSubset @(FromList [ '("age",_), '("whatever",_) ]) r
-     in putStrLn (prettyShowRecordI s)
+     in putStrLn (prettyShow_RecordI s)
 :}
 {age = 5, whatever = 'x'} 
 
@@ -101,7 +101,7 @@ Because here the types of each field can be inferred, we can use a wildcard
 >>> instance ToRecord Person 
 >>> :{ 
     let r = addFieldI @"whatever" 'x' (toRecord (Person "Foo" 50))
-     in putStrLn (prettyShowRecordI r)
+     in putStrLn (prettyShow_RecordI r)
 :}
 {age = 50, name = "Foo", whatever = 'x'} 
 
@@ -144,7 +144,7 @@ c
                         Right   e       -> error "this is the baz internal error"
                         Left    smaller -> smaller
              in injectSubset r
-     in putStrLn $ prettyShowVariantI (func 1)
+     in putStrLn $ prettyShow_VariantI (func 1)
 :}
 foo ('c')
 

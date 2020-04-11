@@ -28,17 +28,23 @@ module Data.RBR (
        demoteKeys,
        KnownKeyTypeableValue(),
        demoteEntries,
+       KeyValueConstraints,
+       ValueConstraint,
        -- * Records and Variants
        Record,
        unit,
        cpure_Record,
+       sequence_Record,
+       sequence'_Record,
+       liftA_Record,
+       liftA2_Record,
        collapse_Record,
-       prettyShowRecord,
-       prettyShowRecordI,
+       prettyShow_Record,
+       prettyShow_RecordI,
        Variant,
        impossible,
-       prettyShowVariant,
-       prettyShowVariantI,
+       prettyShow_Variant,
+       prettyShow_VariantI,
        -- ** Inserting and widening
        Insertable (Insert),
        InsertAll,
@@ -112,6 +118,11 @@ module Data.RBR (
        K(..),
        NP(..),
        NS(..),
+       -- * Deprecated
+       prettyShowRecord,
+       prettyShowRecordI,
+       prettyShowVariant,
+       prettyShowVariantI,
     ) where
 
 import Data.RBR.Internal
