@@ -118,15 +118,33 @@ cpure_Record _ fpure = cpara_Map (Proxy @c) unit go
        -> Record f (N color left k' v' right)
     go left right = Node left (fpure @k' @v') right 
 
+
+{- | 
+     Pulls out an 'Applicative' that wraps each field, resulting in an 'Applicative' containing a pure record.
+
+     The naming scheme follows that of 'Data.SOP.NP.sequence_NP'.
+-}
 sequence_Record :: forall t f flat. (Productlike '[] t flat, SListI flat, Applicative f) => Record f t -> f (Record I t)
 sequence_Record r = fromNP @t <$> sequence_NP (toNP r)
 
+{- | 
+     Like 'sequence_Record', but only pulls out the outer 'Applicative' from a composed 'Applicative' that wraps each field.
+
+     The naming scheme follows that of 'Data.SOP.NP.sequence'_NP'.
+-}
 sequence'_Record :: forall t f g flat. (Productlike '[] t flat, SListI flat, Applicative f) => Record (f :.: g) t -> f (Record g t)
 sequence'_Record r = fromNP @t <$> sequence'_NP (toNP r)
 
+{- | Apply a transformation to the type constructor which wraps the fields of a 'Record'.
+ 
+     The naming scheme follows that of 'Data.SOP.NP.liftA_NP'.
+-}
 liftA_Record :: forall t f g flat. (Productlike '[] t flat, SListI flat) => (forall a. f a -> g a) -> Record f t -> Record g t 
 liftA_Record trans r = fromNP @t $ liftA_NP trans (toNP r)
 
+{- | 
+     The naming scheme follows that of 'Data.SOP.NP.liftA2_NP'.
+-}
 liftA2_Record :: forall t f g h flat. (Productlike '[] t flat, SListI flat) => (forall a. f a -> g a -> h a) -> Record f t -> Record g t -> Record h t
 liftA2_Record trans ra rb  = fromNP @t $ liftA2_NP trans (toNP ra) (toNP rb)
 
@@ -184,9 +202,19 @@ demoteEntries = cpara_Map (Proxy @KnownKeyTypeableValue) unit go
 class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) (v :: q)
 instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v 
 
+{- |
+  Lifts two one-place constraints (one for keys, one for values) to a two-place constraint. Useful with function like 'cpure_Record'.
+
+  Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
+-}
 class KeyValueConstraints (kc :: Symbol -> Constraint) (vc :: q -> Constraint) (k :: Symbol) (v :: q)
 instance (kc k, vc v) => KeyValueConstraints kc vc k v
 
+{- |
+  Lifts a one-place constraint for values to a two-place constraint. Useful with function like 'cpure_Record'.
+
+  Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
+-}
 class ValueConstraint (vc :: q -> Constraint) (k :: Symbol) (v :: q)
 instance (vc v) => ValueConstraint vc k v
 
@@ -1202,6 +1230,13 @@ class ToRecord r => FromRecord (r :: Type) where
     fromRecord :: Record I (RecordCode r) -> r
     default fromRecord :: (G.Generic r, FromRecordHelper (RecordCode r) (G.Rep r)) => Record I (RecordCode r) -> r
     fromRecord r = G.to (fromRecord' @(RecordCode r) @(G.Rep r) r)
+
+
+{- |
+    A version of 'fromRecord' which accepts 'Record' values with more fields than the target nominal record, and possibly in an incompatible order.
+ -}
+fromRecordSuperset :: forall r subset whole flat. (FromRecord r, RecordCode r ~ subset, ProductlikeSubset subset whole flat) => Record I whole -> r
+fromRecordSuperset = fromRecord @r . projectSubset @subset @whole @flat
 
 class FromRecordHelper (t :: Map Symbol Type) (g :: Type -> Type) where
     fromRecord' :: Record I t -> g x

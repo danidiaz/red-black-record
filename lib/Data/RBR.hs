@@ -99,6 +99,7 @@ module Data.RBR (
        -- $nominal
        ToRecord (..),
        FromRecord (..),
+       fromRecordSuperset,
        VariantCode,
        ToVariant (..),
        FromVariant(..),
