@@ -184,8 +184,8 @@ Just 5
               :: forall r c flat. (Generic r, 
                                    FromRecord r, 
                                    RecordCode r ~ c, 
-                                   KeysValuesAll KnownKey c, 
-                                   KeysValuesAll (ValueConstraint FromJSON) c, 
+                                   KeysValuesAll (KeyValueConstraints KnownSymbol Top) c, 
+                                   KeysValuesAll (KeyValueConstraints Top FromJSON) c, 
                                    Productlike '[] c flat,
                                    SListI flat) 
               => (Record (Star Parser Data.Aeson.Value) c -> Record (Star Parser Data.Aeson.Value) c)
@@ -193,7 +193,7 @@ Just 5
               -> Parser r
         parseSpecial transform = 
             let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
-                fieldParsers = transform $ cpure_Record (Proxy @(ValueConstraint FromJSON)) (Star parseJSON)
+                fieldParsers = transform $ cpure_Record (Proxy @(KeyValueConstraints Top FromJSON)) (Star parseJSON)
                 Star parser = sequence_Record (liftA2_Record mapKSS demoteKeys fieldParsers)
              in withObject "someobj" $ \o -> fromRecord <$> parser o
     :}
@@ -266,7 +266,7 @@ Right (Person {name = "John", age = 50})
                                                   FromRecord r, 
                                                   RecordCode r ~ c, 
                                                   ProductlikeSubset subset c subflat,
-                                                  KeysValuesAll KnownKey subset, 
+                                                  KeysValuesAll (KeyValueConstraints KnownSymbol Top) subset, 
                                                   All FromJSON subflat) 
               => r 
               -> Data.Aeson.Value
@@ -314,7 +314,7 @@ Person {name = "Mark", age = 70, whatever = True}
               :: forall r c flat. (Generic r, 
                                    FromVariant r, 
                                    VariantCode r ~ c, 
-                                   KeysValuesAll KnownKey c, 
+                                   KeysValuesAll (KeyValueConstraints KnownSymbol Top) c, 
                                    Productlike '[] c flat, 
                                    Sumlike '[] c flat, 
                                    All FromJSON flat) 

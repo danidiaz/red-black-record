@@ -41,7 +41,7 @@ import           GHC.TypeLits
 import           GHC.Generics (D1,C1,S1(..),M1(..),K1(..),Rec0(..))
 import qualified GHC.Generics as G
 
-import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.->)(Fn,apFn),mapKIK,(:.:)(..))
+import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.->)(Fn,apFn),mapKIK,(:.:)(..),Top)
 import           Data.SOP.NP (collapse_NP,liftA_NP,liftA2_NP,cliftA_NP,cliftA2_NP,pure_NP,sequence_NP,sequence'_NP)
 import           Data.SOP.NS (collapse_NS,ap_NS,injections,Injection)
 
@@ -158,10 +158,10 @@ liftA2_Record trans ra rb  = fromNP @t $ liftA2_NP trans (toNP ra) (toNP rb)
 {bar = K "bar", foo = K "foo"}
 
 -} 
-demoteKeys :: forall t. KeysValuesAll KnownKey t => Record (K String) t
-demoteKeys = cpara_Map (Proxy @KnownKey) unit go
+demoteKeys :: forall t. KeysValuesAll (KeyValueConstraints KnownSymbol Top) t => Record (K String) t
+demoteKeys = cpara_Map (Proxy @(KeyValueConstraints KnownSymbol Top)) unit go
     where
-    go :: forall left k v right color. (KnownKey k v, KeysValuesAll KnownKey left, KeysValuesAll KnownKey right) 
+    go :: forall left k v right color. (KnownKey k v, KeysValuesAll (KeyValueConstraints KnownSymbol Top) left, KeysValuesAll (KeyValueConstraints KnownSymbol Top) right) 
        => Record (K String) left 
        -> Record (K String) right 
        -> Record (K String) (N color left k v right)
@@ -257,7 +257,7 @@ collapse_Record = collapse_NP . toNP
      function argument will usually be 'show', but it can be used to unwrap the
      value of each field before showing it.
 -}
-prettyShow_Record :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) 
+prettyShow_Record :: forall t flat f. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, All Show flat, SListI flat) 
                  => (forall x. Show x => f x -> String) 
                  -> Record f t 
                  -> String
@@ -270,7 +270,7 @@ prettyShow_Record showf r =
      in "{" ++ mconcat (intersperse ", " (collapse_NP entries)) ++ "}"
 
 {-# DEPRECATED prettyShowRecord "Use prettyShow_Record instead" #-}
-prettyShowRecord :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) 
+prettyShowRecord :: forall t flat f. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, All Show flat, SListI flat) 
                  => (forall x. Show x => f x -> String) 
                  -> Record f t 
                  -> String
@@ -285,11 +285,11 @@ prettyShowRecord showf r =
 
 {- | Like 'prettyShowRecord' but specialized to pure records.
 -}
-prettyShow_RecordI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) => Record I t -> String
+prettyShow_RecordI :: forall t flat. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, All Show flat, SListI flat) => Record I t -> String
 prettyShow_RecordI r = prettyShow_Record (show . unI) r 
 
 {-# DEPRECATED prettyShowRecordI "Use prettyShow_RecordI instead" #-}
-prettyShowRecordI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) => Record I t -> String
+prettyShowRecordI :: forall t flat. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, All Show flat, SListI flat) => Record I t -> String
 prettyShowRecordI r = prettyShowRecord (show . unI) r 
 
 {-| A Record without components is a boring, uninformative type whose single value can be conjured out of thin air.
@@ -321,7 +321,7 @@ impossible v = case v of
      function argument will usually be 'show', but it can be used to unwrap the
      value of the branch before showing it.
 -}
-prettyShow_Variant :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat)
+prettyShow_Variant :: forall t flat f. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat)
                   => (forall x. Show x => f x -> String) 
                   -> Variant f t 
                   -> String
@@ -332,7 +332,7 @@ prettyShow_Variant showf v =
      in collapse_NS (ap_NS eliminators valuesflat)
 
 {-# DEPRECATED prettyShowVariant "Use prettyShow_Variant instead" #-}
-prettyShowVariant :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat)
+prettyShowVariant :: forall t flat f. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat)
                   => (forall x. Show x => f x -> String) 
                   -> Variant f t 
                   -> String
@@ -344,12 +344,12 @@ prettyShowVariant showf v =
 
 {- | Like 'prettyShowVariant' but specialized to pure variants.
 -}
-prettyShow_VariantI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) 
+prettyShow_VariantI :: forall t flat. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) 
                    => Variant I t -> String
 prettyShow_VariantI v = prettyShow_Variant (show . unI) v 
 
 {-# DEPRECATED prettyShowVariantI "Use prettyShow_VariantI instead" #-}
-prettyShowVariantI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) 
+prettyShowVariantI :: forall t flat. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) 
                    => Variant I t -> String
 prettyShowVariantI v = prettyShowVariant (show . unI) v 
 
