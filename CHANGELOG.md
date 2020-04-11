@@ -1,5 +1,10 @@
 # Revision history for red-black-record
 
+## 2.1.1.0
+- Added NP-like functions for working on Records, like sequence_Record.
+- For the sake of naming consistency, deprecated the prettyShow- functions, and
+  added slightly renamed versions.
+
 ## 2.1.0.0
 
 - Made the type-level map poly-kinded in the values, as there wasn't a real

@@ -180,7 +180,7 @@ instance KnownSymbol k => KnownKey k v
   Create a record containing the names of each field along with a term-level
   representation of each type.
 
->>> putStrLn $ prettyShowRecord show $ demoteEntries @(Insert "foo" Char (Insert "bar" Bool Empty))
+>>> putStrLn $ prettyShow_Record show $ demoteEntries @(Insert "foo" Char (Insert "bar" Bool Empty))
 {bar = K ("bar",Bool), foo = K ("foo",Char)}
 
   See also 'collapse_Record' for getting the entries as a list.
@@ -207,7 +207,7 @@ instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
-class KeyValueConstraints (kc :: Symbol -> Constraint) (vc :: q -> Constraint) (k :: Symbol) (v :: q)
+class (kc k, vc v) => KeyValueConstraints (kc :: Symbol -> Constraint) (vc :: q -> Constraint) (k :: Symbol) (v :: q)
 instance (kc k, vc v) => KeyValueConstraints kc vc k v
 
 {- |
@@ -215,7 +215,7 @@ instance (kc k, vc v) => KeyValueConstraints kc vc k v
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
-class ValueConstraint (vc :: q -> Constraint) (k :: Symbol) (v :: q)
+class (vc v) => ValueConstraint (vc :: q -> Constraint) (k :: Symbol) (v :: q)
 instance (vc v) => ValueConstraint vc k v
 
 -- class KeyValueTop (k :: Symbol) (v :: z)
