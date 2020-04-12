@@ -3,6 +3,11 @@
 ## 2.1.1.0
 - Added NP-like functions for working on Records, like sequence_Record.
   They are memebers of the Maplike typeclass.
+- Deprecated the -Subset functions from Data.RBR and created a new module
+  Data.RBR.Subset with new versions. To avoid collisions, Data.RBR.Subset
+  should be imported qualified.
+- Deprecated a number of other functions that had Productlike / Sumlike
+  constraints, added new functions with Maplike constraints.
 - Added IsRecordType, IsVariantType.
 - Added KeyValueConstraints, ValueConstraint.
 
