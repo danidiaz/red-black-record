@@ -21,10 +21,9 @@ products](http://hackage.haskell.org/package/sop-core-0.4.0.0/docs/Data-SOP.html
 and variants are isomorphic to [n-ary unlabeled
 sums](http://hackage.haskell.org/package/sop-core-0.4.0.0/docs/Data-SOP.html#t:NS).
 The [sop-core](http://hackage.haskell.org/package/sop-core) library provides
-such unlabeled types, along with a rich API for manipulating them. Instead of
-reinventing the wheel, red-black-record defines conversion functions to
-facilitate working in the "unlabeled" world and then coming back to records and
-variants.
+such unlabeled types, along with a rich API for manipulating them.
+red-black-record defines conversion functions to facilitate working in the
+"unlabeled" world, if needed, and then coming back to records and variants.
 
 There is another world towards which bridges must be built: the everyday
 Haskell world of conventional records and sums. In fact, one of the motivations
@@ -194,5 +193,4 @@ down compilation as well.
 
 * [higgledy](http://hackage.haskell.org/package/higgledy). Provides you with HKD
   versions of normal records.
-
 
