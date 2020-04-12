@@ -35,13 +35,12 @@ module Data.RBR (
        unit,
        cpure_Record,
        cpure'_Record,
-       collapse_Record,
-       prettyShowRecord,
-       prettyShowRecordI,
+       prettyShow_Record,
+       prettyShow_RecordI,
        Variant,
        impossible,
-       prettyShowVariant,
-       prettyShowVariantI,
+       prettyShow_Variant,
+       prettyShow_VariantI,
        -- ** Inserting and widening
        Insertable (Insert),
        InsertAll,
@@ -120,7 +119,13 @@ module Data.RBR (
        K(..),
        NP(..),
        NS(..),
-       (:.:)(..)
+       (:.:)(..),
+       -- * Deprecated
+       collapse_Record,
+       prettyShowRecord,
+       prettyShowRecordI,
+       prettyShowVariant,
+       prettyShowVariantI
     ) where
 
 import Data.RBR.Internal

@@ -139,6 +139,19 @@ class Maplike (t :: Map Symbol Type) where
          to the field.
     -}
     injections_Variant :: Record (VariantInjection f t) t
+    {- | Collapse a 'Record' composed of 'K' monoidal annotations.
+        
+    >>> collapse'_Record (unit :: Record (K [Bool]) Empty)
+    []
+
+    >>> collapse'_Record (insert @"bar" (K [False]) unit)
+    [False]
+
+    The naming scheme follows that of 'Data.SOP.NP.collapse_NP'.
+
+    -}
+    collapse'_Record :: Monoid a => Record (K a) t -> a
+    collapse_Variant :: Variant (K a) t -> a
 
 instance Maplike E where
     sequence_Record Empty = pure Empty
@@ -148,6 +161,8 @@ instance Maplike E where
     liftA_Variant _ neverHappens = impossible neverHappens
     liftA2_Variant _ Empty neverHappens = impossible neverHappens
     injections_Variant = Empty
+    collapse'_Record Empty = mempty
+    collapse_Variant = impossible
 
 instance (Maplike left, Maplike right) => Maplike (N color left k v right) where
     sequence_Record (Node left v right) = (\l x r -> Node l (I x) r) <$> sequence_Record left <*> v <*> sequence_Record right
@@ -166,6 +181,11 @@ instance (Maplike left, Maplike right) => Maplike (N color left k v right) where
         let injections_Left = liftA_Record (\(VariantInjection j) -> VariantInjection $ LookLeft . j) (injections_Variant @left)
             injections_Right = liftA_Record (\(VariantInjection j) -> VariantInjection $ LookRight . j) (injections_Variant @right)
          in Node injections_Left (VariantInjection $ Here) injections_Right
+    collapse'_Record (Node left (K v) right) = collapse'_Record left <> (v <> collapse'_Record right) 
+    collapse_Variant vv = case vv of
+        Here (K a) -> a
+        LookLeft leftV -> collapse_Variant leftV
+        LookRight rightV -> collapse_Variant rightV
 
 {- |
     A function which takes the value of a field and injects it into the corresponding branch of a 'Variant'.
@@ -211,7 +231,7 @@ cpure'_Record _ fpure = cpara_Map (Proxy @(KeyValueConstraints KnownSymbol c)) u
      of type 'String'. This means that there aren't actually any values of the
      type that corresponds to each field, only the 'String' annotations.
 
->>> putStrLn $ prettyShowRecord show $ demoteKeys @(Insert "foo" Char (Insert "bar" Bool Empty))
+>>> putStrLn $ prettyShow_Record show $ demoteKeys @(Insert "foo" Char (Insert "bar" Bool Empty))
 {bar = K "bar", foo = K "foo"}
 
 -} 
@@ -237,7 +257,7 @@ instance KnownSymbol k => KnownKey k v
   Create a record containing the names of each field along with a term-level
   representation of each type.
 
->>> putStrLn $ prettyShowRecord show $ demoteEntries @(Insert "foo" Char (Insert "bar" Bool Empty))
+>>> putStrLn $ prettyShow_Record show $ demoteEntries @(Insert "foo" Char (Insert "bar" Bool Empty))
 {bar = K ("bar",Bool), foo = K ("foo",Char)}
 
   See also 'collapse_Record' for getting the entries as a list.
@@ -296,24 +316,32 @@ instance (Productlike '[] t result, Show (NP f result)) => Show (Record f t) whe
     show x = "fromNP (" ++ show (toNP x) ++ ")"
 
 
-{- | Collapse a 'Record' composed of 'K' annotations.
-    
->>> collapse_Record unit
-[]
-
->>> collapse_Record (insert @"bar" (K False) unit)
-[False]
-
-     The naming scheme follows that of 'Data.SOP.NP.collapse_NP'.
-
--}
+{-# DEPRECATED collapse_Record "Use collapse'_Record" #-}
 collapse_Record :: forall t result a. (Productlike '[] t result) => Record (K a) t -> [a]
 collapse_Record = collapse_NP . toNP
+
 
 {- | Show a 'Record' in a friendlier way than the default 'Show' instance. The
      function argument will usually be 'show', but it can be used to unwrap the
      value of each field before showing it.
 -}
+prettyShow_Record :: forall t f. (Maplike t, KeysValuesAll (KeyValueConstraints KnownSymbol Show) t) 
+                  => (forall x. Show x => f x -> String) 
+                  -> Record f t 
+                  -> String
+prettyShow_Record showf r = 
+    let showfs = cpure'_Record (Proxy @Show) $ \fieldName -> Comp (fieldName, Case  showf)
+        entries = liftA2_Record (\(Comp (fieldName,Case f)) fv -> K [ fieldName ++ " = " ++ f fv ]) showfs r
+     in "{" ++ mconcat (intersperse ", " (collapse'_Record entries)) ++ "}"
+
+
+{- | Like 'prettyShow_Record' but specialized to pure records.
+-}
+prettyShow_RecordI :: forall t. (Maplike t, KeysValuesAll (KeyValueConstraints KnownSymbol Show) t) => Record I t -> String
+prettyShow_RecordI r = prettyShow_Record (show . unI) r 
+
+
+{-# DEPRECATED prettyShowRecord "Use prettyShow_Record" #-}
 prettyShowRecord :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) 
                  => (forall x. Show x => f x -> String) 
                  -> Record f t 
@@ -327,8 +355,7 @@ prettyShowRecord showf r =
      in "{" ++ mconcat (intersperse ", " (collapse_NP entries)) ++ "}"
 
 
-{- | Like 'prettyShowRecord' but specialized to pure records.
--}
+{-# DEPRECATED prettyShowRecordI "Use prettyShow_RecordI" #-}
 prettyShowRecordI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) => Record I t -> String
 prettyShowRecordI r = prettyShowRecord (show . unI) r 
 
@@ -357,10 +384,28 @@ instance (Sumlike '[] t result, Show (NS f result)) => Show (Variant f t) where
 impossible :: Variant f Empty -> b
 impossible v = case v of
 
+
 {- | Show a 'Variant' in a friendlier way than the default 'Show' instance. The
      function argument will usually be 'show', but it can be used to unwrap the
      value of the branch before showing it.
 -}
+prettyShow_Variant :: forall t flat f. (Maplike t, KeysValuesAll (KeyValueConstraints KnownSymbol Show) t)
+                   => (forall x. Show x => f x -> String) 
+                   -> Variant f t 
+                   -> String
+prettyShow_Variant showf v = 
+    let showfs = cpure'_Record (Proxy @Show) $ \fieldName -> Comp (fieldName, Case showf)
+        entries = liftA2_Variant (\(Comp (fieldName,Case f)) fv -> K (fieldName ++ " (" ++ f fv ++ ")")) showfs v
+     in collapse_Variant entries
+
+{- | Like 'prettyShow_Variant' but specialized to pure variants.
+-}
+prettyShow_VariantI :: forall t flat. (Maplike t, KeysValuesAll (KeyValueConstraints KnownSymbol Show) t)
+                    => Variant I t -> String
+prettyShow_VariantI v = prettyShow_Variant (show . unI) v 
+
+
+{-# DEPRECATED prettyShowVariant "Use prettyShow_Variant" #-}
 prettyShowVariant :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat)
                   => (forall x. Show x => f x -> String) 
                   -> Variant f t 
@@ -371,8 +416,7 @@ prettyShowVariant showf v =
         valuesflat = toNS @t v
      in collapse_NS (ap_NS eliminators valuesflat)
 
-{- | Like 'prettyShowVariant' but specialized to pure variants.
--}
+{-# DEPRECATED prettyShowVariantI "Use prettyShow_VariantI" #-}
 prettyShowVariantI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) 
                    => Variant I t -> String
 prettyShowVariantI v = prettyShowVariant (show . unI) v 
@@ -939,7 +983,7 @@ fieldSubset r =
 
      The types in the subset tree can often be inferred and left as wildcards in type signature.
  
->>> prettyShowRecordI $ projectSubset @(Insert "foo" _ (Insert "bar" _ Empty)) (insertI @"foo" 'a' (insertI @"bar" True (insertI @"baz" (Just ()) unit)))
+>>> prettyShow_RecordI $ projectSubset @(Insert "foo" _ (Insert "bar" _ Empty)) (insertI @"foo" 'a' (insertI @"bar" True (insertI @"baz" (Just ()) unit)))
 "{bar = True, foo = 'a'}"
 
      Can also be used to convert between 'Record's with structurally dissimilar
@@ -1092,7 +1136,7 @@ toNP r = prefixNP r Nil
 
 {- | Convert a n-ary product into a compatible 'Record'. Usually follows an invocation of 'toNP'. 
 
->>> prettyShowRecordI . fromNP @(Insert "foo" _ (Insert "bar" _ Empty)) . toNP $ insertI @"foo" 'a' (insertI @"bar" True unit)
+>>> prettyShow_RecordI . fromNP @(Insert "foo" _ (Insert "bar" _ Empty)) . toNP $ insertI @"foo" 'a' (insertI @"bar" True unit)
 "{bar = True, foo = 'a'}"
 
 -}
@@ -1194,7 +1238,7 @@ toNS = prefixNS . Right
 
 {- | Convert a n-ary sum into a compatible 'Variant'. 
  
->>> prettyShowVariantI $ fromNS @(Insert "foo" _ (Insert "bar" _ Empty)) . toNS $ (injectI @"foo" 'a' :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+>>> prettyShow_VariantI $ fromNS @(Insert "foo" _ (Insert "bar" _ Empty)) . toNS $ (injectI @"foo" 'a' :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
 "foo ('a')"
 
 -}
@@ -1923,7 +1967,7 @@ winnow = _winnow @_ @k @v @t
 >>> winnow @"bar" @Bool (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
 Right (I False)
 
->>> prettyShowVariantI `first` winnow @"foo" @Char (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+>>> prettyShow_VariantI `first` winnow @"foo" @Char (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
 Left "bar (False)" 
 
 -}
