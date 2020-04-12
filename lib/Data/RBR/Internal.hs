@@ -896,7 +896,7 @@ fieldSubset r =
 
      The types in the subset tree can often be inferred and left as wildcards in type signature.
  
->>> prettyShow_RecordI $ projectSubset @(Insert "foo" _ (Insert "bar" _ Empty)) (insertI @"foo" 'a' (insertI @"bar" True (insertI @"baz" (Just ()) unit)))
+>>> prettyShowRecordI $ projectSubset @(Insert "foo" _ (Insert "bar" _ Empty)) (insertI @"foo" 'a' (insertI @"bar" True (insertI @"baz" (Just ()) unit)))
 "{bar = True, foo = 'a'}"
 
      Can also be used to convert between 'Record's with structurally dissimilar
@@ -1049,7 +1049,7 @@ toNP r = prefixNP r Nil
 
 {- | Convert a n-ary product into a compatible 'Record'. Usually follows an invocation of 'toNP'. 
 
->>> prettyShow_RecordI . fromNP @(Insert "foo" _ (Insert "bar" _ Empty)) . toNP $ insertI @"foo" 'a' (insertI @"bar" True unit)
+>>> prettyShowRecordI . fromNP @(Insert "foo" _ (Insert "bar" _ Empty)) . toNP $ insertI @"foo" 'a' (insertI @"bar" True unit)
 "{bar = True, foo = 'a'}"
 
 -}
@@ -1151,7 +1151,7 @@ toNS = prefixNS . Right
 
 {- | Convert a n-ary sum into a compatible 'Variant'. 
  
->>> prettyShow_VariantI $ fromNS @(Insert "foo" _ (Insert "bar" _ Empty)) . toNS $ (injectI @"foo" 'a' :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+>>> prettyShowVariantI $ fromNS @(Insert "foo" _ (Insert "bar" _ Empty)) . toNS $ (injectI @"foo" 'a' :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
 "foo ('a')"
 
 -}
@@ -1871,7 +1871,7 @@ winnow = _winnow @_ @k @v @t
 >>> winnow @"bar" @Bool (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
 Right (I False)
 
->>> prettyShow_VariantI `first` winnow @"foo" @Char (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+>>> prettyShowVariantI `first` winnow @"foo" @Char (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
 Left "bar (False)" 
 
 -}
