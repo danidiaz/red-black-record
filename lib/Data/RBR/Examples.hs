@@ -190,7 +190,7 @@ Just 5
               -> Parser r
         parseSpecial transform = 
             let fieldParsers = transform $ 
-                    cpure'_Record (Proxy @FromJSON) $ \fieldName -> Comp (fieldName,Star parseJSON)
+                    cpure'_Record (Proxy @FromJSON) $ \nameProxy -> Comp (symbolVal nameProxy,Star parseJSON)
                 applyName (Comp (fieldName,Star f)) = Star (\o -> explicitParseField f o (Data.Text.pack fieldName))
                 Star objectParser = sequence_Record $ liftA_Record applyName fieldParsers
              in withObject "someobj" $ \o -> fromRecord <$> objectParser o
@@ -267,8 +267,8 @@ Right (Person {name = "John", age = 50})
         parseFieldSubset r = 
             let subparser = 
                     sequence_Record $
-                        cpure'_Record (Proxy @FromJSON) $ \fieldName ->
-                            Star (\o -> explicitParseField parseJSON o (Data.Text.pack fieldName))
+                        cpure'_Record (Proxy @FromJSON) $ \nameProxy ->
+                            Star (\o -> explicitParseField parseJSON o (Data.Text.pack (symbolVal nameProxy)))
                 intoOriginal subrecord = fromRecord (setFieldSubset @subset subrecord (toRecord r))
                 Star parser = intoOriginal <$> subparser
              in withObject "someobj" parser
@@ -314,7 +314,7 @@ Person {name = "Mark", age = 70, whatever = True}
               -> Parser r
         parseAll = 
             let fieldParsers = 
-                    cpure'_Record (Proxy @FromJSON) $ \fieldName -> Star (\o -> explicitParseField parseJSON o (Data.Text.pack fieldName))
+                    cpure'_Record (Proxy @FromJSON) $ \nameProxy -> Star (\o -> explicitParseField parseJSON o (Data.Text.pack (symbolVal nameProxy)))
                 injected = liftA2_Record (\f star -> K (runVariantInjection f . I <$> star)) injections_Variant fieldParsers 
                 Star parser = asum $ collapse_Record injected
              in withObject "someobj" (\o -> fromVariant <$> parser o)
