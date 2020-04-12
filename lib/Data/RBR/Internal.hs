@@ -97,6 +97,9 @@ class KeysValuesAllF c t => KeysValuesAll (c :: symbol -> q -> Constraint) (t ::
                                    => r left -> r right -> r (N color left k v right))
     -> r t
 
+{- | This typeclass provides generalizations of 'Applicative'-like functions
+ - which work over 'Record's and 'Variant's.
+-}
 class Maplike (t :: Map Symbol Type) where
     {- | 
          See 'cpure_Record' and 'cpure'_Record' for more useful versions of
@@ -113,7 +116,7 @@ class Maplike (t :: Map Symbol Type) where
     sequence_Record :: Applicative f => Record f t -> f (Record I t)
     {- | 
          Like 'sequence_Record', but only pulls out the outer 'Applicative'
-         from a composed 'Applicative' that wraps each field.
+         from an 'Applicative' composition that wraps each field. See '(:.:)'.
 
          This can be useful for staged computations, where each stage is
          represented by an 'Applicative' layer.
@@ -253,6 +256,8 @@ cpure'_Record _ fpure = cpara_Map (Proxy @(KeyValueConstraints KnownSymbol c)) u
 >>> putStrLn $ prettyShow_Record show $ demoteKeys @(Insert "foo" Char (Insert "bar" Bool Empty))
 {bar = K "bar", foo = K "foo"}
 
+     For computations involving field names, sometimes 'cpure\'_Record' is a better option.
+
 -} 
 demoteKeys :: forall t. KeysValuesAll KnownKey t => Record (K String) t
 demoteKeys = cpara_Map (Proxy @KnownKey) unit go
@@ -313,9 +318,6 @@ instance (kc k, vc v) => KeyValueConstraints kc vc k v
 -}
 class (vc v) => ValueConstraint (vc :: q -> Constraint) (k :: Symbol) (v :: q)
 instance (vc v) => ValueConstraint vc k v
-
--- class KeyValueTop (k :: Symbol) (v :: z)
--- instance KeyValueTop k v
 
 --
 --
@@ -969,7 +971,11 @@ addCaseI f = addField @k @v @t (Case (f . unI))
 
 newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
  
--- this odd trick again...
+{- | For a given 'Map', produces a two-place constraint confirming the presence
+ - of a entry.
+ -
+  Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
+-}
 class (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol q) (k :: Symbol) (v :: q) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol q) (k :: Symbol) (v :: q)
 
