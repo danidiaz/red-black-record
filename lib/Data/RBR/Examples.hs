@@ -313,8 +313,8 @@ Person {name = "Mark", age = 70, whatever = True}
               => Data.Aeson.Value 
               -> Parser r
         parseAll = 
-            let fieldParsers = 
-                    cpure'_Record (Proxy @FromJSON) $ \nameProxy -> Star (\o -> explicitParseField parseJSON o (Data.Text.pack (symbolVal nameProxy)))
+            let fieldParsers = cpure'_Record (Proxy @FromJSON) $ \nameProxy -> 
+                    Star (\o -> explicitParseField parseJSON o (Data.Text.pack (symbolVal nameProxy)))
                 injected = liftA2_Record (\f star -> K (runVariantInjection f . I <$> star)) injections_Variant fieldParsers 
                 Star parser = asum $ collapse_Record injected
              in withObject "someobj" (\o -> fromVariant <$> parser o)
