@@ -30,7 +30,6 @@ module Data.RBR (
        demoteEntries,
        KeyValueConstraints,
        ValueConstraint,
-       Maplike(..),
        -- * Records and Variants
        Record,
        unit,
@@ -75,6 +74,9 @@ module Data.RBR (
        injectI,
        match,
        matchI,
+       -- ** Utility functions
+       Maplike(..),
+       VariantInjection(..),
        -- ** Eliminating variants
        eliminate,
        Case (..),

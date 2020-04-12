@@ -121,6 +121,7 @@ class Maplike (t :: Map Symbol Type) where
     liftA2_Record :: (forall a. f a -> g a -> h a) -> Record f t -> Record g t -> Record h t
     liftA_Variant :: (forall a. f a -> g a) -> Variant f t -> Variant g t
     liftA2_Variant :: (forall a. f a -> g a -> h a) -> Record f t -> Variant g t -> Variant h t
+    injections_Variant :: Record (VariantInjection f t) t
 
 instance Maplike E where
     sequence_Record Empty = pure Empty
@@ -129,6 +130,7 @@ instance Maplike E where
     liftA2_Record _ Empty Empty = Empty
     liftA_Variant _ neverHappens = impossible neverHappens
     liftA2_Variant _ Empty neverHappens = impossible neverHappens
+    injections_Variant = Empty
 
 instance (Maplike left, Maplike right) => Maplike (N color left k v right) where
     sequence_Record (Node left v right) = (\l x r -> Node l (I x) r) <$> sequence_Record left <*> v <*> sequence_Record right
@@ -143,6 +145,12 @@ instance (Maplike left, Maplike right) => Maplike (N color left k v right) where
         Here  fv -> Here (trans rv fv)
         LookLeft leftV -> LookLeft (liftA2_Variant trans left leftV)
         LookRight rightV -> LookRight (liftA2_Variant trans right rightV)
+    injections_Variant = 
+        let injections_Left = liftA_Record (\(VariantInjection j) -> VariantInjection $ LookLeft . j) (injections_Variant @left)
+            injections_Right = liftA_Record (\(VariantInjection j) -> VariantInjection $ LookRight . j) (injections_Variant @right)
+         in Node injections_Left (VariantInjection $ Here) injections_Right
+
+newtype VariantInjection (f :: q -> Type) (t :: Map Symbol q) (v :: q) = VariantInjection { runVariantInjection :: f v -> Variant f t }
 
 instance KeysValuesAll c E where
   cpara_Map _p nil _step = nil

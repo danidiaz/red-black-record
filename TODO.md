@@ -1,3 +1,3 @@
 - do I need separate Maplike classes for sum and product things?
-- add injections_Variant to Maplike
+    - so far it seems I don't
 - idea: add a module Data.RBR.Subset, deprecate all subset functions from Data.RBR
