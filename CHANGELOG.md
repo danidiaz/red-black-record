@@ -2,8 +2,9 @@
 
 ## 2.1.1.0
 - Added NP-like functions for working on Records, like sequence_Record.
-- For the sake of naming consistency, deprecated the prettyShow- functions, and
-  added slightly renamed versions.
+  They are memebers of the Maplike typeclass.
+- Added IsRecordType, IsVariantType.
+- Added KeyValueConstraints, ValueConstraint.
 
 ## 2.1.0.0
 
