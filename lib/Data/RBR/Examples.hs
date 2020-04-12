@@ -54,7 +54,7 @@ import Data.SOP
 >>> import Data.Proxy
 >>> import Data.Foldable
 >>> import Data.Profunctor (Star(..))
->>> import GHC.Generics hiding ((:.:))
+>>> import GHC.Generics (Generic)
 >>> import GHC.TypeLits
 >>> import qualified Data.Text
 >>> import Data.Aeson
