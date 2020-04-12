@@ -99,13 +99,17 @@ class KeysValuesAllF c t => KeysValuesAll (c :: symbol -> q -> Constraint) (t ::
 
 class Maplike (t :: Map Symbol Type) where
     {- | 
-         Pulls out an 'Applicative' that wraps each field, resulting in an 'Applicative' containing a pure record.
+         Pulls out an 'Applicative' that wraps each field, resulting in an 'Applicative' containing a pure 'Record'.
 
          The naming scheme follows that of 'Data.SOP.NP.sequence_NP'.
     -}
     sequence_Record :: Applicative f => Record f t -> f (Record I t)
     {- | 
-         Like 'sequence_Record', but only pulls out the outer 'Applicative' from a composed 'Applicative' that wraps each field.
+         Like 'sequence_Record', but only pulls out the outer 'Applicative'
+         from a composed 'Applicative' that wraps each field.
+
+         This can be useful for staged computations, where each stage is
+         represented by an 'Applicative' layer.
 
          The naming scheme follows that of 'Data.SOP.NP.sequence'_NP'.
     -}
@@ -119,8 +123,21 @@ class Maplike (t :: Map Symbol Type) where
          The naming scheme follows that of 'Data.SOP.NP.liftA2_NP'.
     -}
     liftA2_Record :: (forall a. f a -> g a -> h a) -> Record f t -> Record g t -> Record h t
+    {- | Apply a transformation to the active branch of a 'Variant'.
+     
+         The naming scheme follows that of 'Data.SOP.NS.liftA_NS'.
+    -}
     liftA_Variant :: (forall a. f a -> g a) -> Variant f t -> Variant g t
+    {- | Given a 'Record' of transformation, apply the one which matches the active branch of 'Variant'.
+     
+         The naming scheme follows that of 'Data.SOP.NS.liftA_NS'.
+    -}
     liftA2_Variant :: (forall a. f a -> g a -> h a) -> Record f t -> Variant g t -> Variant h t
+    {- | 
+         Construct a 'Record' made of functions which take a value of the
+         field's type and inject it in the 'Variant' branch which corresponds
+         to the field.
+    -}
     injections_Variant :: Record (VariantInjection f t) t
 
 instance Maplike E where
