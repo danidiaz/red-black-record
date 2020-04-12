@@ -1,3 +1,12 @@
+{-| 
+    This module contains versions of functions from 'Data.RBR', generalized to
+    work with a subset of the fields of a 'Record' or the branches of a
+    'Variant'.
+    
+    __Edit:__ There are functions of the same name in the 'Data.RBR' module,
+    but they are deprecated. The functions from this module should be used
+    instead. The changes have to do mainly with the required constraints.
+-}
 {-# LANGUAGE DataKinds,
              TypeOperators,
              ConstraintKinds,

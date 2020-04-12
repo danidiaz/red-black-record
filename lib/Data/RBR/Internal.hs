@@ -98,6 +98,12 @@ class KeysValuesAllF c t => KeysValuesAll (c :: symbol -> q -> Constraint) (t ::
     -> r t
 
 class Maplike (t :: Map Symbol Type) where
+    {- | 
+         See 'cpure_Record' and 'cpure'_Record' for more useful versions of
+         this function.
+
+         The naming scheme follows that of 'Data.SOP.NP.pure_NP'.
+    -}
     pure_Record :: (forall v. f v) -> Record f t
     {- | 
          Pulls out an 'Applicative' that wraps each field, resulting in an 'Applicative' containing a pure 'Record'.
@@ -218,6 +224,16 @@ cpure_Record _ fpure = cpara_Map (Proxy @c) unit go
        -> Record f (N color left k' v' right)
     go left right = Node left (fpure @k' @v') right 
 
+{- |
+    Create a 'Record', knowing that the keys can be demoted to strings and that
+    the values satisfy some constraint. The constraint is passed as a
+    'Data.Proxy.Proxy'.
+
+    The fuction that constructs each field receives the name of the field as an
+    argument.
+
+    The naming scheme follows that of 'Data.SOP.NP.cpure_NP'.
+ -}
 cpure'_Record :: forall c t f. KeysValuesAll (KeyValueConstraints KnownSymbol c) t => (Proxy c) -> (forall v. c v => String -> f v) -> Record f t
 cpure'_Record _ fpure = cpara_Map (Proxy @(KeyValueConstraints KnownSymbol c)) unit go
    where
