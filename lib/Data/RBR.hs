@@ -30,6 +30,7 @@ module Data.RBR (
        demoteEntries,
        KeyValueConstraints,
        ValueConstraint,
+       PresentIn,
        -- * Records and Variants
        Record,
        unit,
@@ -77,12 +78,11 @@ module Data.RBR (
        Maplike(..),
        VariantInjection(..),
        -- ** Eliminating variants
-       eliminate,
+       eliminate_Variant,
        Case (..),
        addCase,
        addCaseI,
        -- ** Subsets of fields and branches
-       PresentIn,
        ProductlikeSubset,
        fieldSubset,
        projectSubset,
@@ -122,6 +122,7 @@ module Data.RBR (
        (:.:)(..),
        -- * Deprecated
        collapse_Record,
+       eliminate,
        prettyShowRecord,
        prettyShowRecordI,
        prettyShowVariant,

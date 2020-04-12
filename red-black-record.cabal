@@ -33,6 +33,7 @@ source-repository head
 
 library
   exposed-modules:     Data.RBR
+                       Data.RBR.Subset
                        Data.RBR.Internal
                        Data.RBR.Examples
   build-depends:       base                 >= 4.10.0.0 && < 5,

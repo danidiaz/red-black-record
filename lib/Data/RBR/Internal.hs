@@ -98,6 +98,7 @@ class KeysValuesAllF c t => KeysValuesAll (c :: symbol -> q -> Constraint) (t ::
     -> r t
 
 class Maplike (t :: Map Symbol Type) where
+    pure_Record :: (forall v. f v) -> Record f t
     {- | 
          Pulls out an 'Applicative' that wraps each field, resulting in an 'Applicative' containing a pure 'Record'.
 
@@ -154,6 +155,7 @@ class Maplike (t :: Map Symbol Type) where
     collapse_Variant :: Variant (K a) t -> a
 
 instance Maplike E where
+    pure_Record _ = Empty
     sequence_Record Empty = pure Empty
     sequence'_Record Empty = pure Empty
     liftA_Record _ Empty = Empty
@@ -165,6 +167,7 @@ instance Maplike E where
     collapse_Variant = impossible
 
 instance (Maplike left, Maplike right) => Maplike (N color left k v right) where
+    pure_Record f = Node (pure_Record f) f (pure_Record f)
     sequence_Record (Node left v right) = (\l x r -> Node l (I x) r) <$> sequence_Record left <*> v <*> sequence_Record right
     sequence'_Record (Node left (Comp v) right) = (\l x r -> Node l x r) <$> sequence'_Record left <*> v <*> sequence'_Record right
     liftA_Record trans (Node left1 v1 right1) = Node (liftA_Record trans left1) (trans v1) (liftA_Record trans right1)
@@ -909,6 +912,12 @@ injectI = snd (branch @k @t) . I
 matchI :: forall k t . Key k t => Variant I t ->  Maybe (Value k t)
 matchI v = unI <$> fst (branch @k @t) v
 
+{-# DEPRECATED eliminate "Use eliminate_Variant instead." #-}
+eliminate :: (Productlike '[] t result, Sumlike '[] t result, SListI result) => Record (Case f r) t -> Variant f t -> r
+eliminate cases variant = 
+    let adapt (Case e) = Fn (\fv -> K (e fv))
+     in collapse_NS (ap_NS (liftA_NP adapt (toNP cases)) (toNS variant)) 
+
 {- | Process a 'Variant' using a eliminator 'Record' that carries
      handlers for each possible branch of the 'Variant'.
 
@@ -916,10 +925,10 @@ matchI v = unI <$> fst (branch @k @t) v
 32
 
 -}
-eliminate :: (Productlike '[] t result, Sumlike '[] t result, SListI result) => Record (Case f r) t -> Variant f t -> r
-eliminate cases variant = 
-    let adapt (Case e) = Fn (\fv -> K (e fv))
-     in collapse_NS (ap_NS (liftA_NP adapt (toNP cases)) (toNS variant)) 
+eliminate_Variant :: Maplike t => Record (Case f r) t -> Variant f t -> r
+eliminate_Variant cases variant = 
+    let adapt (Case f) x = K (f x) 
+     in collapse_Variant $ liftA2_Variant adapt cases variant
 
 {- | Represents a handler for a branch of a 'Variant'.  
 -}
