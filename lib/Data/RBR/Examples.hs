@@ -187,8 +187,7 @@ Just 5
                                    RecordCode r ~ c, 
                                    KeysValuesAll (EntryConstraints KnownSymbol FromJSON) c, 
                                    MapSequence c,
-                                   MapAp c,
-                                   Productlike '[] c flat) 
+                                   MapAp c) 
               => (Record ((,) String :.: Star Parser Data.Aeson.Value) c -> Record ((,) String :.: Star Parser Data.Aeson.Value) c)
               -> Data.Aeson.Value 
               -> Parser r
