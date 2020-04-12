@@ -5,7 +5,8 @@
     
     __Edit:__ There are functions of the same name in the 'Data.RBR' module,
     but they are deprecated. The functions from this module should be used
-    instead. The changes have to do mainly with the required constraints.
+    instead, preferably qualified. The changes have to do mainly with the
+    required constraints.
 -}
 {-# LANGUAGE DataKinds,
              TypeOperators,
@@ -40,14 +41,15 @@ module Data.RBR.Subset (
         branchSubset,
         injectSubset,
         matchSubset, 
-        eliminateSubset 
+        eliminateSubset,
+        fromRecordSuperset
     ) where
 
 import Data.Proxy
 import Data.Kind
 import Data.Monoid (Endo(..))
 import GHC.TypeLits
-import Data.SOP (K(..))
+import Data.SOP (K(..),I(..))
 
 import Data.RBR.Internal hiding 
     ( 
@@ -196,3 +198,8 @@ eliminateSubset cases =
     let reducedCases = getFieldSubset @subset @whole cases
      in eliminate_Variant reducedCases 
 
+{- | 
+     A common composition of 'fromRecord' and 'projectSubset'.
+-}
+fromRecordSuperset :: forall r t whole. (IsRecordType r t, Maplike t, Subset t whole) => Record I whole -> r 
+fromRecordSuperset = fromRecord . projectSubset
