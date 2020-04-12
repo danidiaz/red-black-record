@@ -119,18 +119,30 @@ class Maplike (t :: Map Symbol Type) where
          The naming scheme follows that of 'Data.SOP.NP.liftA2_NP'.
     -}
     liftA2_Record :: (forall a. f a -> g a -> h a) -> Record f t -> Record g t -> Record h t
+    liftA_Variant :: (forall a. f a -> g a) -> Variant f t -> Variant g t
+    liftA2_Variant :: (forall a. f a -> g a -> h a) -> Record f t -> Variant g t -> Variant h t
 
 instance Maplike E where
     sequence_Record Empty = pure Empty
     sequence'_Record Empty = pure Empty
     liftA_Record _ Empty = Empty
     liftA2_Record _ Empty Empty = Empty
+    liftA_Variant _ neverHappens = impossible neverHappens
+    liftA2_Variant _ Empty neverHappens = impossible neverHappens
 
 instance (Maplike left, Maplike right) => Maplike (N color left k v right) where
     sequence_Record (Node left v right) = (\l x r -> Node l (I x) r) <$> sequence_Record left <*> v <*> sequence_Record right
     sequence'_Record (Node left (Comp v) right) = (\l x r -> Node l x r) <$> sequence'_Record left <*> v <*> sequence'_Record right
     liftA_Record trans (Node left1 v1 right1) = Node (liftA_Record trans left1) (trans v1) (liftA_Record trans right1)
     liftA2_Record trans (Node left1 v1 right1) (Node left2 v2 right2) = Node (liftA2_Record trans left1 left2) (trans v1 v2) (liftA2_Record trans right1 right2)
+    liftA_Variant trans vv = case vv of
+        Here  fv -> Here (trans fv)
+        LookLeft leftV -> LookLeft (liftA_Variant trans leftV)
+        LookRight rightV -> LookRight (liftA_Variant trans rightV)
+    liftA2_Variant trans (Node left rv right) vv = case vv of
+        Here  fv -> Here (trans rv fv)
+        LookLeft leftV -> LookLeft (liftA2_Variant trans left leftV)
+        LookRight rightV -> LookRight (liftA2_Variant trans right rightV)
 
 instance KeysValuesAll c E where
   cpara_Map _p nil _step = nil

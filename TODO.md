@@ -1,4 +1,3 @@
 - do I need separate Maplike classes for sum and product things?
 - add injections_Variant to Maplike
-- add liftA_Variant that takes a record and a Variant
 - idea: add a module Data.RBR.Subset, deprecate all subset functions from Data.RBR
