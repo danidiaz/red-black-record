@@ -77,7 +77,9 @@ import Data.RBR.Internal hiding
 
 -}
 
+{- | A map is a subset of another if all of its entries are present in the other map.
 
+-}
 type Subset (subset :: Map Symbol q) (whole :: Map Symbol q) = KeysValuesAll (PresentIn whole) subset
 
 
@@ -203,3 +205,4 @@ eliminateSubset cases =
 -}
 fromRecordSuperset :: forall r t whole. (IsRecordType r t, Maplike t, Subset t whole) => Record I whole -> r 
 fromRecordSuperset = fromRecord . projectSubset
+
