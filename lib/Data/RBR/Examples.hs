@@ -183,9 +183,8 @@ Just 5
 >>> :{
     let parseSpecial
               :: forall r c flat. (IsRecordType r c, 
-                                   KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) c, 
-                                   MapSequence c,
-                                   MapAp c) 
+                                   Maplike c,
+                                   KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) c) 
               => (Record ((,) String :.: Star Parser Data.Aeson.Value) c -> Record ((,) String :.: Star Parser Data.Aeson.Value) c)
               -> Data.Aeson.Value 
               -> Parser r
@@ -220,9 +219,8 @@ Right (Person {name = "foo", age = 50})
 >>> :{
     let parseWithAliases
               :: forall r c flat. (IsRecordType r c, 
-                                   KeysValuesAll (ValueConstraint FromJSON) c, 
-                                   MapSequence c,
-                                   MapAp c) 
+                                   Maplike c,
+                                   KeysValuesAll (ValueConstraint FromJSON) c) 
               => Record (K String) c
               -> Data.Aeson.Value 
               -> Parser r
@@ -260,9 +258,8 @@ Right (Person {name = "John", age = 50})
 >>> :{
     let parseFieldSubset
               :: forall subset subflat c r. (IsRecordType r c, 
+                                             Maplike subset,
                                              KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) subset, 
-                                             MapSequence subset,
-                                             MapAp subset,
                                              ProductlikeSubset subset c subflat) 
               => r 
               -> Data.Aeson.Value

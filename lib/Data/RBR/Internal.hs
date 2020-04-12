@@ -97,7 +97,7 @@ class KeysValuesAllF c t => KeysValuesAll (c :: symbol -> q -> Constraint) (t ::
                                    => r left -> r right -> r (N color left k v right))
     -> r t
 
-class MapSequence (t :: Map Symbol Type) where
+class Maplike (t :: Map Symbol Type) where
     {- | 
          Pulls out an 'Applicative' that wraps each field, resulting in an 'Applicative' containing a pure record.
 
@@ -110,16 +110,6 @@ class MapSequence (t :: Map Symbol Type) where
          The naming scheme follows that of 'Data.SOP.NP.sequence'_NP'.
     -}
     sequence'_Record :: Applicative f => Record (f :.: g) t -> f (Record g t)
-
-instance MapSequence E where
-    sequence_Record Empty = pure Empty
-    sequence'_Record Empty = pure Empty
-
-instance (MapSequence left, MapSequence right) => MapSequence (N color left k v right) where
-    sequence_Record (Node left v right) = (\l x r -> Node l (I x) r) <$> sequence_Record left <*> v <*> sequence_Record right
-    sequence'_Record (Node left (Comp v) right) = (\l x r -> Node l x r) <$> sequence'_Record left <*> v <*> sequence'_Record right
-
-class MapAp (t :: Map Symbol Type) where
     {- | Apply a transformation to the type constructor which wraps the fields of a 'Record'.
      
          The naming scheme follows that of 'Data.SOP.NP.liftA_NP'.
@@ -130,11 +120,15 @@ class MapAp (t :: Map Symbol Type) where
     -}
     liftA2_Record :: (forall a. f a -> g a -> h a) -> Record f t -> Record g t -> Record h t
 
-instance MapAp E where
+instance Maplike E where
+    sequence_Record Empty = pure Empty
+    sequence'_Record Empty = pure Empty
     liftA_Record _ Empty = Empty
     liftA2_Record _ Empty Empty = Empty
 
-instance (MapAp left, MapAp right) => MapAp (N color left k v right) where
+instance (Maplike left, Maplike right) => Maplike (N color left k v right) where
+    sequence_Record (Node left v right) = (\l x r -> Node l (I x) r) <$> sequence_Record left <*> v <*> sequence_Record right
+    sequence'_Record (Node left (Comp v) right) = (\l x r -> Node l x r) <$> sequence'_Record left <*> v <*> sequence'_Record right
     liftA_Record trans (Node left1 v1 right1) = Node (liftA_Record trans left1) (trans v1) (liftA_Record trans right1)
     liftA2_Record trans (Node left1 v1 right1) (Node left2 v2 right2) = Node (liftA2_Record trans left1 left2) (trans v1 v2) (liftA2_Record trans right1 right2)
 
