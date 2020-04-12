@@ -119,6 +119,25 @@ instance (MapSequence left, MapSequence right) => MapSequence (N color left k v 
     sequence_Record (Node left v right) = (\l x r -> Node l (I x) r) <$> sequence_Record left <*> v <*> sequence_Record right
     sequence'_Record (Node left (Comp v) right) = (\l x r -> Node l x r) <$> sequence'_Record left <*> v <*> sequence'_Record right
 
+class MapAp (t :: Map Symbol Type) where
+    {- | Apply a transformation to the type constructor which wraps the fields of a 'Record'.
+     
+         The naming scheme follows that of 'Data.SOP.NP.liftA_NP'.
+    -}
+    liftA_Record :: (forall a. f a -> g a) -> Record f t -> Record g t
+    {- | 
+         The naming scheme follows that of 'Data.SOP.NP.liftA2_NP'.
+    -}
+    liftA2_Record :: (forall a. f a -> g a -> h a) -> Record f t -> Record g t -> Record h t
+
+instance MapAp E where
+    liftA_Record _ Empty = Empty
+    liftA2_Record _ Empty Empty = Empty
+
+instance (MapAp left, MapAp right) => MapAp (N color left k v right) where
+    liftA_Record trans (Node left1 v1 right1) = Node (liftA_Record trans left1) (trans v1) (liftA_Record trans right1)
+    liftA2_Record trans (Node left1 v1 right1) (Node left2 v2 right2) = Node (liftA2_Record trans left1 left2) (trans v1 v2) (liftA2_Record trans right1 right2)
+
 instance KeysValuesAll c E where
   cpara_Map _p nil _step = nil
 
@@ -149,18 +168,6 @@ cpure'_Record _ fpure = cpara_Map (Proxy @(EntryConstraints KnownSymbol c)) unit
        -> Record f (N color left k' v' right)
     go left right = Node left (fpure @v' (symbolVal (Proxy @k'))) right 
 
-{- | Apply a transformation to the type constructor which wraps the fields of a 'Record'.
- 
-     The naming scheme follows that of 'Data.SOP.NP.liftA_NP'.
--}
-liftA_Record :: forall t f g flat. (Productlike '[] t flat, SListI flat) => (forall a. f a -> g a) -> Record f t -> Record g t 
-liftA_Record trans r = fromNP @t $ liftA_NP trans (toNP r)
-
-{- | 
-     The naming scheme follows that of 'Data.SOP.NP.liftA2_NP'.
--}
-liftA2_Record :: forall t f g h flat. (Productlike '[] t flat, SListI flat) => (forall a. f a -> g a -> h a) -> Record f t -> Record g t -> Record h t
-liftA2_Record trans ra rb  = fromNP @t $ liftA2_NP trans (toNP ra) (toNP rb)
 
 {- | Create a 'Record' containing the names of each field. 
     

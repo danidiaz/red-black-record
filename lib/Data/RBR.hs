@@ -35,8 +35,7 @@ module Data.RBR (
        unit,
        cpure_Record,
        MapSequence(..),
-       liftA_Record,
-       liftA2_Record,
+       MapAp(..),
        collapse_Record,
        prettyShowRecord,
        prettyShowRecordI,
@@ -117,11 +116,12 @@ module Data.RBR (
        K(..),
        NP(..),
        NS(..),
-       (:.:)(..)
+       (:.:)(..),
+       Top
     ) where
 
 import Data.RBR.Internal
-import Data.SOP (I(..),K(..),NP(..),NS(..),(:.:)(..))
+import Data.SOP (I(..),K(..),NP(..),NS(..),(:.:)(..),Top)
 
 {- $setup
  
