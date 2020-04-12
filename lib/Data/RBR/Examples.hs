@@ -307,18 +307,17 @@ Person {name = "Mark", age = 70, whatever = True}
 >>> :{
     let parseAll
               :: forall r c flat. (IsVariantType r c, 
-                                   KeysValuesAll KnownKey c, 
-                                   Productlike '[] c flat, 
-                                   Sumlike '[] c flat, 
-                                   All FromJSON flat) 
+                                   Maplike c,
+                                   KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) c, 
+                                   Productlike '[] c flat) 
               => Data.Aeson.Value 
               -> Parser r
         parseAll = 
-            let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
-                branchParsers = liftA2_NP mapKSS (toNP @c demoteKeys) (cpure_NP (Proxy @FromJSON) (Star parseJSON))
-                injected = liftA2_NP (\f star -> K (unK . apFn f . I <$> star)) (injections @flat) branchParsers 
-                Star parser = asum $ collapse_NP injected
-             in withObject "someobj" (\o -> fromVariant @r . fromNS <$> parser o)
+            let fieldParsers = 
+                    cpure'_Record (Proxy @FromJSON) $ \fieldName -> Star (\o -> explicitParseField parseJSON o (Data.Text.pack fieldName))
+                injected = liftA2_Record (\f star -> K (runVariantInjection f . I <$> star)) injections_Variant fieldParsers 
+                Star parser = asum $ collapse_Record injected
+             in withObject "someobj" (\o -> fromVariant <$> parser o)
     :}
 
 >>> data ThisOrThat = This String | That Int deriving (Generic, Show)
