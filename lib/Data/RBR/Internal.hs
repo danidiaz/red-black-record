@@ -921,7 +921,7 @@ eliminate cases variant =
 {- | Process a 'Variant' using a eliminator 'Record' that carries
      handlers for each possible branch of the 'Variant'.
 
->>> eliminate (addCaseI @"foo" @Int succ (addCaseI @"bar" pred unit)) (injectI @"bar" 33)
+>>> eliminate_Variant (addCaseI @"foo" @Int succ (addCaseI @"bar" pred unit)) (injectI @"bar" 33)
 32
 
 -}

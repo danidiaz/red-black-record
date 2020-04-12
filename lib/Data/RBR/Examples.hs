@@ -48,6 +48,7 @@ import Data.SOP
 >>> :set -XTypeOperators
 >>> :set -Wno-partial-type-signatures  
 >>> import Data.RBR
+>>> import qualified Data.RBR.Subset as S
 >>> import Data.SOP
 >>> import Data.SOP.NP (cpure_NP,sequence_NP,liftA2_NP,collapse_NP)
 >>> import Data.String
@@ -90,7 +91,7 @@ Because here the types of each field can be inferred, we can use a wildcard
           . addFieldI @"age"       5
           . addFieldI @"whatever"  'x'
           $ unit
-        s = getFieldSubset @(FromList [ '("age",_), '("whatever",_) ]) r
+        s = S.getFieldSubset @(FromList [ '("age",_), '("whatever",_) ]) r
      in putStrLn (prettyShow_RecordI s)
 :}
 {age = 5, whatever = 'x'} 
@@ -119,7 +120,7 @@ Because here the types of each field can be inferred, we can use a wildcard
         e = addCaseI @"left" putChar
           . addCaseI @"right" @Bool print
           $ unit
-     in eliminate e b
+     in eliminate_Variant e b
 :}
 c
 
@@ -145,7 +146,7 @@ c
                 r = case winnowI @"baz" @String @(Insert "baz" String Smaller) v of
                         Right   e       -> error "this is the baz internal error"
                         Left    smaller -> smaller
-             in injectSubset r
+             in S.injectSubset r
      in putStrLn $ prettyShow_VariantI (func 1)
 :}
 foo ('c')
@@ -243,7 +244,7 @@ Right (Person {name = "foo", age = 50})
         parseJSON = let aliases = addField @"age"  (K "bar")
                                 . addField @"name" (K "foo")
                                 $ unit
-                     in parseWithAliases (getFieldSubset @(RecordCode Person) aliases)
+                     in parseWithAliases (S.getFieldSubset @(RecordCode Person) aliases)
     :}
 
 >>> Data.Aeson.eitherDecode @Person (fromString "{ \"foo\" : \"John\", \"bar\" : 50 }")
@@ -269,7 +270,7 @@ Right (Person {name = "John", age = 50})
                     sequence_Record $
                         cpure'_Record (Proxy @FromJSON) $ \fieldName ->
                             Star (\o -> explicitParseField parseJSON o (Data.Text.pack fieldName))
-                intoOriginal subrecord = fromRecord (setFieldSubset @subset subrecord (toRecord r))
+                intoOriginal subrecord = fromRecord (S.setFieldSubset @subset subrecord (toRecord r))
                 Star parser = intoOriginal <$> subparser
              in withObject "someobj" parser
     :}
