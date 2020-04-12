@@ -1256,7 +1256,7 @@ class ToRecord r => FromRecord (r :: Type) where
     fromRecord r = G.to (fromRecord' @(RecordCode r) @(G.Rep r) r)
 
 {- |
-     The naming scheme follows that of Generics.SOP.isProductType'.
+     The naming scheme follows that of 'Generics.SOP.IsProductType'.
  -}
 type IsRecordType (r :: Type) (t :: Map Symbol Type) = (G.Generic r, ToRecord r, RecordCode r ~ t, FromRecord r)
 
@@ -1312,7 +1312,7 @@ class FromVariant (s :: Type) where
         Nothing -> error "fromVariant match fail. Should not happen."
 
 {- |
-     The naming scheme follows that of Generics.SOP.isProductType'.
+     The naming scheme follows that of 'Generics.SOP.IsProductType'.
  -}
 type IsVariantType (v :: Type) (t :: Map Symbol Type) = (G.Generic v, ToVariant v, VariantCode v ~ t, FromVariant v)
 
