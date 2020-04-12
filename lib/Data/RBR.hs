@@ -120,8 +120,7 @@ module Data.RBR (
        K(..),
        NP(..),
        NS(..),
-       (:.:)(..),
-       Top
+       (:.:)(..)
     ) where
 
 import Data.RBR.Internal
