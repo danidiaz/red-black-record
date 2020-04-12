@@ -185,7 +185,7 @@ Just 5
               :: forall r c flat. (Generic r, 
                                    FromRecord r, 
                                    RecordCode r ~ c, 
-                                   KeysValuesAll (EntryConstraints KnownSymbol FromJSON) c, 
+                                   KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) c, 
                                    MapSequence c,
                                    MapAp c) 
               => (Record ((,) String :.: Star Parser Data.Aeson.Value) c -> Record ((,) String :.: Star Parser Data.Aeson.Value) c)
@@ -224,17 +224,17 @@ Right (Person {name = "foo", age = 50})
               :: forall r c flat. (Generic r, 
                                    FromRecord r, 
                                    RecordCode r ~ c, 
-                                   KeysValuesAll KnownKey c, 
-                                   Productlike '[] c flat, 
-                                   All FromJSON flat) 
+                                   KeysValuesAll (ValueConstraint FromJSON) c, 
+                                   MapSequence c,
+                                   MapAp c) 
               => Record (K String) c
               -> Data.Aeson.Value 
               -> Parser r
         parseWithAliases aliases = 
-            let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
-                fieldParsers = cpure_NP (Proxy @FromJSON) (Star parseJSON)
-                Star parser = fromNP <$> sequence_NP (liftA2_NP mapKSS (toNP @c aliases) fieldParsers)
-             in withObject "someobj" $ \o -> fromRecord <$> parser o
+            let fieldParsers = cpure_Record (Proxy @(ValueConstraint FromJSON)) (Star parseJSON)
+                mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
+                Star objectParser = sequence_Record $ liftA2_Record mapKSS aliases fieldParsers
+             in withObject "someobj" $ \o -> fromRecord <$> objectParser o
     :}
 
    We have to use 'getFieldSubset' because the aliases are listed in a
@@ -263,21 +263,24 @@ Right (Person {name = "John", age = 50})
  
 >>> :{
     let parseFieldSubset
-              :: forall subset subflat c flat r. (Generic r, 
-                                                  FromRecord r, 
-                                                  RecordCode r ~ c, 
-                                                  ProductlikeSubset subset c subflat,
-                                                  KeysValuesAll KnownKey subset, 
-                                                  All FromJSON subflat) 
+              :: forall subset subflat c r. (Generic r, 
+                                             FromRecord r, 
+                                             RecordCode r ~ c, 
+                                             KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) subset, 
+                                             MapSequence subset,
+                                             MapAp subset,
+                                             ProductlikeSubset subset c subflat) 
               => r 
               -> Data.Aeson.Value
               -> Parser r 
         parseFieldSubset r = 
-            let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
-                objNP = liftA2_NP mapKSS (toNP @subset demoteKeys) (cpure_NP (Proxy @FromJSON) (Star parseJSON)) 
-                intoOriginal subr = fromRecord (setFieldSubset @subset subr (toRecord r))
-                Star subparser = intoOriginal . fromNP @subset <$> sequence_NP objNP
-             in withObject "someobj" subparser
+            let subparser = 
+                    sequence_Record $
+                        cpure'_Record (Proxy @FromJSON) $ \fieldName ->
+                            Star (\o -> explicitParseField parseJSON o (Data.Text.pack fieldName))
+                intoOriginal subrecord = fromRecord (setFieldSubset @subset subrecord (toRecord r))
+                Star parser = intoOriginal <$> subparser
+             in withObject "someobj" parser
     :}
 
 >>> data Person = Person { name :: String, age :: Int, whatever :: Bool } deriving (Generic, Show)

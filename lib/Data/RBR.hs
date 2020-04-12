@@ -28,7 +28,7 @@ module Data.RBR (
        demoteKeys,
        KnownKeyTypeableValue(),
        demoteEntries,
-       EntryConstraints,
+       KeyValueConstraints,
        ValueConstraint,
        -- * Records and Variants
        Record,

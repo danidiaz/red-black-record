@@ -159,10 +159,10 @@ cpure_Record _ fpure = cpara_Map (Proxy @c) unit go
        -> Record f (N color left k' v' right)
     go left right = Node left (fpure @k' @v') right 
 
-cpure'_Record :: forall c t f. KeysValuesAll (EntryConstraints KnownSymbol c) t => (Proxy c) -> (forall v. c v => String -> f v) -> Record f t
-cpure'_Record _ fpure = cpara_Map (Proxy @(EntryConstraints KnownSymbol c)) unit go
+cpure'_Record :: forall c t f. KeysValuesAll (KeyValueConstraints KnownSymbol c) t => (Proxy c) -> (forall v. c v => String -> f v) -> Record f t
+cpure'_Record _ fpure = cpara_Map (Proxy @(KeyValueConstraints KnownSymbol c)) unit go
    where
-    go :: forall left k' v' right color. (EntryConstraints KnownSymbol c k' v', KeysValuesAll (EntryConstraints KnownSymbol c) left, KeysValuesAll (EntryConstraints KnownSymbol c) right) 
+    go :: forall left k' v' right color. (KeyValueConstraints KnownSymbol c k' v', KeysValuesAll (KeyValueConstraints KnownSymbol c) left, KeysValuesAll (KeyValueConstraints KnownSymbol c) right) 
        => Record f left
        -> Record f right
        -> Record f (N color left k' v' right)
@@ -228,8 +228,8 @@ instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
-class (kc k, vc v) => EntryConstraints (kc :: Symbol -> Constraint) (vc :: q -> Constraint) (k :: Symbol) (v :: q)
-instance (kc k, vc v) => EntryConstraints kc vc k v
+class (kc k, vc v) => KeyValueConstraints (kc :: Symbol -> Constraint) (vc :: q -> Constraint) (k :: Symbol) (v :: q)
+instance (kc k, vc v) => KeyValueConstraints kc vc k v
 
 {- |
   Lifts a one-place constraint for values to a two-place constraint. Useful with function like 'cpure_Record'.
@@ -1969,11 +1969,4 @@ winnowI = fmap unI . winnow @k @v @t
 --      bc -> balleft a x (T B bc y d)
 -- app a (T R b x c) = T R (app a b) x c
 -- app (T R a x b) c = T R a x (app b c)
-
-data Foo (ts :: Map Symbol q) (cv :: q -> Constraint) where
-    MakeFoo :: KeysValuesAll (EntryConstraints KnownSymbol cv) ts => Foo ts cv 
-
-data Bar (xs :: [q]) (cv :: q -> Constraint) where
-    MakeBar :: All cv xs => Bar xs cv
-
 
