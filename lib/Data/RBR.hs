@@ -74,7 +74,7 @@ module Data.RBR (
        injectI,
        match,
        matchI,
-       -- ** Utility functions
+       -- ** Transformations
        Maplike(..),
        VariantInjection(..),
        -- ** Eliminating variants

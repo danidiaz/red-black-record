@@ -167,6 +167,11 @@ instance (Maplike left, Maplike right) => Maplike (N color left k v right) where
             injections_Right = liftA_Record (\(VariantInjection j) -> VariantInjection $ LookRight . j) (injections_Variant @right)
          in Node injections_Left (VariantInjection $ Here) injections_Right
 
+{- |
+    A function which takes the value of a field and injects it into the corresponding branch of a 'Variant'.
+
+    See also 'Data.SOP.NS.Injection'.
+ -}
 newtype VariantInjection (f :: q -> Type) (t :: Map Symbol q) (v :: q) = VariantInjection { runVariantInjection :: f v -> Variant f t }
 
 instance KeysValuesAll c E where
