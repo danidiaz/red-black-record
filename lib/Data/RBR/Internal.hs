@@ -1218,11 +1218,11 @@ class ToRecord r => FromRecord (r :: Type) where
  -}
 type IsRecordType (r :: Type) (t :: Map Symbol Type) = (G.Generic r, ToRecord r, RecordCode r ~ t, FromRecord r)
 
-{- |
-    A version of 'fromRecord' which accepts 'Record' values with more fields than the target nominal record, and possibly in an incompatible order.
- -}
-fromRecordSuperset :: forall r subset whole flat. (FromRecord r, RecordCode r ~ subset, ProductlikeSubset subset whole flat) => Record I whole -> r
-fromRecordSuperset = fromRecord @r . projectSubset @subset @whole @flat
+-- {- |
+--     A version of 'fromRecord' which accepts 'Record' values with more fields than the target nominal record, and possibly in an incompatible order.
+--  -}
+-- fromRecordSuperset :: forall r subset whole flat. (FromRecord r, RecordCode r ~ subset, ProductlikeSubset subset whole flat) => Record I whole -> r
+-- fromRecordSuperset = fromRecord @r . projectSubset @subset @whole @flat
 
 class FromRecordHelper (t :: Map Symbol Type) (g :: Type -> Type) where
     fromRecord' :: Record I t -> g x
