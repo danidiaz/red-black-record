@@ -34,6 +34,7 @@ module Data.RBR (
        Record,
        unit,
        cpure_Record,
+       cpure'_Record,
        MapSequence(..),
        MapAp(..),
        collapse_Record,

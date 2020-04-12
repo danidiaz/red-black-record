@@ -45,6 +45,7 @@ import Data.SOP
 >>> :set -XFlexibleContexts -XTypeFamilies -XAllowAmbiguousTypes -XScopedTypeVariables
 >>> :set -XDeriveGeneric 
 >>> :set -XPartialTypeSignatures 
+>>> :set -XTypeOperators
 >>> :set -Wno-partial-type-signatures  
 >>> import Data.RBR
 >>> import Data.SOP
@@ -53,7 +54,8 @@ import Data.SOP
 >>> import Data.Proxy
 >>> import Data.Foldable
 >>> import Data.Profunctor (Star(..))
->>> import GHC.Generics
+>>> import GHC.Generics hiding ((:.:))
+>>> import GHC.TypeLits
 >>> import qualified Data.Text
 >>> import Data.Aeson
 >>> import Data.Aeson.Types (explicitParseField,Parser,parseMaybe)
@@ -183,17 +185,19 @@ Just 5
               :: forall r c flat. (Generic r, 
                                    FromRecord r, 
                                    RecordCode r ~ c, 
-                                   KeysValuesAll KnownKey c, 
-                                   Productlike '[] c flat, 
-                                   All FromJSON flat) 
-              => (Record (Star Parser Data.Aeson.Value) c -> Record (Star Parser Data.Aeson.Value) c)
+                                   KeysValuesAll (EntryConstraints KnownSymbol FromJSON) c, 
+                                   MapSequence c,
+                                   MapAp c,
+                                   Productlike '[] c flat) 
+              => (Record ((,) String :.: Star Parser Data.Aeson.Value) c -> Record ((,) String :.: Star Parser Data.Aeson.Value) c)
               -> Data.Aeson.Value 
               -> Parser r
         parseSpecial transform = 
-            let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
-                fieldParsers = transform $ fromNP @c (cpure_NP (Proxy @FromJSON) (Star parseJSON))
-                Star parser = fromNP <$> sequence_NP (liftA2_NP mapKSS (toNP @c demoteKeys) (toNP fieldParsers))
-             in withObject "someobj" $ \o -> fromRecord <$> parser o
+            let fieldParsers = transform $ 
+                    cpure'_Record (Proxy @FromJSON) $ \fieldName -> Comp (fieldName,Star parseJSON)
+                applyName (Comp (fieldName,Star f)) = Star (\o -> explicitParseField f o (Data.Text.pack fieldName))
+                Star objectParser = sequence_Record $ liftA_Record applyName fieldParsers
+             in withObject "someobj" $ \o -> fromRecord <$> objectParser o
     :}
 
 >>> data Person = Person { name :: String, age :: Int } deriving (Generic, Show)
@@ -201,10 +205,10 @@ Just 5
 >>> instance FromRecord Person 
 >>> :{ 
     instance FromJSON Person where 
-        parseJSON = parseSpecial (setField @"name" (Star (\_ -> pure "foo")))
+        parseJSON = parseSpecial (setField @"name" (Comp ("anothername",Star (\_ -> pure "foo"))))
     :}
 
->>> Data.Aeson.eitherDecode @Person (fromString "{ \"name\" : null, \"age\" : 50 }")
+>>> Data.Aeson.eitherDecode @Person (fromString "{ \"anothername\" : null, \"age\" : 50 }")
 Right (Person {name = "foo", age = 50})
 
 -}
