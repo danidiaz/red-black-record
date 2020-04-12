@@ -14,6 +14,7 @@
 module Main where
 
 import Data.RBR
+import qualified Data.RBR.Subset as S
 import Data.RBR.Demoted (emptyMap,DemotableMap(demoteMap),t_insert,t_delete) 
 import Data.SOP
 import Data.SOP.NP (cpure_NP,collapse_NP)
@@ -156,8 +157,8 @@ testProjectSubset01 = do
           . insertI @"bar" True
           . insertI @"baz" (1::Int)
           $ unit
-        s = projectSubset @(FromList '[ '("bar",_),
-                                        '("baz",_) ]) r
+        s = S.projectSubset @(FromList '[ '("bar",_),
+                                          '("baz",_) ]) r
         bar = getFieldI @"bar" s
         baz = getFieldI @"baz" s
     assertEqual "bar" bar True
@@ -205,7 +206,7 @@ testToVariant01 = do
         variant = toVariant (Variant01B 'T')
     -- Eliminate would also work because the order of the eliminators is the
     -- same as the order of the cases.
-    assertEqual "T" 'T' (eliminateSubset cases variant)
+    assertEqual "T" 'T' (S.eliminateSubset cases variant)
 
 data Variant02Unit = 
       Variant02A 
@@ -226,9 +227,9 @@ testToVariant02Units = do
         variantC = toVariant Variant02C
     -- Eliminate would also work because the order of the eliminators is the
     -- same as the order of the cases.
-    assertEqual "a" 'a' (eliminateSubset cases variantA)
-    assertEqual "b" 'b' (eliminateSubset cases variantB)
-    assertEqual "c" 'c' (eliminateSubset cases variantC)
+    assertEqual "a" 'a' (S.eliminateSubset cases variantA)
+    assertEqual "b" 'b' (S.eliminateSubset cases variantB)
+    assertEqual "c" 'c' (S.eliminateSubset cases variantC)
 
 testFromVariant01 :: IO ()
 testFromVariant01 = do

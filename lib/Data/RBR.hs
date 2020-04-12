@@ -82,18 +82,6 @@ module Data.RBR (
        Case (..),
        addCase,
        addCaseI,
-       -- ** Subsets of fields and branches
-       ProductlikeSubset,
-       fieldSubset,
-       projectSubset,
-       getFieldSubset,
-       setFieldSubset,
-       modifyFieldSubset,
-       SumlikeSubset,
-       branchSubset,
-       injectSubset,
-       matchSubset,
-       eliminateSubset,
        -- * Interfacing with normal records
        -- $nominal
        ToRecord (..),
@@ -126,7 +114,18 @@ module Data.RBR (
        prettyShowRecord,
        prettyShowRecordI,
        prettyShowVariant,
-       prettyShowVariantI
+       prettyShowVariantI,
+       ProductlikeSubset,
+       fieldSubset,
+       projectSubset,
+       getFieldSubset,
+       setFieldSubset,
+       modifyFieldSubset,
+       SumlikeSubset,
+       branchSubset,
+       injectSubset,
+       matchSubset,
+       eliminateSubset
     ) where
 
 import Data.RBR.Internal

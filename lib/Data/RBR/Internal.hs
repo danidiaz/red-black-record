@@ -957,16 +957,13 @@ newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
 class (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol q) (k :: Symbol) (v :: q) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol q) (k :: Symbol) (v :: q)
 
-{- | Constraint for maps that represent subsets of fields of 'Record'-like types.
--}
+{-# DEPRECATED ProductlikeSubset "This constraint is obsolete" #-}
 type ProductlikeSubset (subset :: Map Symbol q) (whole :: Map Symbol q) (flat :: [q]) = 
                        (KeysValuesAll (PresentIn whole) subset,
                        Productlike '[] subset flat,
                        SListI flat)
 
-{- | Like 'field', but targets multiple fields at the same time 
-
--}
+{-# DEPRECATED fieldSubset "Use Data.RBR.Subset.fieldSubset" #-}
 fieldSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat) 
             => Record f whole -> (Record f subset -> Record f whole, Record f subset)
 fieldSubset r = 
@@ -988,40 +985,26 @@ fieldSubset r =
          goget left right = Node left (project @k @whole r) right
       in cpara_Map (Proxy @(PresentIn whole)) unit goget)
 
-{- | Like 'project', but extracts multiple fields at the same time.
-
-     The types in the subset tree can often be inferred and left as wildcards in type signature.
- 
->>> prettyShow_RecordI $ projectSubset @(Insert "foo" _ (Insert "bar" _ Empty)) (insertI @"foo" 'a' (insertI @"bar" True (insertI @"baz" (Just ()) unit)))
-"{bar = True, foo = 'a'}"
-
-     Can also be used to convert between 'Record's with structurally dissimilar
-     type-level maps that nevertheless hold the same entries. 
--}
+{-# DEPRECATED projectSubset "Use Data.RBR.Subset.projectSubset" #-}
 projectSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat) 
               => Record f whole 
               -> Record f subset
 projectSubset =  snd . fieldSubset
 
-{- | Alias for 'projectSubset'.
--}
+{-# DEPRECATED getFieldSubset "Use Data.RBR.Subset.getFieldSubset" #-}
 getFieldSubset :: forall subset whole flat f. (ProductlikeSubset subset whole flat)  
                => Record f whole 
                -> Record f subset
 getFieldSubset = projectSubset
 
-{- | Like 'setField', but sets multiple fields at the same time.
- 
--}
+{-# DEPRECATED setFieldSubset "Use Data.RBR.Subset.setFieldSubset" #-}
 setFieldSubset :: forall subset whole flat f.  (ProductlikeSubset subset whole flat) 
                => Record f subset
                -> Record f whole 
                -> Record f whole
 setFieldSubset subset whole = fst (fieldSubset whole) subset 
 
-{- | Like 'modifyField', but modifies multiple fields at the same time.
- 
--}
+{-# DEPRECATED modifyFieldSubset "Use Data.RBR.Subset.modifyFieldSubset" #-}
 modifyFieldSubset :: forall subset whole flat f.  (ProductlikeSubset subset whole flat) 
                   => (Record f subset -> Record f subset)
                   -> Record f whole 
@@ -1029,8 +1012,7 @@ modifyFieldSubset :: forall subset whole flat f.  (ProductlikeSubset subset whol
 modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
 
 
-{- | Constraint for maps that represent subsets of branches of 'Variant'-like types.
--}
+{-# DEPRECATED SumlikeSubset "This constraint is obsolete" #-}
 type SumlikeSubset (subset :: Map Symbol q) (whole :: Map Symbol q) (subflat :: [q]) (wholeflat :: [q]) = 
                    (KeysValuesAll (PresentIn whole) subset,
                     Productlike '[] whole  wholeflat,
@@ -1040,8 +1022,7 @@ type SumlikeSubset (subset :: Map Symbol q) (whole :: Map Symbol q) (subflat :: 
                     Sumlike '[] subset subflat,
                     SListI subflat)
 
-{- | Like 'branch', but targets multiple branches at the same time.
--}
+{-# DEPRECATED branchSubset "Use Data.RBR.Subset.branchSubset" #-}
 branchSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
              => (Variant f whole -> Maybe (Variant f subset), Variant f subset -> Variant f whole)
 branchSubset = 
@@ -1064,25 +1045,18 @@ branchSubset =
           injs = snd (subs wholeinjs)
        in eliminate injs)
 
-{- | Like 'inject', but injects one of several possible branches.
- 
-     Can also be used to convert between 'Variant's with structurally
-     dissimilar type-level maps that nevertheless hold the same entries. 
--}
+
+{-# DEPRECATED injectSubset  "Use Data.RBR.Subset.injectSubset" #-}
 injectSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
              => Variant f subset -> Variant f whole
 injectSubset = snd (branchSubset @subset @whole @subflat @wholeflat)
 
-{- | Like 'match', but matches more than one branch.
--}
+{-# DEPRECATED matchSubset  "Use Data.RBR.Subset.matchSubset" #-}
 matchSubset :: forall subset whole subflat wholeflat f. (SumlikeSubset subset whole subflat wholeflat)
             => Variant f whole -> Maybe (Variant f subset)
 matchSubset = fst (branchSubset @subset @whole @subflat @wholeflat)
 
-{- | 
-     Like 'eliminate', but allows the eliminator 'Record' to have more fields
-     than there are branches in the 'Variant'.
--}
+{-# DEPRECATED eliminateSubset  "Use Data.RBR.Subset.eliminateSubset" #-}
 eliminateSubset :: forall subset whole subflat wholeflat f r. (SumlikeSubset subset whole subflat wholeflat)
                 => Record (Case f r) whole -> Variant f subset -> r
 eliminateSubset cases = 
@@ -1090,7 +1064,6 @@ eliminateSubset cases =
      in eliminate reducedCases 
 
 --
-
 -- Interaction with Data.SOP
 
 {- | Class from converting 'Record's to and from the n-ary product type 'NP' from "Data.SOP".

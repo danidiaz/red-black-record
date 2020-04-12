@@ -258,10 +258,10 @@ Right (Person {name = "John", age = 50})
  
 >>> :{
     let parseFieldSubset
-              :: forall subset subflat c r. (IsRecordType r c, 
-                                             Maplike subset,
-                                             KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) subset, 
-                                             ProductlikeSubset subset c subflat) 
+              :: forall subset c r. (IsRecordType r c, 
+                                     S.Subset subset c,
+                                     Maplike subset,
+                                     KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) subset) 
               => r 
               -> Data.Aeson.Value
               -> Parser r 
@@ -309,8 +309,7 @@ Person {name = "Mark", age = 70, whatever = True}
     let parseAll
               :: forall r c flat. (IsVariantType r c, 
                                    Maplike c,
-                                   KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) c, 
-                                   Productlike '[] c flat) 
+                                   KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) c) 
               => Data.Aeson.Value 
               -> Parser r
         parseAll = 
