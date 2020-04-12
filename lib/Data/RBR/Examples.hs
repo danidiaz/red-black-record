@@ -182,9 +182,7 @@ Just 5
 
 >>> :{
     let parseSpecial
-              :: forall r c flat. (Generic r, 
-                                   FromRecord r, 
-                                   RecordCode r ~ c, 
+              :: forall r c flat. (IsRecordType r c, 
                                    KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) c, 
                                    MapSequence c,
                                    MapAp c) 
@@ -221,9 +219,7 @@ Right (Person {name = "foo", age = 50})
 
 >>> :{
     let parseWithAliases
-              :: forall r c flat. (Generic r, 
-                                   FromRecord r, 
-                                   RecordCode r ~ c, 
+              :: forall r c flat. (IsRecordType r c, 
                                    KeysValuesAll (ValueConstraint FromJSON) c, 
                                    MapSequence c,
                                    MapAp c) 
@@ -263,9 +259,7 @@ Right (Person {name = "John", age = 50})
  
 >>> :{
     let parseFieldSubset
-              :: forall subset subflat c r. (Generic r, 
-                                             FromRecord r, 
-                                             RecordCode r ~ c, 
+              :: forall subset subflat c r. (IsRecordType r c, 
                                              KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) subset, 
                                              MapSequence subset,
                                              MapAp subset,
@@ -315,9 +309,7 @@ Person {name = "Mark", age = 70, whatever = True}
 
 >>> :{
     let parseAll
-              :: forall r c flat. (Generic r, 
-                                   FromVariant r, 
-                                   VariantCode r ~ c, 
+              :: forall r c flat. (IsVariantType r c, 
                                    KeysValuesAll KnownKey c, 
                                    Productlike '[] c flat, 
                                    Sumlike '[] c flat, 
@@ -334,6 +326,7 @@ Person {name = "Mark", age = 70, whatever = True}
 
 >>> data ThisOrThat = This String | That Int deriving (Generic, Show)
 >>> instance FromVariant ThisOrThat
+>>> instance ToVariant ThisOrThat
 >>> :{ 
     let Just v = Data.Aeson.decode @Data.Aeson.Value (fromString "{ \"That\" : 70 }")
         Just s = parseMaybe (parseAll @ThisOrThat) v

@@ -1219,6 +1219,10 @@ class ToRecord r => FromRecord (r :: Type) where
     default fromRecord :: (G.Generic r, FromRecordHelper (RecordCode r) (G.Rep r)) => Record I (RecordCode r) -> r
     fromRecord r = G.to (fromRecord' @(RecordCode r) @(G.Rep r) r)
 
+{- |
+     The naming scheme follows that of Generics.SOP.isProductType'.
+ -}
+type IsRecordType (r :: Type) (t :: Map Symbol Type) = (G.Generic r, ToRecord r, RecordCode r ~ t, FromRecord r)
 
 {- |
     A version of 'fromRecord' which accepts 'Record' values with more fields than the target nominal record, and possibly in an incompatible order.
@@ -1270,6 +1274,11 @@ class FromVariant (s :: Type) where
     fromVariant v = case fromVariant' @(VariantCode s) v of
         Just x -> G.to x
         Nothing -> error "fromVariant match fail. Should not happen."
+
+{- |
+     The naming scheme follows that of Generics.SOP.isProductType'.
+ -}
+type IsVariantType (v :: Type) (t :: Map Symbol Type) = (G.Generic v, ToVariant v, VariantCode v ~ t, FromVariant v)
 
 class FromVariantHelper (t :: Map Symbol Type) (g :: Type -> Type) where
     fromVariant' :: Variant I t -> Maybe (g x)

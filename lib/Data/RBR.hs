@@ -98,9 +98,11 @@ module Data.RBR (
        -- $nominal
        ToRecord (..),
        FromRecord (..),
+       IsRecordType,
        VariantCode,
        ToVariant (..),
        FromVariant(..),
+       IsVariantType,
        -- * Interfacing with Data.SOP
        Productlike (..),
        prefixNP,
