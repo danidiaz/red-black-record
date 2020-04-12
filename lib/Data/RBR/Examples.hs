@@ -54,7 +54,6 @@ import Data.SOP
 >>> import Data.Foldable
 >>> import Data.Profunctor (Star(..))
 >>> import GHC.Generics
->>> import GHC.TypeLits
 >>> import qualified Data.Text
 >>> import Data.Aeson
 >>> import Data.Aeson.Types (explicitParseField,Parser,parseMaybe)
@@ -90,7 +89,7 @@ Because here the types of each field can be inferred, we can use a wildcard
           . addFieldI @"whatever"  'x'
           $ unit
         s = getFieldSubset @(FromList [ '("age",_), '("whatever",_) ]) r
-     in putStrLn (prettyShow_RecordI s)
+     in putStrLn (prettyShowRecordI s)
 :}
 {age = 5, whatever = 'x'} 
 
@@ -102,7 +101,7 @@ Because here the types of each field can be inferred, we can use a wildcard
 >>> instance ToRecord Person 
 >>> :{ 
     let r = addFieldI @"whatever" 'x' (toRecord (Person "Foo" 50))
-     in putStrLn (prettyShow_RecordI r)
+     in putStrLn (prettyShowRecordI r)
 :}
 {age = 50, name = "Foo", whatever = 'x'} 
 
@@ -145,7 +144,7 @@ c
                         Right   e       -> error "this is the baz internal error"
                         Left    smaller -> smaller
              in injectSubset r
-     in putStrLn $ prettyShow_VariantI (func 1)
+     in putStrLn $ prettyShowVariantI (func 1)
 :}
 foo ('c')
 
@@ -184,17 +183,16 @@ Just 5
               :: forall r c flat. (Generic r, 
                                    FromRecord r, 
                                    RecordCode r ~ c, 
-                                   KeysValuesAll (KeyValueConstraints KnownSymbol Top) c, 
-                                   KeysValuesAll (KeyValueConstraints Top FromJSON) c, 
-                                   Productlike '[] c flat,
-                                   SListI flat) 
+                                   KeysValuesAll KnownKey c, 
+                                   Productlike '[] c flat, 
+                                   All FromJSON flat) 
               => (Record (Star Parser Data.Aeson.Value) c -> Record (Star Parser Data.Aeson.Value) c)
               -> Data.Aeson.Value 
               -> Parser r
         parseSpecial transform = 
             let mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
-                fieldParsers = transform $ cpure_Record (Proxy @(KeyValueConstraints Top FromJSON)) (Star parseJSON)
-                Star parser = sequence_Record (liftA2_Record mapKSS demoteKeys fieldParsers)
+                fieldParsers = transform $ fromNP @c (cpure_NP (Proxy @FromJSON) (Star parseJSON))
+                Star parser = fromNP <$> sequence_NP (liftA2_NP mapKSS (toNP @c demoteKeys) (toNP fieldParsers))
              in withObject "someobj" $ \o -> fromRecord <$> parser o
     :}
 
@@ -266,7 +264,7 @@ Right (Person {name = "John", age = 50})
                                                   FromRecord r, 
                                                   RecordCode r ~ c, 
                                                   ProductlikeSubset subset c subflat,
-                                                  KeysValuesAll (KeyValueConstraints KnownSymbol Top) subset, 
+                                                  KeysValuesAll KnownKey subset, 
                                                   All FromJSON subflat) 
               => r 
               -> Data.Aeson.Value
@@ -314,7 +312,7 @@ Person {name = "Mark", age = 70, whatever = True}
               :: forall r c flat. (Generic r, 
                                    FromVariant r, 
                                    VariantCode r ~ c, 
-                                   KeysValuesAll (KeyValueConstraints KnownSymbol Top) c, 
+                                   KeysValuesAll KnownKey c, 
                                    Productlike '[] c flat, 
                                    Sumlike '[] c flat, 
                                    All FromJSON flat) 

@@ -140,10 +140,10 @@ cpure_Record _ fpure = cpara_Map (Proxy @c) unit go
        -> Record f (N color left k' v' right)
     go left right = Node left (fpure @k' @v') right 
 
-cpure'_Record :: forall c t f. KeysValuesAll (KeyValueConstraints KnownSymbol c) t => (Proxy c) -> (forall v. c v => String -> f v) -> Record f t
-cpure'_Record _ fpure = cpara_Map (Proxy @(KeyValueConstraints KnownSymbol c)) unit go
+cpure'_Record :: forall c t f. KeysValuesAll (EntryConstraints KnownSymbol c) t => (Proxy c) -> (forall v. c v => String -> f v) -> Record f t
+cpure'_Record _ fpure = cpara_Map (Proxy @(EntryConstraints KnownSymbol c)) unit go
    where
-    go :: forall left k' v' right color. (KeyValueConstraints KnownSymbol c k' v', KeysValuesAll (KeyValueConstraints KnownSymbol c) left, KeysValuesAll (KeyValueConstraints KnownSymbol c) right) 
+    go :: forall left k' v' right color. (EntryConstraints KnownSymbol c k' v', KeysValuesAll (EntryConstraints KnownSymbol c) left, KeysValuesAll (EntryConstraints KnownSymbol c) right) 
        => Record f left
        -> Record f right
        -> Record f (N color left k' v' right)
@@ -168,14 +168,14 @@ liftA2_Record trans ra rb  = fromNP @t $ liftA2_NP trans (toNP ra) (toNP rb)
      of type 'String'. This means that there aren't actually any values of the
      type that corresponds to each field, only the 'String' annotations.
 
->>> putStrLn $ prettyShow_Record show $ demoteKeys @(Insert "foo" Char (Insert "bar" Bool Empty))
+>>> putStrLn $ prettyShowRecord show $ demoteKeys @(Insert "foo" Char (Insert "bar" Bool Empty))
 {bar = K "bar", foo = K "foo"}
 
 -} 
-demoteKeys :: forall t. KeysValuesAll (KeyValueConstraints KnownSymbol Top) t => Record (K String) t
-demoteKeys = cpara_Map (Proxy @(KeyValueConstraints KnownSymbol Top)) unit go
+demoteKeys :: forall t. KeysValuesAll KnownKey t => Record (K String) t
+demoteKeys = cpara_Map (Proxy @KnownKey) unit go
     where
-    go :: forall left k v right color. (KnownKey k v, KeysValuesAll (KeyValueConstraints KnownSymbol Top) left, KeysValuesAll (KeyValueConstraints KnownSymbol Top) right) 
+    go :: forall left k v right color. (KnownKey k v, KeysValuesAll KnownKey left, KeysValuesAll KnownKey right) 
        => Record (K String) left 
        -> Record (K String) right 
        -> Record (K String) (N color left k v right)
@@ -194,7 +194,7 @@ instance KnownSymbol k => KnownKey k v
   Create a record containing the names of each field along with a term-level
   representation of each type.
 
->>> putStrLn $ prettyShow_Record show $ demoteEntries @(Insert "foo" Char (Insert "bar" Bool Empty))
+>>> putStrLn $ prettyShowRecord show $ demoteEntries @(Insert "foo" Char (Insert "bar" Bool Empty))
 {bar = K ("bar",Bool), foo = K ("foo",Char)}
 
   See also 'collapse_Record' for getting the entries as a list.
@@ -221,8 +221,8 @@ instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
-class (kc k, vc v) => KeyValueConstraints (kc :: Symbol -> Constraint) (vc :: q -> Constraint) (k :: Symbol) (v :: q)
-instance (kc k, vc v) => KeyValueConstraints kc vc k v
+class (kc k, vc v) => EntryConstraints (kc :: Symbol -> Constraint) (vc :: q -> Constraint) (k :: Symbol) (v :: q)
+instance (kc k, vc v) => EntryConstraints kc vc k v
 
 {- |
   Lifts a one-place constraint for values to a two-place constraint. Useful with function like 'cpure_Record'.
@@ -271,20 +271,7 @@ collapse_Record = collapse_NP . toNP
      function argument will usually be 'show', but it can be used to unwrap the
      value of each field before showing it.
 -}
-prettyShow_Record :: forall t flat f. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, All Show flat, SListI flat) 
-                 => (forall x. Show x => f x -> String) 
-                 -> Record f t 
-                 -> String
-prettyShow_Record showf r = 
-    let keysflat = toNP @t (demoteKeys @t)
-        valuesflat = toNP @t r
-        entries = cliftA2_NP (Proxy @Show) (\(K key) fv -> K (key ++ " = " ++ showf fv))
-                                           keysflat 
-                                           valuesflat
-     in "{" ++ mconcat (intersperse ", " (collapse_NP entries)) ++ "}"
-
-{-# DEPRECATED prettyShowRecord "Use prettyShow_Record instead" #-}
-prettyShowRecord :: forall t flat f. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, All Show flat, SListI flat) 
+prettyShowRecord :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) 
                  => (forall x. Show x => f x -> String) 
                  -> Record f t 
                  -> String
@@ -299,11 +286,7 @@ prettyShowRecord showf r =
 
 {- | Like 'prettyShowRecord' but specialized to pure records.
 -}
-prettyShow_RecordI :: forall t flat. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, All Show flat, SListI flat) => Record I t -> String
-prettyShow_RecordI r = prettyShow_Record (show . unI) r 
-
-{-# DEPRECATED prettyShowRecordI "Use prettyShow_RecordI instead" #-}
-prettyShowRecordI :: forall t flat. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, All Show flat, SListI flat) => Record I t -> String
+prettyShowRecordI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, All Show flat, SListI flat) => Record I t -> String
 prettyShowRecordI r = prettyShowRecord (show . unI) r 
 
 {-| A Record without components is a boring, uninformative type whose single value can be conjured out of thin air.
@@ -335,18 +318,7 @@ impossible v = case v of
      function argument will usually be 'show', but it can be used to unwrap the
      value of the branch before showing it.
 -}
-prettyShow_Variant :: forall t flat f. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat)
-                  => (forall x. Show x => f x -> String) 
-                  -> Variant f t 
-                  -> String
-prettyShow_Variant showf v = 
-    let keysflat = toNP @t (demoteKeys @t)
-        eliminators = cliftA_NP (Proxy @Show) (\(K k) -> Fn (\fv -> (K (k ++ " (" ++ showf fv ++ ")")))) keysflat
-        valuesflat = toNS @t v
-     in collapse_NS (ap_NS eliminators valuesflat)
-
-{-# DEPRECATED prettyShowVariant "Use prettyShow_Variant instead" #-}
-prettyShowVariant :: forall t flat f. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat)
+prettyShowVariant :: forall t flat f. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat)
                   => (forall x. Show x => f x -> String) 
                   -> Variant f t 
                   -> String
@@ -358,12 +330,7 @@ prettyShowVariant showf v =
 
 {- | Like 'prettyShowVariant' but specialized to pure variants.
 -}
-prettyShow_VariantI :: forall t flat. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) 
-                   => Variant I t -> String
-prettyShow_VariantI v = prettyShow_Variant (show . unI) v 
-
-{-# DEPRECATED prettyShowVariantI "Use prettyShow_VariantI instead" #-}
-prettyShowVariantI :: forall t flat. (KeysValuesAll (KeyValueConstraints KnownSymbol Top) t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) 
+prettyShowVariantI :: forall t flat. (KeysValuesAll KnownKey t,Productlike '[] t flat, Sumlike '[] t flat, All Show flat, SListI flat) 
                    => Variant I t -> String
 prettyShowVariantI v = prettyShowVariant (show . unI) v 
 
@@ -1997,7 +1964,7 @@ winnowI = fmap unI . winnow @k @v @t
 -- app (T R a x b) c = T R a x (app b c)
 
 data Foo (ts :: Map Symbol q) (cv :: q -> Constraint) where
-    MakeFoo :: KeysValuesAll (KeyValueConstraints KnownSymbol cv) ts => Foo ts cv 
+    MakeFoo :: KeysValuesAll (EntryConstraints KnownSymbol cv) ts => Foo ts cv 
 
 data Bar (xs :: [q]) (cv :: q -> Constraint) where
     MakeBar :: All cv xs => Bar xs cv

@@ -28,7 +28,7 @@ module Data.RBR (
        demoteKeys,
        KnownKeyTypeableValue(),
        demoteEntries,
-       KeyValueConstraints,
+       EntryConstraints,
        ValueConstraint,
        -- * Records and Variants
        Record,
@@ -38,12 +38,12 @@ module Data.RBR (
        liftA_Record,
        liftA2_Record,
        collapse_Record,
-       prettyShow_Record,
-       prettyShow_RecordI,
+       prettyShowRecord,
+       prettyShowRecordI,
        Variant,
        impossible,
-       prettyShow_Variant,
-       prettyShow_VariantI,
+       prettyShowVariant,
+       prettyShowVariantI,
        -- ** Inserting and widening
        Insertable (Insert),
        InsertAll,
@@ -98,7 +98,6 @@ module Data.RBR (
        -- $nominal
        ToRecord (..),
        FromRecord (..),
-       fromRecordSuperset,
        VariantCode,
        ToVariant (..),
        FromVariant(..),
@@ -118,15 +117,11 @@ module Data.RBR (
        K(..),
        NP(..),
        NS(..),
-       -- * Deprecated
-       prettyShowRecord,
-       prettyShowRecordI,
-       prettyShowVariant,
-       prettyShowVariantI,
+       (:.:)(..)
     ) where
 
 import Data.RBR.Internal
-import Data.SOP (I(..),K(..),NP(..),NS(..))
+import Data.SOP (I(..),K(..),NP(..),NS(..),(:.:)(..))
 
 {- $setup
  
