@@ -3,7 +3,7 @@
     work with a subset of the fields of a 'Record' or the branches of a
     'Variant'.
     
-    __Edit:__ There are functions of the same name in the 'Data.RBR' module,
+    __Note:__ There are functions of the same name in the 'Data.RBR' module,
     but they are deprecated. The functions from this module should be used
     instead, preferably qualified. The changes have to do mainly with the
     required constraints.
@@ -156,7 +156,7 @@ modifyFieldSubset f r = uncurry ($) (fmap f (fieldSubset @subset @whole r))
 branchSubset :: forall subset whole f. (Maplike subset, Maplike whole, Subset subset whole)
              => (Variant f whole -> Maybe (Variant f subset), Variant f subset -> Variant f whole)
 branchSubset = 
-    let inj2case = \adapt (VariantInjection vif) -> Case $ \fv -> adapt (vif fv) -- (\fv -> adapt (fromNS @t (unK (apFn fn fv))))
+    let inj2case = \adapt (Case vif) -> Case $ \fv -> adapt (vif fv) 
         -- The intuition is that getting the setter and the getter together might be faster at compile-time.
         -- The intuition might be wrong.
         subs :: forall f. Record f whole -> (Record f subset -> Record f whole, Record f subset)
@@ -164,14 +164,14 @@ branchSubset =
      in
      (,)
      (let injs :: Record (Case f (Maybe (Variant f subset))) subset 
-          injs = liftA_Record (inj2case Just) (injections_Variant @subset)
+          injs = liftA_Record (inj2case Just) (injections'_Variant @subset)
           -- fixme: possibly inefficient?
           wholeinjs :: Record (Case f (Maybe (Variant f subset))) whole 
           wholeinjs = pure_Record (Case (\_ -> Nothing))
           mixedinjs = fst (subs wholeinjs) injs
        in eliminate_Variant mixedinjs)
      (let wholeinjs :: Record (Case f (Variant f whole)) whole
-          wholeinjs = liftA_Record (inj2case id) (injections_Variant @whole)
+          wholeinjs = liftA_Record (inj2case id) (injections'_Variant @whole)
           injs = snd (subs wholeinjs)
        in eliminate_Variant injs)
 

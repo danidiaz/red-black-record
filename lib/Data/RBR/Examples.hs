@@ -49,11 +49,10 @@ import Data.SOP
 >>> :set -Wno-partial-type-signatures  
 >>> import Data.RBR
 >>> import qualified Data.RBR.Subset as S
->>> import Data.SOP
->>> import Data.SOP.NP (cpure_NP,sequence_NP,liftA2_NP,collapse_NP)
 >>> import Data.String
 >>> import Data.Proxy
 >>> import Data.Foldable
+>>> import Data.Monoid
 >>> import Data.Profunctor (Star(..))
 >>> import GHC.Generics (Generic)
 >>> import GHC.TypeLits
@@ -315,8 +314,8 @@ Person {name = "Mark", age = 70, whatever = True}
         parseAll = 
             let fieldParsers = cpure'_Record (Proxy @FromJSON) $ \fieldName -> 
                     Star (\o -> explicitParseField parseJSON o (Data.Text.pack fieldName))
-                injected = liftA2_Record (\f star -> K [ runVariantInjection f . I <$> star ]) injections_Variant fieldParsers 
-                Star parser = asum $ collapse'_Record injected
+                injected = liftA2_Record (\f star -> K $ Alt $ runCase f . I <$> star) injections'_Variant fieldParsers 
+                Alt (Star parser) = collapse'_Record injected
              in withObject "someobj" (\o -> fromVariant <$> parser o)
     :}
 

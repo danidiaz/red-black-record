@@ -148,7 +148,7 @@ class Maplike (t :: Map Symbol Type) where
          field's type and inject it in the 'Variant' branch which corresponds
          to the field.
     -}
-    injections_Variant :: Record (VariantInjection f t) t
+    injections'_Variant :: Record (Case f (Variant f t)) t
     {- | Collapse a 'Record' composed of 'K' monoidal annotations.
         
     >>> collapse'_Record (unit :: Record (K [Bool]) Empty)
@@ -171,7 +171,7 @@ instance Maplike E where
     liftA2_Record _ Empty Empty = Empty
     liftA_Variant _ neverHappens = impossible neverHappens
     liftA2_Variant _ Empty neverHappens = impossible neverHappens
-    injections_Variant = Empty
+    injections'_Variant = Empty
     collapse'_Record Empty = mempty
     collapse_Variant = impossible
 
@@ -189,21 +189,21 @@ instance (Maplike left, Maplike right) => Maplike (N color left k v right) where
         Here  fv -> Here (trans rv fv)
         LookLeft leftV -> LookLeft (liftA2_Variant trans left leftV)
         LookRight rightV -> LookRight (liftA2_Variant trans right rightV)
-    injections_Variant = 
-        let injections_Left = liftA_Record (\(VariantInjection j) -> VariantInjection $ LookLeft . j) (injections_Variant @left)
-            injections_Right = liftA_Record (\(VariantInjection j) -> VariantInjection $ LookRight . j) (injections_Variant @right)
-         in Node injections_Left (VariantInjection $ Here) injections_Right
+    injections'_Variant = 
+        let injections_Left = liftA_Record (\(Case j) -> Case $ LookLeft . j) (injections'_Variant @left)
+            injections_Right = liftA_Record (\(Case j) -> Case $ LookRight . j) (injections'_Variant @right)
+         in Node injections_Left (Case $ Here) injections_Right
     collapse'_Record (Node left (K v) right) = collapse'_Record left <> (v <> collapse'_Record right) 
     collapse_Variant vv = case vv of
         Here (K a) -> a
         LookLeft leftV -> collapse_Variant leftV
         LookRight rightV -> collapse_Variant rightV
 
-{- |
-    A function which takes the value of a field and injects it into the corresponding branch of a 'Variant'.
+{-# DEPRECATED injections_Variant "Use injections'_Variant instead" #-}
+injections_Variant :: Maplike t => Record (VariantInjection f t) t
+injections_Variant = liftA_Record (\(Case f) -> VariantInjection f) injections'_Variant 
 
-    See also 'Data.SOP.NS.Injection'.
- -}
+{-# DEPRECATED VariantInjection "Use Case instead" #-}
 newtype VariantInjection (f :: q -> Type) (t :: Map Symbol q) (v :: q) = VariantInjection { runVariantInjection :: f v -> Variant f t }
 
 instance KeysValuesAll c E where
@@ -950,7 +950,7 @@ eliminate_Variant cases variant =
 
 {- | Represents a handler for a branch of a 'Variant'.  
 -}
-newtype Case f a b = Case (f b -> a)
+newtype Case f a b = Case { runCase :: f b -> a }
 
 instance Functor f => Contravariant (Case f a) where
     contramap g (Case c) = Case (c . fmap g)

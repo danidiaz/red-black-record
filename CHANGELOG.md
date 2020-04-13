@@ -1,5 +1,10 @@
 # Revision history for red-black-record
 
+## 2.1.2.0
+- Deprecated VariantInjection and injections_Variant. VariantInjections is
+  superfluous, as Case can be used instead.
+- Added runCase accessor for Case.
+
 ## 2.1.1.0
 - Added NP-like functions for working on Records, like sequence_Record.
   They are memebers of the Maplike typeclass.

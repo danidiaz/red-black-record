@@ -72,7 +72,6 @@ module Data.RBR (
        Maplike(..),
        cpure_Record,
        cpure'_Record,
-       VariantInjection(..),
        prettyShow_Record,
        prettyShow_RecordI,
        prettyShow_Variant,
@@ -110,6 +109,8 @@ module Data.RBR (
        (:.:)(..),
        -- * Deprecated
        collapse_Record,
+       injections_Variant,
+       VariantInjection(..),
        eliminate,
        prettyShowRecord,
        prettyShowRecordI,
