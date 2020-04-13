@@ -16,6 +16,8 @@
         - @q@: The kind of the type value @v@.
         - @f@: A type constructor of kind @q -> Type@ that wraps the type @v@. 
         - @flat@: A type-level list of kind @[q]@ whose elements correspond to values in a type-level 'Map'.
+     
+    See the module 'Data.RBR.Examples' for examples of usage and links to external resources.
         
 -}
 module Data.RBR (

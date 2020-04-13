@@ -293,7 +293,7 @@ Person {name = "Mark", age = 70, whatever = True}
 {- $json4sum
  
     To ensure that we don't forget any branch when parsing a sum type from
-    JSON, we begin by creating a 'Record' of parsing function, one for each
+    JSON, we begin by creating a 'Record' of parsing functions, one for each
     branch. We use 'cpure'_Record' to get hold of the field names while
     constructing the parsing functions.
 
