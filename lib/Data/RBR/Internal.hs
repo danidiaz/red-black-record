@@ -147,6 +147,8 @@ class Maplike (t :: Map Symbol Type) where
          Construct a 'Record' made of functions which take a value of the
          field's type and inject it in the 'Variant' branch which corresponds
          to the field.
+
+         Compare to 'Data.SOP.NS.injections' from @generics-sop@.
     -}
     injections'_Variant :: Record (Case f (Variant f t)) t
     {- | Collapse a 'Record' composed of 'K' monoidal annotations.
@@ -253,10 +255,10 @@ cpure'_Record _ fpure = cpara_Map (Proxy @(KeyValueConstraints KnownSymbol c)) u
      of type 'String'. This means that there aren't actually any values of the
      type that corresponds to each field, only the 'String' annotations.
 
->>> putStrLn $ prettyShow_Record show $ demoteKeys @(Insert "foo" Char (Insert "bar" Bool Empty))
+>>> putStrLn $ prettyShow_Record show $ demoteKeys @(FromList [ '("foo",Char), '("bar",Bool) ])
 {bar = K "bar", foo = K "foo"}
 
-     For computations involving field names, sometimes 'cpure\'_Record' is a better option.
+     For computations involving field names, sometimes 'cpure'_Record' is a better option.
 
 -} 
 demoteKeys :: forall t. KeysValuesAll KnownKey t => Record (K String) t
@@ -281,7 +283,7 @@ instance KnownSymbol k => KnownKey k v
   Create a record containing the names of each field along with a term-level
   representation of each type.
 
->>> putStrLn $ prettyShow_Record show $ demoteEntries @(Insert "foo" Char (Insert "bar" Bool Empty))
+>>> putStrLn $ prettyShow_Record show $ demoteEntries @(FromList [ '("foo",Char), '("bar",Bool) ])
 {bar = K ("bar",Bool), foo = K ("foo",Char)}
 
   See also 'collapse_Record' for getting the entries as a list.
@@ -1140,7 +1142,15 @@ toNP r = prefixNP r Nil
 
 {- | Convert a n-ary product into a compatible 'Record'. Usually follows an invocation of 'toNP'. 
 
->>> prettyShow_RecordI . fromNP @(Insert "foo" _ (Insert "bar" _ Empty)) . toNP $ insertI @"foo" 'a' (insertI @"bar" True unit)
+
+>>> :{ 
+    prettyShow_RecordI $ 
+    fromNP @(Insert "foo" _ (Insert "bar" _ Empty)) $
+    toNP $ 
+    insertI @"foo" 'a' $
+    insertI @"bar" True $
+    unit
+:}
 "{bar = True, foo = 'a'}"
 
 -}
@@ -1242,7 +1252,12 @@ toNS = prefixNS . Right
 
 {- | Convert a n-ary sum into a compatible 'Variant'. 
  
->>> prettyShow_VariantI $ fromNS @(Insert "foo" _ (Insert "bar" _ Empty)) . toNS $ (injectI @"foo" 'a' :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+>>> :{ 
+    prettyShow_VariantI $ 
+    fromNS @(FromList [ '("foo",_), '("bar",_) ]) $ 
+    toNS $ 
+    (injectI @"foo" 'a' :: Variant I (FromList [ '("foo",Char), '("bar",Bool) ]))
+:}
 "foo ('a')"
 
 -}
