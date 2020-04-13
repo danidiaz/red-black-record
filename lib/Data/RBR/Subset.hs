@@ -41,8 +41,8 @@ module Data.RBR.Subset (
         branchSubset,
         injectSubset,
         matchSubset, 
-        eliminateSubset,
-        fromRecordSuperset
+        fromRecordSuperset,
+        eliminateSubset
     ) where
 
 import Data.Proxy

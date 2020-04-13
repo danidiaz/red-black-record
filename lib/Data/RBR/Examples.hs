@@ -131,10 +131,10 @@ c
     eventually returns. The internal branches of the 'Variant' can be removed with
     'winnow'. 
 
-    This library makes it more involved than it should be, because inserting an
-    entry and then deleting it can result in structurally dissimilar type-level
-    maps. So we need extra type annotations in 'winnow', and also a call to
-    'injectSubset' to perform the conversion.
+    This is doable in red-black-record, but it becomes more involved than it
+    should because inserting an entry and then deleting it can result in
+    structurally dissimilar type-level maps. So we need extra type annotations
+    in 'winnow', and also a call to 'injectSubset' to perform the conversion.
  
 >>> type Smaller = FromList '[ '("foo",Char), '("bar",Int) ]
 >>> :{
@@ -167,18 +167,19 @@ Just 5
 
 {- $json1
  
-    We start in the @sop-core@ world, creating a product of parsing functions
-    (one for each field) using 'cpure_NP'. 
+    We begin by creating a 'Record' of parsing functions, each paired with its
+    corresponding field name. We use 'Star' to treat the functions directly as
+    'Applicative's.
+    
+    Then we apply the transformation that we receive as parameter, which tweaks
+    the parsing functions and/or the field names. 
 
-    Then we convert that product to a 'Record', apply to it a transformation
-    that uses field selectors, and convert it back to a product.
+    We transform the result into a 'Record' of functions that parse a
+    'Data.Aeson.Object'. Then we pull out the parsing function 'Aplicative'
+    using 'sequence_Record', ending up with a parsing function that returns a
+    pure 'Record'. 
 
-    Then we demote the field names and combine them with the product of
-    'Data.Aeson.Value' parsers using 'liftA2_NP', getting a product of
-    'Data.Aeson.Object' parsers.
-
-    Then we use 'sequence_NP' to convert the product of parsers into a parser
-    of 'Record'.
+    The last step is to construct the nominal record type using 'fromRecord'.
 
 >>> :{
     let parseSpecial
@@ -231,9 +232,9 @@ Right (Person {name = "foo", age = 50})
              in withObject "someobj" $ \o -> fromRecord <$> objectParser o
     :}
 
-   We have to use 'getFieldSubset' because the aliases are listed in a
+   We have to use 'getFieldSubset' because the aliases might be listed in a
    different order than the record fields, and that might result in different
-   type-level trees. If the orders were the same, we wouldn't need it. 
+   type-level trees.
 
 >>> data Person = Person { name :: String, age :: Int } deriving (Generic, Show)
 >>> instance ToRecord Person 
@@ -291,18 +292,24 @@ Person {name = "Mark", age = 70, whatever = True}
 
 {- $json4sum
  
-    To ensure that we don't forget any branch when parsing a sum type from JSON, 
-    we can create a n-ary product of parsers, one for each branch.
+    To ensure that we don't forget any branch when parsing a sum type from
+    JSON, we begin by creating a 'Record' of parsing function, one for each
+    branch. We use 'cpure'_Record' to get hold of the field names while
+    constructing the parsing functions.
 
-    Then we create a n-ary product of injections. Each component of the
-    product creates a n-ary sum out of the value of the corresponding branch.
+    Then we create a 'Record' of injections using 'injections'_Variant'. Each
+    component of the 'Record' injects a value of the field's type into the
+    corresponding branch of the 'Variant'.
 
-    We combine the n-ary product of parsers with the n-ary product of
-    injections, and collapse all the resulting parsers with
-    'Control.Applicative.asum'.
+    We combine the injections with the parsing functions using 'liftA2_Record'.
+    We use the constant functor 'K' as the wrapping type of the result, and
+    inside it an 'Alt' newtype to get a 'Monoid' instance for the parsing
+    functions.
 
-    Then we convert the n-ary sum value that "wins" into a 'Variant' and
-    finally back into the original type.
+    The we collapse the record with 'collapse'_Record', resulting in a single
+    parsing function that handles all possible branches.
+
+    The last step is to construct the nominal sum type using 'fromVariant'.
 
 >>> :{
     let parseAll
