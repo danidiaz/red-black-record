@@ -140,7 +140,7 @@ class Maplike (t :: Map Symbol Type) where
     liftA_Variant :: (forall a. f a -> g a) -> Variant f t -> Variant g t
     {- | Given a 'Record' of transformation, apply the one which matches the active branch of 'Variant'.
      
-         The naming scheme follows that of 'Data.SOP.NS.liftA_NS'.
+         The naming scheme follows that of 'Data.SOP.NS.liftA2_NS'.
     -}
     liftA2_Variant :: (forall a. f a -> g a -> h a) -> Record f t -> Variant g t -> Variant h t
     {- | 
@@ -1983,10 +1983,10 @@ winnow = _winnow @_ @k @v @t
 
 {- | Like 'winnow' but specialized to pure 'Variant's.
  
->>> winnow @"bar" @Bool (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+>>> winnow @"bar" @Bool (injectI @"bar" False :: Variant I (FromList [ '("foo",Char), '("bar",Bool) ]))
 Right (I False)
 
->>> prettyShow_VariantI `first` winnow @"foo" @Char (injectI @"bar" False :: Variant I (Insert "foo" Char (Insert "bar" Bool Empty)))
+>>> prettyShow_VariantI `first` winnow @"foo" @Char (injectI @"bar" False :: Variant I (FromList [ '("foo",Char), '("bar",Bool) ]))
 Left "bar (False)" 
 
 -}
