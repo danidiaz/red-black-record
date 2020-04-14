@@ -1,9 +1,9 @@
 {-| 
-    This module contains versions of functions from 'Data.RBR', generalized to
+    This module contains versions of functions from "Data.RBR", generalized to
     work with a subset of the fields of a 'Record' or the branches of a
     'Variant'.
     
-    __Note:__ There are functions of the same name in the 'Data.RBR' module,
+    __Note:__ There are functions of the same name in the "Data.RBR" module,
     but they are deprecated. The functions from this module should be used
     instead, preferably qualified. The changes have to do mainly with the
     required constraints.
@@ -33,14 +33,17 @@
 {-#  OPTIONS_GHC -Wno-partial-type-signatures  #-}
 module Data.RBR.Subset (
         Subset,
+        -- * Record subset functions
         fieldSubset,
         projectSubset,
         getFieldSubset,
         setFieldSubset,
         modifyFieldSubset,
+        -- * Variant subset functions
         branchSubset,
         injectSubset,
         matchSubset, 
+        -- * Miscellany functions
         fromRecordSuperset,
         eliminateSubset
     ) where
@@ -114,7 +117,16 @@ fieldSubset r =
 
      The types in the subset tree can often be inferred and left as wildcards in type signature.
  
->>> prettyShow_RecordI $ S.projectSubset @(Insert "foo" _ (Insert "bar" _ Empty)) (insertI @"foo" 'a' (insertI @"bar" True (insertI @"baz" (Just ()) unit)))
+>>> :{ 
+    prettyShow_RecordI $ 
+    S.projectSubset @(Insert "foo" _ 
+                     (Insert "bar" _ 
+                      Empty)) 
+        (insertI @"foo" 'a' 
+        (insertI @"bar" True 
+        (insertI @"baz" (Just ()) 
+         unit)))
+:}
 "{bar = True, foo = 'a'}"
 
      Can also be used to convert between 'Record's with structurally dissimilar

@@ -327,7 +327,7 @@ instance (vc v) => ValueConstraint vc k v
 {- | An extensible product-like type with named fields.
  
      The values in the 'Record' come wrapped in a type constructor @f@, which
-     por pure records will be the identity functor 'I'.
+     for pure records will be the identity functor 'I'.
 
      See also 'insert', 'delete' and 'project'.
 -}
