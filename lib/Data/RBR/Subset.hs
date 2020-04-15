@@ -10,7 +10,7 @@
     trying to combine 'Record's, even as they have exactly the same fields.
 
     To solve these kinds of problems, functions like 'projectSubset' can be
-    used to transform 'Record's indexes by one map into records indexed by
+    used to transform 'Record's indexed by one map into records indexed by
     another.
 
     For example, consider this code:
