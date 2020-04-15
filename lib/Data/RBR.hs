@@ -105,7 +105,9 @@ module Data.RBR (
        fromNS,
        -- * Data.SOP re-exports
        I(..),
+       unI,
        K(..),
+       unK,
        NP(..),
        NS(..),
        (:.:)(..),
@@ -134,7 +136,7 @@ module Data.RBR (
     ) where
 
 import Data.RBR.Internal
-import Data.SOP (I(..),K(..),NP(..),NS(..),(:.:)(..),And,Top)
+import Data.SOP (I(..),unI,K(..),unK,NP(..),NS(..),(:.:)(..),And,Top)
 
 {- $setup
  
