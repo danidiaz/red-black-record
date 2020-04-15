@@ -2,6 +2,43 @@
     This module contains versions of functions from "Data.RBR", generalized to
     work with a subset of the fields of a 'Record' or the branches of a
     'Variant'.
+
+    Besides working with subsets of fields and branches, this module is useful
+    for another thing. The equality of type-level trees is unfortunately too
+    strict: inserting the same elements but in /different order/ can result in
+    structurally different trees, which in its turn causes annoying errors when
+    trying to combine 'Record's, even as they have exactly the same fields.
+
+    To solve these kinds of problems, functions like 'projectSubset' can be
+    used to transform 'Record's indexes by one map into records indexed by
+    another.
+
+    For example, consider this code:
+
+>>> :{
+    prettyShow_RecordI $
+      liftA2_Record
+        (\_ x -> x)
+        ( id
+            $ S.projectSubset @(FromList ['("bar", _), '("foo", _)]) -- rearrange
+            $ insertI @"foo"
+              'a'
+            $ insertI @"bar"
+              True
+            $ unit
+        )
+        ( id
+            $ insertI @"bar"
+              True
+            $ insertI @"foo"
+              'a'
+            $ unit
+        )
+:}
+"{bar = True, foo = 'a'}"
+
+    If we remove the 'projectSubset' line that rearranges the structure of the
+    first record's index map, the code ceases to compile.
     
     __Note:__ There are functions of the same name in the "Data.RBR" module,
     but they are deprecated. The functions from this module should be used
@@ -32,6 +69,7 @@
 #-}
 {-#  OPTIONS_GHC -Wno-partial-type-signatures  #-}
 module Data.RBR.Subset (
+        -- * The subset constraint
         Subset,
         -- * Record subset functions
         fieldSubset,
@@ -80,7 +118,7 @@ import Data.RBR.Internal hiding
 
 -}
 
-{- | A map is a subset of another if all of its entries are present in the other map.
+{- | A type-level map is a subset of another if all of its entries are present in the other map.
 
 -}
 type Subset (subset :: Map Symbol q) (whole :: Map Symbol q) = KeysValuesAll (PresentIn whole) subset
@@ -118,18 +156,19 @@ fieldSubset r =
      The types in the subset tree can often be inferred and left as wildcards in type signature.
  
 >>> :{ 
-    prettyShow_RecordI $ 
-    S.projectSubset @(Insert "foo" _ 
-                     (Insert "bar" _ 
-                      Empty)) 
-        (insertI @"foo" 'a' 
-        (insertI @"bar" True 
-        (insertI @"baz" (Just ()) 
-         unit)))
+  prettyShow_RecordI
+    $ S.projectSubset @(FromList ['("foo", _), '("bar", _)])
+    $ insertI @"foo"
+      'a'
+    $ insertI @"bar"
+      True
+    $ insertI @"baz"
+      (Just ())
+    $ unit
 :}
 "{bar = True, foo = 'a'}"
 
-     Can also be used to convert between 'Record's with structurally dissimilar
+     This function also be used to convert between 'Record's with structurally dissimilar
      type-level maps that nevertheless hold the same entries. 
 -}
 projectSubset :: forall subset whole f. (Maplike subset, Subset subset whole) 
