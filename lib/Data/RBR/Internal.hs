@@ -301,7 +301,6 @@ instance KnownSymbol k => KnownKey k v
 >>> putStrLn $ prettyShow_Record show $ demoteEntries @(FromList [ '("foo",Char), '("bar",Bool) ])
 {bar = K ("bar",Bool), foo = K ("foo",Char)}
 
-  See also 'collapse_Record' for getting the entries as a list.
 -}
 demoteEntries :: forall t. KeysValuesAll KnownKeyTypeableValue t => Record (K (String,TypeRep)) t
 demoteEntries = cpara_Map (Proxy @KnownKeyTypeableValue) unit go
