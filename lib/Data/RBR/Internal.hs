@@ -151,6 +151,7 @@ class Maplike (t :: Map Symbol Type) where
          Compare to 'Data.SOP.NS.injections' from @generics-sop@.
     -}
     injections'_Variant :: Record (Case f (Variant f t)) t
+    injections_Record :: Record (Case f (Endo (Record f t))) t
     {- | Collapse a 'Record' composed of 'K' monoidal annotations.
         
     >>> collapse'_Record (unit :: Record (K [Bool]) Empty)
@@ -174,6 +175,7 @@ instance Maplike E where
     liftA_Variant _ neverHappens = impossible neverHappens
     liftA2_Variant _ Empty neverHappens = impossible neverHappens
     injections'_Variant = Empty
+    injections_Record = Empty
     collapse'_Record Empty = mempty
     collapse_Variant = impossible
 
@@ -195,6 +197,19 @@ instance (Maplike left, Maplike right) => Maplike (N color left k v right) where
         let injections_Left = liftA_Record (\(Case j) -> Case $ LookLeft . j) (injections'_Variant @left)
             injections_Right = liftA_Record (\(Case j) -> Case $ LookRight . j) (injections'_Variant @right)
          in Node injections_Left (Case $ Here) injections_Right
+    injections_Record = 
+         Node 
+             (liftA_Record (\(Case cleft) -> 
+                                (Case $ \x -> 
+                                    Endo $ (\(Node left' x' right') -> Node (appEndo (cleft x)  left') x' right')))
+
+                           (injections_Record @left))
+             (Case $ \x -> Endo $ \(Node left v right) -> Node left x right) 
+             (liftA_Record (\(Case cright) -> 
+                                (Case $ \x -> 
+                                    Endo $ (\(Node left' x' right') -> Node left' x' (appEndo (cright x) right'))))
+
+                           (injections_Record @right))  
     collapse'_Record (Node left (K v) right) = collapse'_Record left <> (v <> collapse'_Record right) 
     collapse_Variant vv = case vv of
         Here (K a) -> a

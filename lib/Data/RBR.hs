@@ -109,6 +109,8 @@ module Data.RBR (
        NP(..),
        NS(..),
        (:.:)(..),
+       And,
+       Top,
        -- * Deprecated
        collapse_Record,
        injections_Variant,
@@ -132,7 +134,7 @@ module Data.RBR (
     ) where
 
 import Data.RBR.Internal
-import Data.SOP (I(..),K(..),NP(..),NS(..),(:.:)(..),Top)
+import Data.SOP (I(..),K(..),NP(..),NS(..),(:.:)(..),And,Top)
 
 {- $setup
  
