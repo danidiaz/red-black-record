@@ -144,13 +144,17 @@ class Maplike (t :: Map Symbol Type) where
     -}
     liftA2_Variant :: (forall a. f a -> g a -> h a) -> Record f t -> Variant g t -> Variant h t
     {- | 
-         Construct a 'Record' made of functions which take a value of the
+         Constructs a 'Record' made of functions which take a value of the
          field's type and inject it in the 'Variant' branch which corresponds
          to the field.
 
          Compare to 'Data.SOP.NS.injections' from @generics-sop@.
     -}
     injections'_Variant :: Record (Case f (Variant f t)) t
+    {- | 
+         Constructs a 'Record' made of functions which take a value of the
+         field's type and return a record updater function that sets the field.
+    -}
     injections_Record :: Record (Case f (Endo (Record f t))) t
     {- | Collapse a 'Record' composed of 'K' monoidal annotations.
         

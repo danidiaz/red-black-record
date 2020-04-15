@@ -1,5 +1,8 @@
 # Revision history for red-black-record
 
+## 2.1.3.0
+- Added injections_Record. 
+
 ## 2.1.2.0
 - Deprecated VariantInjection and injections_Variant. VariantInjections is
   superfluous, as Case can be used instead.
