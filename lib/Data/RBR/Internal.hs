@@ -98,7 +98,7 @@ class KeysValuesAllF c t => KeysValuesAll (c :: symbol -> q -> Constraint) (t ::
     -> r t
 
 {- | This typeclass provides generalizations of 'Applicative'-like functions
- - which work over 'Record's and 'Variant's.
+     which work over 'Record's and 'Variant's.
 -}
 class Maplike (t :: Map Symbol Type) where
     {- | 
@@ -116,7 +116,8 @@ class Maplike (t :: Map Symbol Type) where
     sequence_Record :: Applicative f => Record f t -> f (Record I t)
     {- | 
          Like 'sequence_Record', but only pulls out the outer 'Applicative'
-         from an 'Applicative' composition that wraps each field. See '(:.:)'.
+         from an 'Applicative' composition that wraps each field. See
+         'Data.SOP.:.:'.
 
          This can be useful for staged computations, where each stage is
          represented by an 'Applicative' layer.
@@ -253,7 +254,7 @@ cpure_Record _ fpure = cpara_Map (Proxy @c) unit go
     the values satisfy some constraint. The constraint is passed as a
     'Data.Proxy.Proxy'.
 
-    The fuction that constructs each field receives the name of the field as an
+    The function that constructs each field receives the name of the field as an
     argument.
 
     The naming scheme follows that of 'Data.SOP.NP.cpure_NP'.
@@ -992,9 +993,9 @@ addCaseI f = addField @k @v @t (Case (f . unI))
 newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
  
 {- | For a given 'Map', produces a two-place constraint confirming the presence
- - of a entry.
- -
-  Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
+     of a entry.
+     
+     Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
 class (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol q) (k :: Symbol) (v :: q) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol q) (k :: Symbol) (v :: q)

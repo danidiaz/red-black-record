@@ -183,9 +183,9 @@ Just 5
 
 >>> :{
     let parseSpecial
-              :: forall r c flat. (IsRecordType r c, 
-                                   Maplike c,
-                                   KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) c) 
+              :: forall r c. (IsRecordType r c, 
+                              Maplike c,
+                              KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) c) 
               => (Record ((,) String :.: Star Parser Data.Aeson.Value) c -> Record ((,) String :.: Star Parser Data.Aeson.Value) c)
               -> Data.Aeson.Value 
               -> Parser r
@@ -219,9 +219,9 @@ Right (Person {name = "foo", age = 50})
 
 >>> :{
     let parseWithAliases
-              :: forall r c flat. (IsRecordType r c, 
-                                   Maplike c,
-                                   KeysValuesAll (ValueConstraint FromJSON) c) 
+              :: forall r c. (IsRecordType r c, 
+                              Maplike c,
+                              KeysValuesAll (ValueConstraint FromJSON) c) 
               => Record (K String) c
               -> Data.Aeson.Value 
               -> Parser r
@@ -313,9 +313,9 @@ Person {name = "Mark", age = 70, whatever = True}
 
 >>> :{
     let parseAll
-              :: forall r c flat. (IsVariantType r c, 
-                                   Maplike c,
-                                   KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) c) 
+              :: forall r c. (IsVariantType r c, 
+                              Maplike c,
+                              KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) c) 
               => Data.Aeson.Value 
               -> Parser r
         parseAll = 
@@ -346,6 +346,7 @@ That 70
     * [Adventures assembling records of capabilities. (Discourse)](https://discourse.haskell.org/t/adventures-assembling-records-of-capabilities/623)
     * [Creating a result piecewise from stateful computation. (SO)](https://stackoverflow.com/a/60067270/1364288)
     * [Extracting sections of function pipelines. (GitHub)](https://gist.github.com/danidiaz/2157e68f5d4967e468a9d062d4476adf#file-pipelines3-hs)
+    * [A function that builds record values by asking the user for the fields' values. (Twitter)](https://twitter.com/DiazCarrete/status/1250770045749342210)
     * [Resources on sop-core and generics-sop. (GitHub)](https://github.com/well-typed/generics-sop/issues/47)
 
 -}

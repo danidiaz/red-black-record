@@ -194,3 +194,5 @@ down compilation as well.
 * [higgledy](http://hackage.haskell.org/package/higgledy). Provides you with HKD
   versions of normal records.
 
+* [Flay](https://hackage.haskell.org/package/flay-0.4) Work generically on your datatype without knowing its shape nor its contents.
+
