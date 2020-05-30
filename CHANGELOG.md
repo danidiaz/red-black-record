@@ -1,5 +1,8 @@
 # Revision history for red-black-record
 
+## 2.1.4.0
+- Added trivial FromRecord and ToRecord instances to Record.
+
 ## 2.1.3.0
 - Added injections_Record. 
 

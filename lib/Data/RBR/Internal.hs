@@ -357,6 +357,12 @@ data Record (f :: q -> Type) (t :: Map Symbol q)  where
 instance (Productlike '[] t result, Show (NP f result)) => Show (Record f t) where
     show x = "fromNP (" ++ show (toNP x) ++ ")"
 
+instance ToRecord (Record I (t :: Map Symbol Type)) where
+    type RecordCode (Record I t)  = t
+    toRecord = id
+
+instance FromRecord (Record I (t :: Map Symbol Type)) where
+    fromRecord = id
 
 {-# DEPRECATED collapse_Record "Use collapse'_Record" #-}
 collapse_Record :: forall t result a. (Productlike '[] t result) => Record (K a) t -> [a]

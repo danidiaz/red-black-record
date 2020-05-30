@@ -1,6 +1,6 @@
 cabal-version:       2.0
 name:                red-black-record
-version:             2.1.3.1
+version:             2.1.4.0
 synopsis:            Extensible records and variants indexed by a type-level Red-Black tree.
 
 description:         A library that provides extensible records and variants,
