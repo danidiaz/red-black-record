@@ -74,6 +74,8 @@ module Data.RBR (
        Maplike(..),
        cpure_Record,
        cpure'_Record,
+       cliftA_Record,
+       cliftA2_Record,
        prettyShow_Record,
        prettyShow_RecordI,
        prettyShow_Variant,

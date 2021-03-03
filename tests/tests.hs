@@ -67,6 +67,10 @@ tests = testGroup "Tests" [ testCase "recordGetSet01" testRecordGetSet01,
                             testGroup "polyKindedMap" [
                                     testCase "polyKinded01" polyKinded01,
                                     testCase "polyKinded02" polyKinded02
+                            ],
+                            testGroup "transformations" [
+                                    testCase "testLiftA_Record" cliftA2_01,
+                                    testCase "testLiftA2_Record" cliftA2_02
                             ]
                           ]
 
@@ -554,3 +558,30 @@ polyKinded02 = do
     return ()
 
 
+cliftA2_01 :: Assertion
+cliftA2_01 = do
+    let r = insertI @"foo" 'c'
+          . insertI @"bar" True
+          . insertI @"baz" (1::Int)
+          $ unit
+        r' = cliftA_Record (Proxy @(KeyValueConstraints KnownSymbol Show)) (\(I x) -> K (show x)) r
+        K foo = getField @"foo" r'
+        K bar = getField @"bar" r'
+        K baz = getField @"baz" r'
+    assertEqual "foo" foo "'c'"
+    assertEqual "bar" bar "True"
+    assertEqual "baz" baz "1"
+
+cliftA2_02 :: Assertion
+cliftA2_02 = do
+    let r = insertI @"foo" 'c'
+          . insertI @"bar" True
+          . insertI @"baz" (1::Int)
+          $ unit
+        r' = cliftA2_Record (Proxy @(KeyValueConstraints KnownSymbol Show)) (\(I x) (I y) -> K (show x ++ show y)) r r
+        K foo = getField @"foo" r'
+        K bar = getField @"bar" r'
+        K baz = getField @"baz" r'
+    assertEqual "foo" foo "'c''c'"
+    assertEqual "bar" bar "TrueTrue"
+    assertEqual "baz" baz "11"

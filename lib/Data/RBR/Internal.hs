@@ -240,7 +240,7 @@ instance (c k v, KeysValuesAll c left, KeysValuesAll c right) => KeysValuesAll c
 
     The naming scheme follows that of 'Data.SOP.NP.cpure_NP'.
  -}
-cpure_Record :: forall c t f. KeysValuesAll c t => (Proxy c) -> (forall k v. c k v => f v) -> Record f t
+cpure_Record :: forall c t f. KeysValuesAll c t => Proxy c -> (forall k v. c k v => f v) -> Record f t
 cpure_Record _ fpure = cpara_Map (Proxy @c) unit go
     where
     go :: forall left k' v' right color. (c k' v', KeysValuesAll c left, KeysValuesAll c right) 
@@ -259,7 +259,7 @@ cpure_Record _ fpure = cpara_Map (Proxy @c) unit go
 
     The naming scheme follows that of 'Data.SOP.NP.cpure_NP'.
  -}
-cpure'_Record :: forall c t f. KeysValuesAll (KeyValueConstraints KnownSymbol c) t => (Proxy c) -> (forall v. c v => String -> f v) -> Record f t
+cpure'_Record :: forall c t f. KeysValuesAll (KeyValueConstraints KnownSymbol c) t => Proxy c -> (forall v. c v => String -> f v) -> Record f t
 cpure'_Record _ fpure = cpara_Map (Proxy @(KeyValueConstraints KnownSymbol c)) unit go
    where
     go :: forall left k' v' right color. (KeyValueConstraints KnownSymbol c k' v', KeysValuesAll (KeyValueConstraints KnownSymbol c) left, KeysValuesAll (KeyValueConstraints KnownSymbol c) right) 
@@ -268,6 +268,34 @@ cpure'_Record _ fpure = cpara_Map (Proxy @(KeyValueConstraints KnownSymbol c)) u
        -> Record f (N color left k' v' right)
     go left right = Node left (fpure @v' (symbolVal (Proxy @k'))) right 
 
+newtype F1 f g t = F1 { unF1 :: Record f t -> Record g t }
+
+{- | Apply a transformation to the type constructor which wraps the fields of a 'Record', with some constraints in scope.
+ 
+     The naming scheme follows that of 'Data.SOP.NP.cliftA_NP'.
+-}
+cliftA_Record :: forall c t f g. KeysValuesAll c t => Proxy c -> (forall k v. c k v => f v -> g v) -> Record f t -> Record g t
+cliftA_Record _ func = unF1 $ cpara_Map (Proxy @c) (F1 $ \_ -> unit) go
+    where
+    go :: forall left k' v' right color. (c k' v', KeysValuesAll c left, KeysValuesAll c right) 
+       => F1 f g left
+       -> F1 f g right
+       -> F1 f g (N color left k' v' right)
+    go (F1 leftf) (F1 rightf) = F1 (\(Node left v right) -> Node (leftf left) (func @k' @v' v) (rightf right))
+
+newtype F2 f g h t = F2 { unF2 :: Record f t -> Record g t -> Record h t }
+
+{- | 
+     The naming scheme follows that of 'Data.SOP.NP.cliftA2_NP'.
+-}
+cliftA2_Record :: forall c t f g h. KeysValuesAll c t => Proxy c -> (forall k v. c k v => f v -> g v -> h v) -> Record f t -> Record g t -> Record h t
+cliftA2_Record _ func = unF2 $ cpara_Map (Proxy @c) (F2 $ \_ _ -> unit) go
+    where
+    go :: forall left k' v' right color. (c k' v', KeysValuesAll c left, KeysValuesAll c right) 
+       => F2 f g h left
+       -> F2 f g h right
+       -> F2 f g h (N color left k' v' right)
+    go (F2 leftf) (F2 rightf) = F2 (\(Node left1 v1 right1) (Node left2 v2 right2) -> Node (leftf left1 left2) (func @k' @v' v1 v2) (rightf right1 right2))
 
 {- | Create a 'Record' containing the names of each field. 
     

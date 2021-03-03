@@ -57,7 +57,7 @@ test-suite doctests
   build-depends:       base                 >= 4.10.0.0 && < 5,
                        sop-core             >= 0.4.0.0 && < 0.6,
                        red-black-record,
-                       aeson                >= 1.4.0.0 && < 1.5,
+                       aeson                >= 1.4.0.0 && < 1.6,
                        bytestring           >= 0.10,
                        text                 >= 1.1,
                        profunctors          >= 5,
