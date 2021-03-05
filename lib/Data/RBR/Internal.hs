@@ -613,6 +613,7 @@ instance CanMakeBlack E where
     makeBlackR Empty = Empty
     makeBlackV = impossible
 
+-- for some reason, removing the "inline" kind signatures causes a compilation error
 type InsertableHelper1 :: Symbol -> q -> Map Symbol q -> Constraint
 class InsertableHelper1 (k :: Symbol) 
                         (v :: q) 
@@ -713,7 +714,8 @@ data BalanceAction = BalanceSpecial
                    | DoNotBalance
                    deriving Show
 
-type family ShouldBalance (left :: Map k' v') (right :: Map k' v') :: BalanceAction where
+type ShouldBalance :: Map k' v' -> Map k' v' -> BalanceAction
+type family ShouldBalance left right where
     ShouldBalance (N R _ _ _ _) (N R _ _ _ _) = BalanceSpecial
     ShouldBalance (N R (N R _ _ _ _) _ _ _) _ = BalanceLL
     ShouldBalance (N R _ _ _ (N R _ _ _ _)) _ = BalanceLR
@@ -721,7 +723,8 @@ type family ShouldBalance (left :: Map k' v') (right :: Map k' v') :: BalanceAct
     ShouldBalance _ (N R _ _ _ (N R _ _ _ _)) = BalanceRR
     ShouldBalance _ _                         = DoNotBalance
 
-class Balanceable (left :: Map Symbol q) (k :: Symbol) (v :: q) (right :: Map Symbol q) where
+type Balanceable :: Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
+class Balanceable left k v right where
     type Balance left k v right :: Map Symbol q
     balanceR :: Record f (N color left k v right) -> Record f (Balance left k v right)
     balanceV :: Variant f (N color left k v right) -> Variant f (Balance left k v right)
