@@ -1339,8 +1339,8 @@ fromNS ns = case breakNS ns of
 --
 --
 -- Interfacing with normal records
-
-class ToRecord (r :: Type) where
+type ToRecord :: Type -> Constraint
+class ToRecord r where
     type RecordCode r :: Map Symbol Type
     -- https://stackoverflow.com/questions/22087549/defaultsignatures-and-associated-type-families/22088808
     type RecordCode r = RecordCode' E (G.Rep r)
@@ -1348,7 +1348,8 @@ class ToRecord (r :: Type) where
     default toRecord :: (G.Generic r,ToRecordHelper E (G.Rep r),RecordCode r ~ RecordCode' E (G.Rep r)) => r -> Record I (RecordCode r)
     toRecord r = toRecord' unit (G.from r)
 
-class ToRecordHelper (start :: Map Symbol Type) (g :: Type -> Type) where
+type ToRecordHelper :: Map Symbol Type -> (Type -> Type) -> Constraint
+class ToRecordHelper start g where
     type RecordCode' start g :: Map Symbol Type
     toRecord' :: Record I start -> g x -> Record I (RecordCode' start g)
 
@@ -1383,6 +1384,7 @@ instance ( ToRecordHelper start  t2,
 
 --
 --
+type FromRecord :: Type -> Constraint
 class ToRecord r => FromRecord (r :: Type) where
     fromRecord :: Record I (RecordCode r) -> r
     default fromRecord :: (G.Generic r, FromRecordHelper (RecordCode r) (G.Rep r)) => Record I (RecordCode r) -> r
@@ -1391,7 +1393,8 @@ class ToRecord r => FromRecord (r :: Type) where
 {- |
      The naming scheme follows that of 'Generics.SOP.IsProductType'.
  -}
-type IsRecordType (r :: Type) (t :: Map Symbol Type) = (G.Generic r, ToRecord r, RecordCode r ~ t, FromRecord r)
+type IsRecordType :: Type -> Map Symbol Type -> Constraint
+type IsRecordType r t = (G.Generic r, ToRecord r, RecordCode r ~ t, FromRecord r)
 
 -- {- |
 --     A version of 'fromRecord' which accepts 'Record' values with more fields than the target nominal record, and possibly in an incompatible order.
@@ -1399,7 +1402,8 @@ type IsRecordType (r :: Type) (t :: Map Symbol Type) = (G.Generic r, ToRecord r,
 -- fromRecordSuperset :: forall r subset whole flat. (FromRecord r, RecordCode r ~ subset, ProductlikeSubset subset whole flat) => Record I whole -> r
 -- fromRecordSuperset = fromRecord @r . projectSubset @subset @whole @flat
 
-class FromRecordHelper (t :: Map Symbol Type) (g :: Type -> Type) where
+type FromRecordHelper :: Map Symbol Type -> (Type -> Type) -> Constraint
+class FromRecordHelper t g where
     fromRecord' :: Record I t -> g x
 
 instance FromRecordHelper t fields => FromRecordHelper t (D1 meta (C1 metacons fields)) where
