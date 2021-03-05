@@ -1,5 +1,8 @@
 # Revision history for red-black-record
 
+## 2.1.5.0
+- Added cliftA_Record and cliftA2_Record.
+
 ## 2.1.4.0
 - Added trivial FromRecord and ToRecord instances to Record.
 
