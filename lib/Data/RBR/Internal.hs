@@ -579,7 +579,8 @@ addFieldI = insertI @k @v @t
      If the map already has the key but with a /different/ type, the
      insertion fails to compile.
  -}
-class Insertable (k :: Symbol) (v :: q) (t :: Map Symbol q) where
+type Insertable :: Symbol -> q -> Map Symbol q -> Constraint
+class Insertable k v t where
     type Insert k v t :: Map Symbol q
     _insert :: f v -> Record f t -> Record f (Insert k v t)
     _widen :: Variant f t -> Variant f (Insert k v t)
@@ -593,8 +594,9 @@ instance (InsertableHelper1 k v t, Insert1 k v t ~ inserted, CanMakeBlack insert
     _insert fv r = makeBlackR @_ (insert1 @_ @k @v fv r) 
     _widen v = makeBlackV @_ (widen1 @_ @k @v v)
 
-class CanMakeBlack (t :: Map Symbol k) where
-    type MakeBlack t :: Map Symbol k
+type CanMakeBlack :: Map Symbol q -> Constraint
+class CanMakeBlack t where
+    type MakeBlack t :: Map Symbol q
     makeBlackR :: Record f t -> Record f (MakeBlack t)
     makeBlackV :: Variant f t -> Variant f (MakeBlack t)
 
@@ -611,6 +613,7 @@ instance CanMakeBlack E where
     makeBlackR Empty = Empty
     makeBlackV = impossible
 
+type InsertableHelper1 :: Symbol -> q -> Map Symbol q -> Constraint
 class InsertableHelper1 (k :: Symbol) 
                         (v :: q) 
                         (t :: Map Symbol q) where
@@ -633,14 +636,8 @@ instance (CmpSymbol k k' ~ ordering,
     insert1 = insert2 @_ @ordering @k @v @color @left @k' @v' @right
     widen1  = widen2 @_ @ordering @k @v @color @left @k' @v' @right
 
-class InsertableHelper2 (ordering :: Ordering) 
-                        (k :: Symbol) 
-                        (v :: q) 
-                        (color :: Color) 
-                        (left :: Map Symbol q) 
-                        (k' :: Symbol) 
-                        (v' :: q) 
-                        (right :: Map Symbol q) where
+type InsertableHelper2 :: Ordering -> Symbol -> q -> Color -> Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
+class InsertableHelper2 ordering k v color left k' v' right where
     type Insert2 ordering k v color left k' v' right :: Map Symbol q 
     insert2 :: f v -> Record f (N color left k' v' right) -> Record f (Insert2 ordering k v color left k' v' right)
     widen2 :: Variant f (N color left k' v' right) -> Variant f (Insert2 ordering k v color left k' v' right)
