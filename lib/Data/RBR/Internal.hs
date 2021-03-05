@@ -739,11 +739,8 @@ instance (ShouldBalance left right ~ action,
     balanceR = balanceR' @_ @action @left @k @v @right
     balanceV = balanceV' @_ @action @left @k @v @right
     
-class BalanceableHelper (action :: BalanceAction) 
-                        (left :: Map Symbol q) 
-                        (k :: Symbol) 
-                        (v :: q) 
-                        (right :: Map Symbol q) where
+type BalanceableHelper :: BalanceAction -> Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
+class BalanceableHelper action left k v right  where
     type Balance' action left k v right :: Map Symbol q
     balanceR' :: Record f (N color left k v right) -> Record f (Balance' action left k v right)
     balanceV' :: Variant f (N color left k v right) -> Variant f (Balance' action left k v right)
@@ -846,11 +843,14 @@ instance BalanceableHelper DoNotBalance a k v b where
 --
 {- | Auxiliary type family to avoid repetition and help improve compilation times.
  -}
+
+type Field :: (q -> Type) -> Map Symbol q -> q -> Type 
 type family Field (f :: q -> Type) (t :: Map Symbol q) (v :: q) where
     Field f t v = Record f t -> (f v -> Record f t, f v)
 
 {- | Auxiliary type family to avoid repetition and help improve compilation times.
  -}
+type Branch :: (q -> Type) -> Map Symbol q -> q -> Type 
 type family Branch (f :: q -> Type) (t :: Map Symbol q) (v :: q) where
     Branch f t v = (Variant f t -> Maybe (f v), f v -> Variant f t)
 
@@ -861,7 +861,8 @@ type family Branch (f :: q -> Type) (t :: Map Symbol q) (v :: q) where
 
      The 'Value' type family gives the 'Type' corresponding to the key.
 -} 
-class Key (k :: Symbol) (t :: Map Symbol q) where
+type Key :: Symbol -> Map Symbol q -> Constraint
+class Key k t where
     type Value k t :: q
     _field  :: Field  f t (Value k t)
     _branch :: Branch f t (Value k t)
@@ -882,7 +883,8 @@ branch :: forall k t f. Key k t => Branch f t (Value k t)
 branch = _branch @_ @k @t
 
 -- member :: Ord a => a -> RB a -> Bool
-class KeyHelper (ordering :: Ordering) (k :: Symbol) (left :: Map Symbol q) (v :: q) (right :: Map Symbol q) where 
+type KeyHelper :: Ordering -> Symbol -> Map Symbol q -> q -> Map Symbol q -> Constraint
+class KeyHelper ordering k left v right where 
     type Value' ordering k left v right :: q
     field'  :: Field  f (N colorx left kx v right) (Value' ordering k left v right)
     branch' :: Branch f (N colorx left kx v right) (Value' ordering k left v right)
@@ -1020,6 +1022,7 @@ eliminate_Variant cases variant =
 
 {- | Represents a handler for a branch of a 'Variant'.  
 -}
+type Case :: (q -> Type) -> Type -> q -> Type
 newtype Case f a b = Case { runCase :: f b -> a }
 
 instance Functor f => Contravariant (Case f a) where
@@ -1038,7 +1041,7 @@ addCaseI f = addField @k @v @t (Case (f . unI))
 --
 --
 -- Subsetting
-
+type SetField :: (q -> Type) -> Type -> q -> Type
 newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
  
 {- | For a given 'Map', produces a two-place constraint confirming the presence
@@ -1046,6 +1049,7 @@ newtype SetField f a b = SetField { getSetField :: f b -> a -> a }
      
      Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
+type PresentIn :: Map Symbol q -> Symbol -> q -> Constraint
 class (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol q) (k :: Symbol) (v :: q) 
 instance (Key k t, Value k t ~ v) => PresentIn (t :: Map Symbol q) (k :: Symbol) (v :: q)
 
@@ -1166,9 +1170,8 @@ eliminateSubset cases =
 
      The functions 'toNP' and 'fromNP' are usually easier to use. 
 -}
-class Productlike (start :: [k])
-                  (t :: Map Symbol k) 
-                  (result :: [k]) | start t -> result, result t -> start where
+type Productlike :: [k] -> Map Symbol k -> [k] -> Constraint
+class Productlike start t result | start t -> result, result t -> start where
     _prefixNP:: Record f t -> NP f start -> NP f result
     _breakNP :: NP f result -> (Record f t, NP f start)
 
@@ -1233,9 +1236,8 @@ fromNP np = let (r,Nil) = breakNP np in r
 
      The functions 'toNS' and 'fromNS' are usually easier to use. 
 -}
-class Sumlike (start :: [k]) 
-              (t :: Map Symbol k) 
-              (result :: [k]) | start t -> result, result t -> start where
+type Sumlike :: [k] -> Map Symbol k -> [k] -> Constraint
+class Sumlike start t result | start t -> result, result t -> start where
     _prefixNS :: Either (NS f start) (Variant f t) -> NS f result
     _breakNS :: NS f result -> Either (NS f start) (Variant f t)
 
