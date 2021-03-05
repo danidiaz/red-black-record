@@ -22,7 +22,9 @@
              DefaultSignatures,
              PartialTypeSignatures,
              LambdaCase,
-             EmptyCase 
+             EmptyCase,
+             StandaloneKindSignatures
+
 #-}
 {-#  OPTIONS_GHC -Wno-partial-type-signatures  #-}
 
@@ -79,14 +81,16 @@ type Empty = E
 -- In fact, if I delete KeysValuesAllF and use eclusively KeysValuesAll, functions like demoteKeys seem to still work fine.
 --
 -- UndecidableSuperClasses and RankNTypes seem to be required by KeysValuesAllF.
+type KeysValuesAllF :: (symbol -> q -> Constraint) -> Map symbol q -> Constraint
 type family
-  KeysValuesAllF (c :: symbol -> q -> Constraint) (t :: Map symbol q) :: Constraint where
-  KeysValuesAllF  _ E                        = ()
-  KeysValuesAllF  c (N color left k v right) = (c k v, KeysValuesAll c left, KeysValuesAll c right)
+  KeysValuesAllF c t :: Constraint where
+  KeysValuesAllF _ E                        = ()
+  KeysValuesAllF c (N color left k v right) = (c k v, KeysValuesAll c left, KeysValuesAll c right)
 
 {- | Require a constraint for every key-value pair in a tree. This is a generalization of 'Data.SOP.All' from "Data.SOP".
 -}
-class KeysValuesAllF c t => KeysValuesAll (c :: symbol -> q -> Constraint) (t :: Map symbol q) where
+type KeysValuesAll :: (symbol -> q -> Constraint) -> Map symbol q -> Constraint
+class KeysValuesAllF c t => KeysValuesAll c t where
 
   --  'cpara_Map' constructs a 'Record' by means of a constraint for producing
   --  the nodes of the tree. The constraint is passed as a 'Data.Proxy.Proxy'.
@@ -100,7 +104,8 @@ class KeysValuesAllF c t => KeysValuesAll (c :: symbol -> q -> Constraint) (t ::
 {- | This typeclass provides generalizations of 'Applicative'-like functions
      which work over 'Record's and 'Variant's.
 -}
-class Maplike (t :: Map Symbol Type) where
+type Maplike :: Map Symbol Type -> Constraint
+class Maplike t where
     {- | 
          See 'cpure_Record' and 'cpure'_Record' for more useful versions of
          this function.
@@ -268,6 +273,7 @@ cpure'_Record _ fpure = cpara_Map (Proxy @(KeyValueConstraints KnownSymbol c)) u
        -> Record f (N color left k' v' right)
     go left right = Node left (fpure @v' (symbolVal (Proxy @k'))) right 
 
+type F1 :: (q -> Type) -> (q -> Type) -> Map Symbol q -> Type
 newtype F1 f g t = F1 { unF1 :: Record f t -> Record g t }
 
 {- | Apply a transformation to the type constructor which wraps the fields of a 'Record', with some constraints in scope.
@@ -283,6 +289,7 @@ cliftA_Record _ func = unF1 $ cpara_Map (Proxy @c) (F1 $ \_ -> unit) go
        -> F1 f g (N color left k' v' right)
     go (F1 leftf) (F1 rightf) = F1 (\(Node left v right) -> Node (leftf left) (func @k' @v' v) (rightf right))
 
+type F2 :: (q -> Type) -> (q -> Type) -> (q -> Type) -> Map Symbol q -> Type
 newtype F2 f g h t = F2 { unF2 :: Record f t -> Record g t -> Record h t }
 
 {- | 
@@ -323,7 +330,8 @@ demoteKeys = cpara_Map (Proxy @KnownKey) unit go
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
-class KnownSymbol k => KnownKey (k :: Symbol) (v :: q)
+type KnownKey :: Symbol -> q -> Constraint
+class KnownSymbol k => KnownKey k v
 instance KnownSymbol k => KnownKey k v 
 
 
@@ -349,7 +357,8 @@ demoteEntries = cpara_Map (Proxy @KnownKeyTypeableValue) unit go
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
-class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) (v :: q)
+type KnownKeyTypeableValue :: Symbol -> q -> Constraint
+class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v
 instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v 
 
 {- |
@@ -357,7 +366,8 @@ instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
-class (kc k, vc v) => KeyValueConstraints (kc :: Symbol -> Constraint) (vc :: q -> Constraint) (k :: Symbol) (v :: q)
+type KeyValueConstraints :: (Symbol -> Constraint) -> (q -> Constraint) -> Symbol -> q -> Constraint
+class (kc k, vc v) => KeyValueConstraints kc vc k v
 instance (kc k, vc v) => KeyValueConstraints kc vc k v
 
 {- |
@@ -365,7 +375,8 @@ instance (kc k, vc v) => KeyValueConstraints kc vc k v
 
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
-class (vc v) => ValueConstraint (vc :: q -> Constraint) (k :: Symbol) (v :: q)
+type ValueConstraint :: (q -> Constraint) -> Symbol -> q -> Constraint
+class (vc v) => ValueConstraint vc k v
 instance (vc v) => ValueConstraint vc k v
 
 --
@@ -378,7 +389,8 @@ instance (vc v) => ValueConstraint vc k v
 
      See also 'insert', 'delete' and 'project'.
 -}
-data Record (f :: q -> Type) (t :: Map Symbol q)  where
+type Record :: (q -> Type) -> Map Symbol q -> Type
+data Record f t  where
     Empty :: Record f E 
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
@@ -447,7 +459,8 @@ unit = Empty
 
      See also 'widen', 'winnow' and 'inject'.
 -}
-data Variant (f :: q -> Type) (t :: Map Symbol q)  where
+type Variant :: (q -> Type) -> Map Symbol q -> Type
+data Variant f t  where
     Here       :: f v -> Variant f (N color left k v right)
     LookRight  :: Variant f t -> Variant f (N color' left' k' v' t)
     LookLeft   :: Variant f t -> Variant f (N color' t k' v' right')
@@ -503,13 +516,15 @@ prettyShowVariantI v = prettyShowVariant (show . unI) v
 
 {- | Insert a list of type level key / value pairs into a type-level map. 
 -}
-type family InsertAll (es :: [(Symbol,q)]) (t :: Map Symbol q) :: Map Symbol q where
+type InsertAll :: [(Symbol,q)] -> Map Symbol q -> Map Symbol q
+type family InsertAll es t where
     InsertAll '[] t = t
     InsertAll ( '(name,fieldType) ': es ) t = Insert name fieldType (InsertAll es t)
 
 {- | Build a type-level map out of a list of type level key / value pairs. 
 -}
-type FromList (es :: [(Symbol,q)]) = InsertAll es Empty
+type FromList :: [(Symbol,q)] -> Map Symbol q
+type FromList es = InsertAll es Empty
 
 
 {- |
