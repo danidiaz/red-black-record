@@ -524,7 +524,7 @@ type family InsertAll (es :: [(Symbol,q)]) (t :: Map Symbol q) where
 {- | Build a type-level map out of a list of type level key / value pairs. 
 -}
 type FromList :: [(Symbol,q)] -> Map Symbol q
-type FromList es = InsertAll es Empty
+type FromList (es :: [(Symbol,q)]) = InsertAll es Empty
 
 
 {- |
@@ -1530,17 +1530,19 @@ instance ( ToVariantHelper t t1,
 --
 --
 --
-
-type family DiscriminateBalL (l :: Map k v) (r :: Map k v) :: Bool where
+type DiscriminateBalL :: Map k v -> Map k v -> Bool 
+type family DiscriminateBalL l r where
     DiscriminateBalL (N R _ _ _ _) _ = False
     DiscriminateBalL _             _ = True
 
-class BalanceableL (l :: Map Symbol q) (k :: Symbol) (v :: q) (r :: Map Symbol q) where
+type BalanceableL :: Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
+class BalanceableL l k v r where
     type BalL l k v r :: Map Symbol q
     balLR :: Record f (N color l k v r) -> Record f (BalL l k v r)
     balLV :: Variant f (N color l k v r) -> Variant f (BalL l k v r)
 
-class BalanceableHelperL (b :: Bool) (l :: Map Symbol q) (k :: Symbol) (v :: q) (r :: Map Symbol q) where
+type BalanceableHelperL :: Bool -> Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
+class BalanceableHelperL b l k v r where
     type BalL' b l k v r :: Map Symbol q
     balLR' :: Record f (N color l k v r) -> Record f (BalL' b l k v r)
     balLV' :: Variant f (N color l k v r) -> Variant f (BalL' b l k v r)
@@ -1601,16 +1603,20 @@ instance (N R l k kv r ~ g, BalanceableHelper    (ShouldBalance t3 g) t3 z zv g)
 -- balright a x (T R b y c) = T R a x (T B b y c)
 -- balright (T B a x b) y bl = balance (T R a x b) y bl
 -- balright (T R a x (T B b y c)) z bl = T R (balance (sub1 a) x b) y (T B c z bl)
-type family DiscriminateBalR (l :: Map k v) (r :: Map k v) :: Bool where
+type DiscriminateBalR :: Map k v -> Map k v -> Bool
+type family DiscriminateBalR l r where
     DiscriminateBalR _ (N R _ _ _ _) = False
     DiscriminateBalR _ _             = True
 
-class BalanceableR (l :: Map Symbol q) (k :: Symbol) (v :: q) (r :: Map Symbol q) where
+
+type BalanceableR :: Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
+class BalanceableR l k v r where
     type BalR l k v r :: Map Symbol q
     balRR :: Record f (N color l k v r) -> Record f (BalR l k v r)
     balRV :: Variant f (N color l k v r) -> Variant f (BalR l k v r)
 
-class BalanceableHelperR (b :: Bool) (l :: Map Symbol q) (k :: Symbol) (v :: q) (r :: Map Symbol q) where
+type BalanceableHelperR :: Bool -> Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
+class BalanceableHelperR b l k v r where
     type BalR' b l k v r :: Map Symbol q
     balRR' :: Record f (N color l k v r) -> Record f (BalR' b l k v r)
     balRV' :: Variant f (N color l k v r) -> Variant f (BalR' b l k v r)
@@ -1681,7 +1687,8 @@ instance (N R t2 u uv t3 ~ g, ShouldBalance g l ~ shouldbalance, BalanceableHelp
 -- app (T R a x b) c = T R a x (app b c)
 
 
-class Fuseable (l :: Map Symbol q) (r :: Map Symbol q) where
+type Fuseable :: Map Symbol q -> Map Symbol q -> Constraint
+class Fuseable l r where
     type Fuse l r :: Map Symbol q
     fuseRecord :: Record f l -> Record f r -> Record f (Fuse l r)
     fuseVariant :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
