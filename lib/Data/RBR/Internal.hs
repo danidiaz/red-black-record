@@ -1751,7 +1751,8 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ fused, FuseableHelper1 fuse
     fuseRecord = fuseRecord1 @_ @(Fuse right1 left2) 
     fuseVariant = fuseVariant1 @_ @(Fuse right1 left2)
 
-class FuseableHelper1 (fused :: Map Symbol q) (l :: Map Symbol q) (r :: Map Symbol q) where
+type FuseableHelper1 :: Map Symbol q -> Map Symbol q -> Map Symbol q -> Constraint
+class FuseableHelper1 fused l r where
     type Fuse1 fused l r :: Map Symbol q
     fuseRecord1 :: Record f l -> Record f r -> Record f (Fuse l r)
     fuseVariant1 :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
@@ -1916,6 +1917,7 @@ instance (BalanceableL left1 k1 v1 (N B E k2 v2 right2))
 --      | x<y = delformLeft a y b
 --      | x>y = delformRight a y b
 --      | otherwise = app a b
+-- using standalone kind signatures here breaks stuff...
 class Delable (k :: Symbol) (v :: q) (t :: Map Symbol q) where
     type Del k v t :: Map Symbol q
     del :: Record f t -> Record f (Del k v t)
