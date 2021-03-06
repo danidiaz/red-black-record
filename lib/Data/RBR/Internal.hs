@@ -90,7 +90,7 @@ type family
 {- | Require a constraint for every key-value pair in a tree. This is a generalization of 'Data.SOP.All' from "Data.SOP".
 -}
 type KeysValuesAll :: (symbol -> q -> Constraint) -> Map symbol q -> Constraint
-class KeysValuesAllF c t => KeysValuesAll c t where
+class KeysValuesAllF c t => KeysValuesAll (c :: symbol -> q -> Constraint) (t :: Map symbol q) where
 
   --  'cpara_Map' constructs a 'Record' by means of a constraint for producing
   --  the nodes of the tree. The constraint is passed as a 'Data.Proxy.Proxy'.
@@ -105,7 +105,7 @@ class KeysValuesAllF c t => KeysValuesAll c t where
      which work over 'Record's and 'Variant's.
 -}
 type Maplike :: Map Symbol Type -> Constraint
-class Maplike t where
+class Maplike (t :: Map Symbol Type) where
     {- | 
          See 'cpure_Record' and 'cpure'_Record' for more useful versions of
          this function.
@@ -331,7 +331,7 @@ demoteKeys = cpara_Map (Proxy @KnownKey) unit go
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
 type KnownKey :: Symbol -> q -> Constraint
-class KnownSymbol k => KnownKey k v
+class KnownSymbol k => KnownKey (k :: Symbol) (v :: q)
 instance KnownSymbol k => KnownKey k v 
 
 
@@ -358,7 +358,7 @@ demoteEntries = cpara_Map (Proxy @KnownKeyTypeableValue) unit go
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
 type KnownKeyTypeableValue :: Symbol -> q -> Constraint
-class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v
+class (KnownSymbol k, Typeable v) => KnownKeyTypeableValue (k :: Symbol) (v :: q)
 instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v 
 
 {- |
@@ -367,7 +367,7 @@ instance (KnownSymbol k, Typeable v) => KnownKeyTypeableValue k v
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
 type KeyValueConstraints :: (Symbol -> Constraint) -> (q -> Constraint) -> Symbol -> q -> Constraint
-class (kc k, vc v) => KeyValueConstraints kc vc k v
+class (kc k, vc v) => KeyValueConstraints (kc :: Symbol -> Constraint) (vc :: q -> Constraint) (k :: Symbol) (v :: q)
 instance (kc k, vc v) => KeyValueConstraints kc vc k v
 
 {- |
@@ -376,7 +376,7 @@ instance (kc k, vc v) => KeyValueConstraints kc vc k v
   Defined using the "class synonym" <https://www.reddit.com/r/haskell/comments/ab8ypl/monthly_hask_anything_january_2019/edk1ot3/ trick>.
 -}
 type ValueConstraint :: (q -> Constraint) -> Symbol -> q -> Constraint
-class (vc v) => ValueConstraint vc k v
+class (vc v) => ValueConstraint (vc :: q -> Constraint) (k :: Symbol) (v :: q)
 instance (vc v) => ValueConstraint vc k v
 
 --
@@ -390,7 +390,7 @@ instance (vc v) => ValueConstraint vc k v
      See also 'insert', 'delete' and 'project'.
 -}
 type Record :: (q -> Type) -> Map Symbol q -> Type
-data Record f t  where
+data Record (f :: q -> Type) (t :: Map Symbol q) where
     Empty :: Record f E 
     Node  :: Record f left -> f v -> Record f right -> Record f (N color left k v right)
 
@@ -460,7 +460,7 @@ unit = Empty
      See also 'widen', 'winnow' and 'inject'.
 -}
 type Variant :: (q -> Type) -> Map Symbol q -> Type
-data Variant f t  where
+data Variant (f :: q -> Type) (t :: Map Symbol q)  where
     Here       :: f v -> Variant f (N color left k v right)
     LookRight  :: Variant f t -> Variant f (N color' left' k' v' t)
     LookLeft   :: Variant f t -> Variant f (N color' t k' v' right')
@@ -517,7 +517,7 @@ prettyShowVariantI v = prettyShowVariant (show . unI) v
 {- | Insert a list of type level key / value pairs into a type-level map. 
 -}
 type InsertAll :: [(Symbol,q)] -> Map Symbol q -> Map Symbol q
-type family InsertAll es t where
+type family InsertAll (es :: [(Symbol,q)]) (t :: Map Symbol q) where
     InsertAll '[] t = t
     InsertAll ( '(name,fieldType) ': es ) t = Insert name fieldType (InsertAll es t)
 
@@ -580,7 +580,7 @@ addFieldI = insertI @k @v @t
      insertion fails to compile.
  -}
 type Insertable :: Symbol -> q -> Map Symbol q -> Constraint
-class Insertable k v t where
+class Insertable (k :: Symbol) (v :: q) (t :: Map Symbol q) where
     type Insert k v t :: Map Symbol q
     _insert :: f v -> Record f t -> Record f (Insert k v t)
     _widen :: Variant f t -> Variant f (Insert k v t)
@@ -862,7 +862,7 @@ type family Branch (f :: q -> Type) (t :: Map Symbol q) (v :: q) where
      The 'Value' type family gives the 'Type' corresponding to the key.
 -} 
 type Key :: Symbol -> Map Symbol q -> Constraint
-class Key k t where
+class Key (k :: Symbol) (t :: Map Symbol q) where
     type Value k t :: q
     _field  :: Field  f t (Value k t)
     _branch :: Branch f t (Value k t)
@@ -1171,7 +1171,9 @@ eliminateSubset cases =
      The functions 'toNP' and 'fromNP' are usually easier to use. 
 -}
 type Productlike :: [k] -> Map Symbol k -> [k] -> Constraint
-class Productlike start t result | start t -> result, result t -> start where
+class Productlike (start :: [k])
+                  (t :: Map Symbol k) 
+                  (result :: [k]) | start t -> result, result t -> start where
     _prefixNP:: Record f t -> NP f start -> NP f result
     _breakNP :: NP f result -> (Record f t, NP f start)
 
@@ -1237,7 +1239,9 @@ fromNP np = let (r,Nil) = breakNP np in r
      The functions 'toNS' and 'fromNS' are usually easier to use. 
 -}
 type Sumlike :: [k] -> Map Symbol k -> [k] -> Constraint
-class Sumlike start t result | start t -> result, result t -> start where
+class Sumlike (start :: [k]) 
+              (t :: Map Symbol k) 
+              (result :: [k]) | start t -> result, result t -> start where
     _prefixNS :: Either (NS f start) (Variant f t) -> NS f result
     _breakNS :: NS f result -> Either (NS f start) (Variant f t)
 
@@ -1340,7 +1344,7 @@ fromNS ns = case breakNS ns of
 --
 -- Interfacing with normal records
 type ToRecord :: Type -> Constraint
-class ToRecord r where
+class ToRecord (r :: Type) where
     type RecordCode r :: Map Symbol Type
     -- https://stackoverflow.com/questions/22087549/defaultsignatures-and-associated-type-families/22088808
     type RecordCode r = RecordCode' E (G.Rep r)
@@ -1394,7 +1398,7 @@ class ToRecord r => FromRecord (r :: Type) where
      The naming scheme follows that of 'Generics.SOP.IsProductType'.
  -}
 type IsRecordType :: Type -> Map Symbol Type -> Constraint
-type IsRecordType r t = (G.Generic r, ToRecord r, RecordCode r ~ t, FromRecord r)
+type IsRecordType (r :: Type) (t :: Map Symbol Type) = (G.Generic r, ToRecord r, RecordCode r ~ t, FromRecord r)
 
 -- {- |
 --     A version of 'fromRecord' which accepts 'Record' values with more fields than the target nominal record, and possibly in an incompatible order.
@@ -1432,15 +1436,18 @@ instance ( FromRecordHelper t t1,
 --
 --
 --
-type family VariantCode (s :: Type) :: Map Symbol Type where
+type VariantCode :: Type -> Map Symbol Type
+type family VariantCode s where
     VariantCode s = VariantCode' E (G.Rep s)
 
-type family VariantCode' (acc :: Map Symbol Type) (g :: Type -> Type) :: Map Symbol Type where
+type VariantCode' :: Map Symbol Type -> (Type -> Type) -> Map Symbol Type
+type family VariantCode' acc g where
     VariantCode' acc (D1 meta fields) = VariantCode' acc fields
     VariantCode' acc (t1 G.:+: t2) = VariantCode' (VariantCode' acc t2) t1
     VariantCode' acc (C1 (G.MetaCons k _ _) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v))) = Insert k v acc
     VariantCode' acc (C1 (G.MetaCons k _ _) G.U1) = Insert k () acc
      
+type FromVariant :: Type -> Constraint     
 class FromVariant (s :: Type) where
     fromVariant :: Variant I (VariantCode s) -> s
     default fromVariant :: (G.Generic s, FromVariantHelper (VariantCode s) (G.Rep s)) => Variant I (VariantCode s) -> s
@@ -1451,6 +1458,7 @@ class FromVariant (s :: Type) where
 {- |
      The naming scheme follows that of 'Generics.SOP.IsProductType'.
  -}
+type IsVariantType :: Type -> Map Symbol Type -> Constraint
 type IsVariantType (v :: Type) (t :: Map Symbol Type) = (G.Generic v, ToVariant v, VariantCode v ~ t, FromVariant v)
 
 class FromVariantHelper (t :: Map Symbol Type) (g :: Type -> Type) where
@@ -1486,6 +1494,7 @@ instance ( FromVariantHelper t t1,
 
 --
 --
+type ToVariant :: Type -> Constraint
 class ToVariant (s :: Type) where
     toVariant :: s -> Variant I (VariantCode s)
     default toVariant :: (G.Generic s, ToVariantHelper (VariantCode s) (G.Rep s)) => s -> Variant I (VariantCode s)
