@@ -1917,7 +1917,8 @@ instance (BalanceableL left1 k1 v1 (N B E k2 v2 right2))
 --      | x<y = delformLeft a y b
 --      | x>y = delformRight a y b
 --      | otherwise = app a b
--- using standalone kind signatures here breaks stuff...
+-- removing the inline kind signatures here breaks stuff...
+type Delable :: Symbol -> q -> Map Symbol q -> Constraint
 class Delable (k :: Symbol) (v :: q) (t :: Map Symbol q) where
     type Del k v t :: Map Symbol q
     del :: Record f t -> Record f (Del k v t)
