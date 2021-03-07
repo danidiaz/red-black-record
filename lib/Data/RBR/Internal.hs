@@ -517,13 +517,12 @@ prettyShowVariantI v = prettyShowVariant (show . unI) v
 {- | Insert a list of type level key / value pairs into a type-level map. 
 -}
 type InsertAll :: [(Symbol,q)] -> Map Symbol q -> Map Symbol q
-type family InsertAll (es :: [(Symbol,q)]) (t :: Map Symbol q) where
+type family InsertAll (es :: [(Symbol,q)]) (t :: Map Symbol q) :: Map Symbol q where
     InsertAll '[] t = t
     InsertAll ( '(name,fieldType) ': es ) t = Insert name fieldType (InsertAll es t)
 
 {- | Build a type-level map out of a list of type level key / value pairs. 
 -}
-type FromList :: [(Symbol,q)] -> Map Symbol q
 type FromList (es :: [(Symbol,q)]) = InsertAll es Empty
 
 
@@ -720,7 +719,7 @@ data BalanceAction = BalanceSpecial
                    deriving Show
 
 type ShouldBalance :: Map k' v' -> Map k' v' -> BalanceAction
-type family ShouldBalance left right where
+type family ShouldBalance (left :: Map k' v') (right :: Map k' v') :: BalanceAction where
     ShouldBalance (N R _ _ _ _) (N R _ _ _ _) = BalanceSpecial
     ShouldBalance (N R (N R _ _ _ _) _ _ _) _ = BalanceLL
     ShouldBalance (N R _ _ _ (N R _ _ _ _)) _ = BalanceLR
