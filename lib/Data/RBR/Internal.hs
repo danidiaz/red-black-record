@@ -594,8 +594,7 @@ instance (InsertableHelper1 k v t, Insert1 k v t ~ inserted, CanMakeBlack insert
     _insert fv r = makeBlackR @_ (insert1 @_ @k @v fv r) 
     _widen v = makeBlackV @_ (widen1 @_ @k @v v)
 
-type CanMakeBlack :: Map Symbol q -> Constraint
-class CanMakeBlack t where
+class CanMakeBlack (t :: Map Symbol q) where
     type MakeBlack t :: Map Symbol q
     makeBlackR :: Record f t -> Record f (MakeBlack t)
     makeBlackV :: Variant f t -> Variant f (MakeBlack t)
@@ -637,8 +636,14 @@ instance (CmpSymbol k k' ~ ordering,
     insert1 = insert2 @_ @ordering @k @v @color @left @k' @v' @right
     widen1  = widen2 @_ @ordering @k @v @color @left @k' @v' @right
 
-type InsertableHelper2 :: Ordering -> Symbol -> q -> Color -> Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
-class InsertableHelper2 ordering k v color left k' v' right where
+class InsertableHelper2 (ordering :: Ordering) 
+                        (k :: Symbol) 
+                        (v :: q) 
+                        (color :: Color) 
+                        (left :: Map Symbol q) 
+                        (k' :: Symbol) 
+                        (v' :: q) 
+                        (right :: Map Symbol q) where
     type Insert2 ordering k v color left k' v' right :: Map Symbol q 
     insert2 :: f v -> Record f (N color left k' v' right) -> Record f (Insert2 ordering k v color left k' v' right)
     widen2 :: Variant f (N color left k' v' right) -> Variant f (Insert2 ordering k v color left k' v' right)
@@ -723,8 +728,7 @@ type family ShouldBalance left right where
     ShouldBalance _ (N R _ _ _ (N R _ _ _ _)) = BalanceRR
     ShouldBalance _ _                         = DoNotBalance
 
-type Balanceable :: Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
-class Balanceable left k v right where
+class Balanceable (left :: Map Symbol q) (k :: Symbol) (v :: q) (right :: Map Symbol q) where
     type Balance left k v right :: Map Symbol q
     balanceR :: Record f (N color left k v right) -> Record f (Balance left k v right)
     balanceV :: Variant f (N color left k v right) -> Variant f (Balance left k v right)
@@ -739,8 +743,11 @@ instance (ShouldBalance left right ~ action,
     balanceR = balanceR' @_ @action @left @k @v @right
     balanceV = balanceV' @_ @action @left @k @v @right
     
-type BalanceableHelper :: BalanceAction -> Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
-class BalanceableHelper action left k v right  where
+class BalanceableHelper (action :: BalanceAction) 
+                        (left :: Map Symbol q) 
+                        (k :: Symbol) 
+                        (v :: q) 
+                        (right :: Map Symbol q) where
     type Balance' action left k v right :: Map Symbol q
     balanceR' :: Record f (N color left k v right) -> Record f (Balance' action left k v right)
     balanceV' :: Variant f (N color left k v right) -> Variant f (Balance' action left k v right)
@@ -844,13 +851,11 @@ instance BalanceableHelper DoNotBalance a k v b where
 {- | Auxiliary type family to avoid repetition and help improve compilation times.
  -}
 
-type Field :: (q -> Type) -> Map Symbol q -> q -> Type 
 type family Field (f :: q -> Type) (t :: Map Symbol q) (v :: q) where
     Field f t v = Record f t -> (f v -> Record f t, f v)
 
 {- | Auxiliary type family to avoid repetition and help improve compilation times.
  -}
-type Branch :: (q -> Type) -> Map Symbol q -> q -> Type 
 type family Branch (f :: q -> Type) (t :: Map Symbol q) (v :: q) where
     Branch f t v = (Variant f t -> Maybe (f v), f v -> Variant f t)
 
@@ -861,7 +866,6 @@ type family Branch (f :: q -> Type) (t :: Map Symbol q) (v :: q) where
 
      The 'Value' type family gives the 'Type' corresponding to the key.
 -} 
-type Key :: Symbol -> Map Symbol q -> Constraint
 class Key (k :: Symbol) (t :: Map Symbol q) where
     type Value k t :: q
     _field  :: Field  f t (Value k t)
@@ -883,8 +887,7 @@ branch :: forall k t f. Key k t => Branch f t (Value k t)
 branch = _branch @_ @k @t
 
 -- member :: Ord a => a -> RB a -> Bool
-type KeyHelper :: Ordering -> Symbol -> Map Symbol q -> q -> Map Symbol q -> Constraint
-class KeyHelper ordering k left v right where 
+class KeyHelper (ordering :: Ordering) (k :: Symbol) (left :: Map Symbol q) (v :: q) (right :: Map Symbol q) where 
     type Value' ordering k left v right :: q
     field'  :: Field  f (N colorx left kx v right) (Value' ordering k left v right)
     branch' :: Branch f (N colorx left kx v right) (Value' ordering k left v right)
@@ -1352,8 +1355,7 @@ class ToRecord (r :: Type) where
     default toRecord :: (G.Generic r,ToRecordHelper E (G.Rep r),RecordCode r ~ RecordCode' E (G.Rep r)) => r -> Record I (RecordCode r)
     toRecord r = toRecord' unit (G.from r)
 
-type ToRecordHelper :: Map Symbol Type -> (Type -> Type) -> Constraint
-class ToRecordHelper start g where
+class ToRecordHelper (start :: Map Symbol Type) (g :: Type -> Type) where
     type RecordCode' start g :: Map Symbol Type
     toRecord' :: Record I start -> g x -> Record I (RecordCode' start g)
 
@@ -1407,7 +1409,7 @@ type IsRecordType (r :: Type) (t :: Map Symbol Type) = (G.Generic r, ToRecord r,
 -- fromRecordSuperset = fromRecord @r . projectSubset @subset @whole @flat
 
 type FromRecordHelper :: Map Symbol Type -> (Type -> Type) -> Constraint
-class FromRecordHelper t g where
+class FromRecordHelper (t :: Map Symbol Type) (g :: Type -> Type) where
     fromRecord' :: Record I t -> g x
 
 instance FromRecordHelper t fields => FromRecordHelper t (D1 meta (C1 metacons fields)) where
@@ -1437,11 +1439,11 @@ instance ( FromRecordHelper t t1,
 --
 --
 type VariantCode :: Type -> Map Symbol Type
-type family VariantCode s where
+type family VariantCode (s :: Type) :: Map Symbol Type where
     VariantCode s = VariantCode' E (G.Rep s)
 
 type VariantCode' :: Map Symbol Type -> (Type -> Type) -> Map Symbol Type
-type family VariantCode' acc g where
+type family VariantCode' (acc :: Map Symbol Type) (g :: Type -> Type) :: Map Symbol Type where
     VariantCode' acc (D1 meta fields) = VariantCode' acc fields
     VariantCode' acc (t1 G.:+: t2) = VariantCode' (VariantCode' acc t2) t1
     VariantCode' acc (C1 (G.MetaCons k _ _) (S1 ('G.MetaSel Nothing unpackedness strictness laziness) (Rec0 v))) = Insert k v acc
@@ -1531,18 +1533,18 @@ instance ( ToVariantHelper t t1,
 --
 --
 type DiscriminateBalL :: Map k v -> Map k v -> Bool 
-type family DiscriminateBalL l r where
+type family DiscriminateBalL (l :: Map k v) (r :: Map k v) :: Bool where
     DiscriminateBalL (N R _ _ _ _) _ = False
     DiscriminateBalL _             _ = True
 
 type BalanceableL :: Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
-class BalanceableL l k v r where
+class BalanceableL (l :: Map Symbol q) (k :: Symbol) (v :: q) (r :: Map Symbol q) where
     type BalL l k v r :: Map Symbol q
     balLR :: Record f (N color l k v r) -> Record f (BalL l k v r)
     balLV :: Variant f (N color l k v r) -> Variant f (BalL l k v r)
 
 type BalanceableHelperL :: Bool -> Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
-class BalanceableHelperL b l k v r where
+class BalanceableHelperL (b :: Bool) (l :: Map Symbol q) (k :: Symbol) (v :: q) (r :: Map Symbol q) where
     type BalL' b l k v r :: Map Symbol q
     balLR' :: Record f (N color l k v r) -> Record f (BalL' b l k v r)
     balLV' :: Variant f (N color l k v r) -> Variant f (BalL' b l k v r)
@@ -1604,19 +1606,19 @@ instance (N R l k kv r ~ g, BalanceableHelper    (ShouldBalance t3 g) t3 z zv g)
 -- balright (T B a x b) y bl = balance (T R a x b) y bl
 -- balright (T R a x (T B b y c)) z bl = T R (balance (sub1 a) x b) y (T B c z bl)
 type DiscriminateBalR :: Map k v -> Map k v -> Bool
-type family DiscriminateBalR l r where
+type family DiscriminateBalR (l :: Map k v) (r :: Map k v) :: Bool where
     DiscriminateBalR _ (N R _ _ _ _) = False
     DiscriminateBalR _ _             = True
 
 
 type BalanceableR :: Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
-class BalanceableR l k v r where
+class BalanceableR (l :: Map Symbol q) (k :: Symbol) (v :: q) (r :: Map Symbol q) where
     type BalR l k v r :: Map Symbol q
     balRR :: Record f (N color l k v r) -> Record f (BalR l k v r)
     balRV :: Variant f (N color l k v r) -> Variant f (BalR l k v r)
 
 type BalanceableHelperR :: Bool -> Map Symbol q -> Symbol -> q -> Map Symbol q -> Constraint
-class BalanceableHelperR b l k v r where
+class BalanceableHelperR (b :: Bool) (l :: Map Symbol q) (k :: Symbol) (v :: q) (r :: Map Symbol q) where
     type BalR' b l k v r :: Map Symbol q
     balRR' :: Record f (N color l k v r) -> Record f (BalR' b l k v r)
     balRV' :: Variant f (N color l k v r) -> Variant f (BalR' b l k v r)
@@ -1688,7 +1690,7 @@ instance (N R t2 u uv t3 ~ g, ShouldBalance g l ~ shouldbalance, BalanceableHelp
 
 
 type Fuseable :: Map Symbol q -> Map Symbol q -> Constraint
-class Fuseable l r where
+class Fuseable (l :: Map Symbol q) (r :: Map Symbol q) where
     type Fuse l r :: Map Symbol q
     fuseRecord :: Record f l -> Record f r -> Record f (Fuse l r)
     fuseVariant :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
@@ -1752,7 +1754,7 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ fused, FuseableHelper1 fuse
     fuseVariant = fuseVariant1 @_ @(Fuse right1 left2)
 
 type FuseableHelper1 :: Map Symbol q -> Map Symbol q -> Map Symbol q -> Constraint
-class FuseableHelper1 fused l r where
+class FuseableHelper1 (fused :: Map Symbol q) (l :: Map Symbol q) (r :: Map Symbol q) where
     type Fuse1 fused l r :: Map Symbol q
     fuseRecord1 :: Record f l -> Record f r -> Record f (Fuse l r)
     fuseVariant1 :: Either (Variant f l) (Variant f r) -> Variant f (Fuse l r)
