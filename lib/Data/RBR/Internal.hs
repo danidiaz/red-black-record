@@ -1356,8 +1356,8 @@ class ToRecord (r :: Type) where
 
 instance (
     G.Generic r,
-    ToRecordHelper E (G.Rep r),
-    RecordCode r ~ RecordCode' E (G.Rep r)) =>
+    ToRecordHelper E (G.Rep r)
+    ) =>
     ToRecord (Generically (r :: Type)) where
     type RecordCode (Generically (r :: Type)) = RecordCode' E (G.Rep r)
     toRecord (Generically r) = toRecord' unit (G.from r)
