@@ -182,7 +182,8 @@ jobs:
       - name: doctests
         run: |
           $CABAL v2-install $ARG_COMPILER --ghc-options="-rtsopts" doctest --overwrite-policy=always
-          $CABAL v2-repl lib:red-black-record --build-depends=QuickCheck --build-depends=template-haskell --with-ghc=doctest --repl-options='-w -Wdefault'
+          # the extra build-depends are for libraries used in the doctest examples
+          $CABAL v2-repl lib:red-black-record --build-depends=QuickCheck --build-depends=template-haskell --build-depends=text --build-depends=bytestring --build-depends=aeson --build-depends=sop-core --with-ghc=doctest --repl-options='-w -Wdefault'
       - name: cabal check
         run: |
           cd ${PKGDIR_red_black_record} || false
