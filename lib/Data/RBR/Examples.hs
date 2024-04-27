@@ -53,7 +53,7 @@ import Data.SOP
 >>> import Data.Proxy
 >>> import Data.Foldable
 >>> import Data.Monoid
->>> import Data.Profunctor (Star(..))
+>>> import Control.Arrow (Kleisli(..))
 >>> import GHC.Generics (Generic)
 >>> import GHC.TypeLits
 >>> import qualified Data.Text
@@ -168,7 +168,7 @@ Just 5
 {- $json1
  
     We begin by creating a 'Record' of parsing functions, each paired with its
-    corresponding field name. We use 'Star' to treat the functions directly as
+    corresponding field name. We use 'Kleisli' to treat the functions directly as
     'Applicative's.
     
     Then we apply the transformation that we receive as parameter, which tweaks
@@ -186,14 +186,14 @@ Just 5
               :: forall r c. (IsRecordType r c, 
                               Maplike c,
                               KeysValuesAll (KeyValueConstraints KnownSymbol FromJSON) c) 
-              => (Record ((,) String :.: Star Parser Data.Aeson.Value) c -> Record ((,) String :.: Star Parser Data.Aeson.Value) c)
+              => (Record ((,) String :.: Kleisli Parser Data.Aeson.Value) c -> Record ((,) String :.: Kleisli Parser Data.Aeson.Value) c)
               -> Data.Aeson.Value 
               -> Parser r
         parseSpecial transform = 
             let fieldParsers = transform $ 
-                    cpure'_Record (Proxy @FromJSON) $ \fieldName -> Comp (fieldName,Star parseJSON)
-                applyName (Comp (fieldName,Star f)) = Star (\o -> explicitParseField f o (Data.Text.pack fieldName))
-                Star objectParser = sequence_Record $ liftA_Record applyName fieldParsers
+                    cpure'_Record (Proxy @FromJSON) $ \fieldName -> Comp (fieldName,Kleisli parseJSON)
+                applyName (Comp (fieldName,Kleisli f)) = Kleisli (\o -> explicitParseField f o (Data.Text.pack fieldName))
+                Kleisli objectParser = sequence_Record $ liftA_Record applyName fieldParsers
              in withObject "someobj" $ \o -> fromRecord <$> objectParser o
     :}
 
@@ -202,7 +202,7 @@ Just 5
 >>> instance FromRecord Person 
 >>> :{ 
     instance FromJSON Person where 
-        parseJSON = parseSpecial (setField @"name" (Comp ("anothername",Star (\_ -> pure "foo"))))
+        parseJSON = parseSpecial (setField @"name" (Comp ("anothername",Kleisli (\_ -> pure "foo"))))
     :}
 
 >>> Data.Aeson.eitherDecode @Person (fromString "{ \"anothername\" : null, \"age\" : 50 }")
@@ -226,9 +226,9 @@ Right (Person {name = "foo", age = 50})
               -> Data.Aeson.Value 
               -> Parser r
         parseWithAliases aliases = 
-            let fieldParsers = cpure_Record (Proxy @(ValueConstraint FromJSON)) (Star parseJSON)
-                mapKSS (K name) (Star pf) = Star (\o -> explicitParseField pf o (Data.Text.pack name))
-                Star objectParser = sequence_Record $ liftA2_Record mapKSS aliases fieldParsers
+            let fieldParsers = cpure_Record (Proxy @(ValueConstraint FromJSON)) (Kleisli parseJSON)
+                mapKSS (K name) (Kleisli pf) = Kleisli (\o -> explicitParseField pf o (Data.Text.pack name))
+                Kleisli objectParser = sequence_Record $ liftA2_Record mapKSS aliases fieldParsers
              in withObject "someobj" $ \o -> fromRecord <$> objectParser o
     :}
 
@@ -269,9 +269,9 @@ Right (Person {name = "John", age = 50})
             let subparser = 
                     sequence_Record $
                         cpure'_Record (Proxy @FromJSON) $ \fieldName ->
-                            Star (\o -> explicitParseField parseJSON o (Data.Text.pack fieldName))
+                            Kleisli (\o -> explicitParseField parseJSON o (Data.Text.pack fieldName))
                 intoOriginal subrecord = fromRecord (S.setFieldSubset @subset subrecord (toRecord r))
-                Star parser = intoOriginal <$> subparser
+                Kleisli parser = intoOriginal <$> subparser
              in withObject "someobj" parser
     :}
 
@@ -320,9 +320,9 @@ Person {name = "Mark", age = 70, whatever = True}
               -> Parser r
         parseAll = 
             let fieldParsers = cpure'_Record (Proxy @FromJSON) $ \fieldName -> 
-                    Star (\o -> explicitParseField parseJSON o (Data.Text.pack fieldName))
+                    Kleisli (\o -> explicitParseField parseJSON o (Data.Text.pack fieldName))
                 injected = liftA2_Record (\f star -> K $ Alt $ runCase f . I <$> star) injections'_Variant fieldParsers 
-                Alt (Star parser) = collapse'_Record injected
+                Alt (Kleisli parser) = collapse'_Record injected
              in withObject "someobj" (\o -> fromVariant <$> parser o)
     :}
 
