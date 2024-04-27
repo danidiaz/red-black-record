@@ -2,6 +2,7 @@
 
 ## 2.1.6.0
 - Added ToRecord instance for Generically
+- Added module `TypeLevelRecordDot` in a secondary public library.
 
 ## 2.1.5.0
 - Added cliftA_Record and cliftA2_Record.
