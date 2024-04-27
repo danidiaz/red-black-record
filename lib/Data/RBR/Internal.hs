@@ -40,7 +40,7 @@ import           Data.Monoid (Endo(..))
 import           Data.List (intersperse)
 import           Data.Foldable (asum)
 import           GHC.TypeLits
-import           GHC.Generics (D1,C1,S1(..),M1(..),K1(..),Rec0(..))
+import           GHC.Generics (D1,C1,S1(..),M1(..),K1(..),Rec0(..), Generically(..))
 import qualified GHC.Generics as G
 
 import           Data.SOP (I(..),K(..),unI,unK,NP(..),NS(..),All,SListI,type (-.->)(Fn,apFn),mapKIK,(:.:)(..),Top)
@@ -1353,6 +1353,14 @@ class ToRecord (r :: Type) where
     toRecord :: r -> Record I (RecordCode r)
     default toRecord :: (G.Generic r,ToRecordHelper E (G.Rep r),RecordCode r ~ RecordCode' E (G.Rep r)) => r -> Record I (RecordCode r)
     toRecord r = toRecord' unit (G.from r)
+
+instance (
+    G.Generic r,
+    ToRecordHelper E (G.Rep r),
+    RecordCode r ~ RecordCode' E (G.Rep r)) =>
+    ToRecord (Generically (r :: Type)) where
+    type RecordCode (Generically (r :: Type)) = RecordCode' E (G.Rep r)
+    toRecord (Generically r) = toRecord' unit (G.from r)
 
 class ToRecordHelper (start :: Map Symbol Type) (g :: Type -> Type) where
     type RecordCode' start g :: Map Symbol Type

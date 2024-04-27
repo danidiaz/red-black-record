@@ -1,5 +1,8 @@
 # Revision history for red-black-record
 
+## 2.1.6.0
+- Added ToRecord instance for Generically
+
 ## 2.1.5.0
 - Added cliftA_Record and cliftA2_Record.
 
